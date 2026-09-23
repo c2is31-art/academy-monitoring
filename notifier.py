@@ -19,45 +19,55 @@ def send_email_report(results):
     today_str = datetime.now().strftime("%Y-%m-%d")
     
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📢 [{today_str}] 학원 신규 공지·시간표·설명회 요약"
+    msg["Subject"] = f"📢 [{today_str}] 주요 학원 통합 모니터링 리포트"
     msg["From"] = SENDER_EMAIL
     msg["To"] = ", ".join(RECEIVER_EMAILS)
 
-    total_count = sum(len(items) for items in results.values())
+    # 전체 감지 건수 계산
+    total_count = sum(len(items) for items in results.values() if isinstance(items, list))
 
-    # 1. html 변수 선언 및 초기화 (이 부분이 빠져있어서 에러가 발생했습니다)
+    # HTML 메일 본문 조립
     html = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h2 style="color: #1a73e8;">🎓 일일 학원 공지·시간표·설명회 통합 보고서</h2>
-        <p style="font-size: 0.9em; color: #666;">수집 일시: {today_str} | 총 {total_count}건 감지</p>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 10px;">🎓 일일 학원 공지·시간표·설명회 통합 보고서</h2>
+        <p style="font-size: 0.9em; color: #666;">수집 일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 총 <b>{total_count}</b>건 감지</p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
     """
 
-    # 2. 학원별 수집 결과 조립
     for academy, items in results.items():
-        html += f"<h3 style='margin-bottom: 5px; color: #2c3e50;'>🏫 {academy}</h3>"
+        html += f"<h3 style='margin-bottom: 8px; color: #2c3e50; background-color: #f8f9fa; padding: 8px 12px; border-left: 4px solid #1a73e8;'>🏫 {academy}</h3>"
+        
         if items:
             html += "<ul style='margin-top: 5px; padding-left: 20px;'>"
             for item in items:
+                # 설명회/간담회 항목은 빨간색 강조 처리
                 if "[📢" in item:
                     html += f"<li style='margin-bottom: 8px; color: #d9534f; font-weight: bold;'>{item}</li>"
                 else:
                     html += f"<li style='margin-bottom: 8px;'>{item}</li>"
             html += "</ul>"
         else:
-            html += "<p style='color: #888; font-size: 0.9em; margin-top: 5px;'>- 최근 변동 사항 없음 -</p>"
+            html += "<p style='color: #888; font-size: 0.9em; margin-left: 10px;'>- 최근 변동 사항 없음 -</p>"
         html += "<br>"
 
-    html += "</body></html>"
+    html += """
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8em; color: #888;">본 메일은 GitHub Actions를 통해 자동 발송되는 모니터링 알림입니다.</p>
+    </body>
+    </html>
+    """
 
     msg.attach(MIMEText(html, "html", "utf-8"))
 
-    # 3. Dooray / SMTP 전송 로직
-    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        server.sendmail(SENDER_EMAIL, RECEIVER_EMAILS, msg.as_string())
+    # Dooray / SSL 메일 전송
+    try:
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, RECEIVER_EMAILS, msg.as_string())
         print("✅ 성공적으로 메일이 발송되었습니다!")
+    except Exception as e:
+        print(f"❌ 메일 발송 중 오류 발생: {e}")
     
     html_content += """
             <div class="footer">
