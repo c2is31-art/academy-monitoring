@@ -79,7 +79,7 @@ def is_recent(text):
         return False
 
     # 2. 필수 키워드 검사 (2028, 윈터, 설명회 중 1개 이상 필수)
-    target_keywords = ["2028", "윈터", "설명회"]
+    target_keywords = ["2028", "윈터", "예비"]
     if not any(kw in clean_text for kw in target_keywords):
         return False
 
