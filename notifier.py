@@ -22,43 +22,27 @@ def send_email_report(results):
     today_str = datetime.now().strftime("%Y-%m-%d")
     
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📢 [{today_str}] 경쟁학원 신규 공지 및 시간표 일일 모니터링 보고서"
+    msg["Subject"] = f"📢 [{today_str}] 학원 신규 공지·시간표·설명회 요약"
     msg["From"] = SENDER_EMAIL
     msg["To"] = ", ".join(RECEIVER_EMAILS)
 
     total_count = sum(len(items) for items in results.values())
-    
-    # HTML 이메일 템플릿
-    html_content = f"""
+
+    # 1. html 변수 선언 및 초기화 (이 부분이 빠져있어서 에러가 발생했습니다)
+    html = f"""
     <html>
-    <head>
-        <style>
-            body {{ font-family: 'Apple SD Gothic Neo', Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 650px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; }}
-            .header {{ background-color: #1e3a8a; color: white; padding: 15px; border-radius: 8px 8px 0 0; text-align: center; }}
-            .academy-card {{ margin-top: 20px; padding: 15px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; }}
-            .academy-title {{ font-size: 16px; font-weight: bold; color: #0f172a; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 5px; }}
-            .notice-list {{ list-style-type: none; padding-left: 0; margin: 0; }}
-            .notice-item {{ margin-bottom: 8px; font-size: 14px; }}
-            .notice-link {{ color: #2563eb; text-decoration: none; font-weight: 500; }}
-            .empty-text {{ color: #94a3b8; font-size: 13px; font-style: italic; }}
-            .footer {{ margin-top: 25px; text-align: center; font-size: 12px; color: #64748b; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h2>📊 경쟁학원 일일 모니터링 리포트</h2>
-                <p style="margin:0; font-size: 14px;">수집일자: {today_str} | 총 신규 업데이트: <strong>{total_count}건</strong></p>
-            </div>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #1a73e8;">🎓 일일 학원 공지·시간표·설명회 통합 보고서</h2>
+        <p style="font-size: 0.9em; color: #666;">수집 일시: {today_str} | 총 {total_count}건 감지</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
     """
 
+    # 2. 학원별 수집 결과 조립
     for academy, items in results.items():
         html += f"<h3 style='margin-bottom: 5px; color: #2c3e50;'>🏫 {academy}</h3>"
         if items:
             html += "<ul style='margin-top: 5px; padding-left: 20px;'>"
             for item in items:
-                # 👇 아래 if/else 문의 들여쓰기(스페이스바 16칸)를 맞춰줍니다.
                 if "[📢" in item:
                     html += f"<li style='margin-bottom: 8px; color: #d9534f; font-weight: bold;'>{item}</li>"
                 else:
@@ -68,6 +52,16 @@ def send_email_report(results):
             html += "<p style='color: #888; font-size: 0.9em; margin-top: 5px;'>- 최근 변동 사항 없음 -</p>"
         html += "<br>"
 
+    html += "</body></html>"
+
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    # 3. Dooray / SMTP 전송 로직
+    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, RECEIVER_EMAILS, msg.as_string())
+        print("✅ 성공적으로 메일이 발송되었습니다!")
+    
     html_content += """
             <div class="footer">
                 본 메일은 경쟁학원 크롤링 자동화 시스템에 의해 매일 발송됩니다.
