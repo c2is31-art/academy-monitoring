@@ -41,27 +41,27 @@ def crawl_academies():
             "selector": ".notice_list li, .timetable_list tr, .briefing_list li"
         },
         "메가스터디 MEXX": {
-            "url": "https://www.megastudy.net",
+            "url": "https://mexx.megastudy.net/",
             "selector": ".board_list tr, .schedule_wrap, .presentation_list li"
         },
         "두각(Dugak)": {
-            "url": "https://dugak.com",
+            "url": "https://dugak.net",
             "selector": ".notice_item, .timetable_area, .briefing_item"
         },
         "대찬학원": {
-            "url": "https://daechan.com",
+            "url": "https://daechanedu.com",
             "selector": ".board_table tr, .briefing_table tr"
         },
         "S&T학원": {
-            "url": "https://snt.com",
+            "url": "https://www.sntedu.co.kr",
             "selector": ".notice_list tr"
         },
         "미래탐구(Mirae)": {
-            "url": "https://mirae.com",
+            "url": "https://dh.mirae-academy.co.kr",
             "selector": ".board_list li, .event_list li"
         },
         "세정학원": {
-            "url": "https://sejeong.com",
+            "url": "https://sejungedu.com",
             "selector": ".notice_table tr, .briefing_area tr"
         }
     }
