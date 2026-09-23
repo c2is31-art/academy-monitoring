@@ -141,25 +141,14 @@ def crawl_academies():
 
 # 3. HTML 메일 리포트 생성 및 발송
 def main():
-    # Playwright 실행 및 크롤링
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 800},
-            ignore_https_errors=True
-        )
-        page = context.new_page()
-        
-        try:
-            crawl_results = crawl_academies(page) # 또는 기존 크롤링 함수
-        finally:
-            # 브라우저와 컨텍스트를 확실하게 종료
-            context.close()
-            browser.close()
-
-    # 메일 발송
+    print("=== 학원 모니터링 크롤러 실행 시작 ===")
+    
+    # crawl_academies 함수 내부에서 Playwright를 직접 생성/종료하므로 인자 없이 호출합니다.
+    crawl_results = crawl_academies()
+    
+    # 이메일 리포트 발송
     send_email_report(crawl_results)
+    print("=== 전체 프로세스 정상 완료 ===")
 
 if __name__ == "__main__":
     main()
