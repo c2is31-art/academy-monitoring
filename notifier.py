@@ -1,7 +1,9 @@
+import os
+import re  # <--- 이 줄이 들어가 있는지 확인 후 추가해 주세요!
 import smtplib
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
 
 # 1. Dooray SMTP 발송자 및 수신자 설정 (465 SSL 전용)
 SMTP_SERVER = "smtp.dooray.com"
