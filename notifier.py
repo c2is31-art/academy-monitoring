@@ -14,7 +14,10 @@ SENDER_PASSWORD = "us9wwst7vhqyxxe"     # Dooray 비밀번호 / 앱 비밀번호
 # 📧 보고서를 받을 이메일 목록
 RECEIVER_EMAILS = [
        "c2is@megastudy.net",
-       
+       "profilm@megastudyedu.com",
+    "tocka@megastudyedu.com",
+    "kjm99@megastudyedu.com",
+"hbkim@megastudyedu.com"
 ]
 
 def format_item_to_html(item_text):
