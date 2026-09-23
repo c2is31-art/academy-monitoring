@@ -54,23 +54,19 @@ def send_email_report(results):
     """
 
     for academy, items in results.items():
-        html_content += f"""
-            <div class="academy-card">
-                <div class="academy-title">🏢 {academy} ({len(items)}건)</div>
-        """
-        if not items:
-            html_content += '<p class="empty-text">※ 새로 등록된 공지사항/시간표가 없습니다.</p>'
-        else:
-            html_content += '<ul class="notice-list">'
+        html += f"<h3 style='margin-bottom: 5px; color: #2c3e50;'>🏫 {academy}</h3>"
+        if items:
+            html += "<ul style='margin-top: 5px; padding-left: 20px;'>"
             for item in items:
-    
-    if "[📢" in item:
-        html += f"<li style='margin-bottom: 8px; color: #d9534f; font-weight: bold;'>{item}</li>\n"
-    else:
-        html += f"<li style='margin-bottom: 8px;'>{item}</li>\n"
-                """
-            html_content += '</ul>'
-        html_content += '</div>'
+                # 👇 아래 if/else 문의 들여쓰기(스페이스바 16칸)를 맞춰줍니다.
+                if "[📢" in item:
+                    html += f"<li style='margin-bottom: 8px; color: #d9534f; font-weight: bold;'>{item}</li>"
+                else:
+                    html += f"<li style='margin-bottom: 8px;'>{item}</li>"
+            html += "</ul>"
+        else:
+            html += "<p style='color: #888; font-size: 0.9em; margin-top: 5px;'>- 최근 변동 사항 없음 -</p>"
+        html += "<br>"
 
     html_content += """
             <div class="footer">
