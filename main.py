@@ -82,9 +82,11 @@ def crawl_academies():
             updates = []
             
             try:
-                page.goto(info['url'], wait_until="networkidle", timeout=30000)
+                # 대기 조건을 domcontentloaded로 설정하고 타임아웃을 15초로 설정
+                page.goto(info['url'], wait_until="domcontentloaded", timeout=15000)
+                page.wait_for_timeout(2000) # 화면 요소 렌더링을 위해 2초 추가 대기
                 
-                # --- [기능 1] 팝업창 및 배너 이미지 (시간표 + 설명회 배너) ---
+                # --- [기능 1] 팝업창 및 배너 이미지 ---
                 popups = page.query_selector_all(".popup_area, .modal_content, img[src*='timetable'], img[src*='notice'], img[src*='event'], img[src*='briefing']")
                 for popup in popups:
                     img_src = popup.get_attribute("src") or ""
@@ -106,30 +108,27 @@ def crawl_academies():
                     elif any(kw in link_text.lower() for kw in ["시간표", "수강", "개강", "안내"]):
                         updates.append(f"[📄 다운로드 문서 감지] {link_text} - ({link_url})")
 
-                # --- [기능 3] 게시판/페이지 내 텍스트 (시간표 + 설명회 예약 게시글) ---
+                # --- [기능 3] 게시판/페이지 내 텍스트 ---
                 elements = page.query_selector_all(info['selector'])
                 for el in elements:
                     text = el.inner_text().strip().replace("\n", " ")
                     if not text:
                         continue
                     
-                    # 게시글 내 링크가 있다면 가져오기
                     link_el = el.query_selector("a")
                     link = link_el.get_attribute("href") if link_el else info['url']
 
-                    # 설명회 관련 게시글인 경우 (날짜 조건 또는 설명회 키워드 매칭)
                     if any(kw in text for kw in briefing_keywords):
                         if is_recent(text) or "예약" in text:
                             updates.append(f"[📢 신규 설명회/간담회 소식] {text[:80]}... - ({link})")
-                    # 일반 시간표/공지사항 신규 게시글인 경우
                     elif is_recent(text):
                         updates.append(f"[📌 신규 공지/시간표] {text[:80]}... - ({link})")
 
             except Exception as e:
-                print(f"[{name}] 수집 중 에러 발생: {e}")
-                updates.append(f"수집 실패 (페이지 구조 변경 또는 접속 지연)")
+                print(f"[{name}] 수집 중 타임아웃/에러 발생: {e}")
+                updates.append(f"수집 실패 (접속 지연 또는 구조 변경)")
 
-            # 중복 감지 제거 후 저장
+            # 중복 제거 후 결과 저장
             results[name] = list(dict.fromkeys(updates))
             
             # 서버 부하 방지 대기 (2초)
