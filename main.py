@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
-from notifier import send_email
+from notifier import send_email_report
 
 # 1. 최근 게시글/정보 판단 함수 (2일 이내 기준)
 def is_recent(date_str):
@@ -178,7 +178,7 @@ def main():
     """
     
     subject = f"[학원모니터링] {datetime.now().strftime('%Y-%m-%d')} 공지·시간표·설명회 요약 ({total_count}건)"
-    send_email(subject, html_content)
+    send_email_report(crawl_results)
     print("=== 메일 발송 완료 ===")
 
 if __name__ == "__main__":
