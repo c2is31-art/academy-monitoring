@@ -60,59 +60,55 @@ academies_info = {
 }
 
 # ==========================================
-# 2. 최근 2일 이내 날짜 및 키워드 검증 함수
+# 2. 미래 날짜 및 특정 키워드 엄격 검증 함수
 # ==========================================
 def is_recent(text):
     """
-    1) 날짜가 명시된 글 -> 최근 2일 이내 날짜인 경우만 수집
-    2) 날짜가 없는 글 -> 단순 고정 메뉴는 제외하고, 시간표/설명회 관련 핵심 텍스트만 감지
+    1) 키워드 검증: ["2028", "윈터", "설명회"] 중 하나라도 포함되어야 함
+    2) 날짜 검증: 텍스트 내 날짜가 포함된 경우 오늘 포함 미래 날짜(Today 이상)만 통과
     """
-    today = datetime.now()
-    two_days_ago = today - timedelta(days=2)
-    
+    today_date = datetime.now().date()
     clean_text = text.strip()
 
-    # 1. 고정 메뉴 및 단순 버튼 텍스트 필터링 (잡음/중복 방지)
+    # 1. 고정 메뉴/단순 버튼 필터링
     ignore_menu_texts = [
         "시간표", "설명회", "간담회", "시간표 안내", "설명회 신청", 
         "공지사항", "학원소개", "오시는길", "수강신청", "마이페이지", "로그인", "전체보기"
     ]
-    if clean_text in ignore_menu_texts or len(clean_text) < 6:
+    if clean_text in ignore_menu_texts or len(clean_text) < 5:
         return False
 
-    # 2. 날짜 패턴 검색 (YYYY-MM-DD, YY.MM.DD 등)
+    # 2. 필수 키워드 검사 (2028, 윈터, 설명회 중 1개 이상 필수)
+    target_keywords = ["2028", "윈터", "설명회"]
+    if not any(kw in clean_text for kw in target_keywords):
+        return False
+
+    # 3. 날짜 패턴 검사 (YYYY-MM-DD, YY.MM.DD, MM/DD 등)
     date_patterns = [
         r'(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})',
         r'(\d{2})[-.\/](\d{1,2})[-.\/](\d{1,2})'
     ]
     
-    has_date = False
     for pattern in date_patterns:
         match = re.search(pattern, clean_text)
         if match:
-            has_date = True
             try:
                 groups = match.groups()
                 year = int(groups[0]) if len(groups[0]) == 4 else 2000 + int(groups[0])
                 month, day = int(groups[1]), int(groups[2])
                 
-                item_date = datetime(year, month, day)
-                # 날짜가 명시된 게시물: 최근 2일 이내 날짜만 수집
-                if two_days_ago <= item_date <= today + timedelta(days=1):
-                    return True
+                item_date = datetime(year, month, day).date()
+                
+                # 추출된 날짜가 오늘보다 이전(과거)인 경우 탈락!
+                if item_date < today_date:
+                    return False
                 else:
-                    return False # 2일 이전의 오래된 게시물은 필터링
+                    return True # 오늘 또는 미래 날짜면 합격
             except ValueError:
                 continue
 
-    # 3. 날짜가 작성되어 있지 않은 이미지 배너/게시물 처리
-    # 날짜가 없더라도 '시간표', '설명회' 등 중요 키워드가 있으면 차단하지 않고 정상 수집!
-    if not has_date:
-        important_keywords = ["시간표", "설명회", "간담회", "개강", "신규반", "특강", "모집"]
-        if any(kw in clean_text for kw in important_keywords):
-            return True
-
-    return False
+    # 날짜가 명시되어 있지 않지만 필수 키워드("2028", "윈터", "설명회")가 들어있는 경우 통과
+    return True
 
 # ==========================================
 # 3. 크롤링 메인 로직
@@ -152,7 +148,6 @@ def crawl_academies():
                 print(f"👉 [{cat_name}] 수집 시도: {target_url}")
                 
                 try:
-                    # 두각학원 등 접속 응답 대기가 긴 사이트 분기 처리
                     if "두각" in name:
                         page.goto(target_url, wait_until="commit", timeout=30000)
                         page.wait_for_timeout(4000)
@@ -167,28 +162,24 @@ def crawl_academies():
                         title_text = img.get_attribute("title") or ""
                         link_url = img.get_attribute("href") or target_url
                         
-                        # urljoin으로 정확한 절대 경로 변환
                         link_url = urljoin(target_url, link_url)
-
                         combined_text = f"{alt_text} {title_text}".strip()
-                        if any(kw in combined_text for kw in ["설명회", "시간표", "간담회", "개강"]):
-                            if is_recent(combined_text):
-                                prefix = "[📢 설명회]" if any(k in combined_text for k in ["설명회", "간담회"]) else "[📅 시간표]"
-                                entry = f"{prefix} [{cat_name}] {combined_text} - ({link_url})"
-                                if entry not in academy_updates:
-                                    academy_updates.append(entry)
+                        
+                        if is_recent(combined_text):
+                            prefix = "[📢 설명회]" if "설명회" in combined_text else "[📌 공지]"
+                            entry = f"{prefix} [{cat_name}] {combined_text} - ({link_url})"
+                            if entry not in academy_updates:
+                                academy_updates.append(entry)
 
                     # --- [기능 2] 텍스트 요솟값 수집 ---
                     elements = page.query_selector_all(info.get("selector", "a, li, tr"))
                     for el in elements:
                         text = el.inner_text().strip().replace("\n", " ")
                         if is_recent(text):
-                            prefix = "[📢 설명회]" if any(k in text for k in ["설명회", "간담회"]) else "[📌 공지/시간표]"
+                            prefix = "[📢 설명회]" if "설명회" in text else "[📌 공지]"
                             
                             link_el = el.query_selector("a")
                             link_url = link_el.get_attribute("href") if link_el else target_url
-                            
-                            # 정확한 URL 경로 결합 (urljoin)
                             link_url = urljoin(target_url, link_url) if link_url else target_url
 
                             entry = f"{prefix} [{cat_name}] {text[:80]} - ({link_url})"
@@ -199,7 +190,6 @@ def crawl_academies():
                     print(f"❌ [{name} - {cat_name}] 수집 중 에러: {e}")
                     has_error = True
 
-            # 학원별 모니터링 결과 저장
             if has_error and not academy_updates:
                 results[name] = ["⚠️ 접속 지연 또는 학원 웹사이트 구조 변경으로 수집 실패"]
             else:
