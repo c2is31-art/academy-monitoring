@@ -141,45 +141,25 @@ def crawl_academies():
 
 # 3. HTML 메일 리포트 생성 및 발송
 def main():
-    print("=== 학원 모니터링 크롤러 실행 시작 ===")
-    crawl_results = crawl_academies()
-    
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h2 style="color: #1a73e8;">🎓 일일 학원 공지·시간표·설명회 통합 모니터링 보고서</h2>
-        <p style="font-size: 0.9em; color: #666;">수집 일시: {now_str} (KST) | 기준: 최근 48시간 변동 사항 및 설명회 신규 수집</p>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-    """
-    
-    total_count = 0
-    for academy, items in crawl_results.items():
-        html_content += f"<h3 style='margin-bottom: 5px; color: #2c3e50;'>🏫 {academy}</h3>"
-        if items:
-            html_content += "<ul style='margin-top: 5px; padding-left: 20px;'>"
-            for item in items:
-                total_count += 1
-                # 설명회 키워드가 포함된 경우 강조 표시 (주황색/빨간색 계열)
-                if "[📢" in item:
-                    html_content += f"<li style='margin-bottom: 8px; color: #d9534f; font-weight: bold;'>{item}</li>"
-                else:
-                    html_content += f"<li style='margin-bottom: 8px;'>{item}</li>"
-            html_content += "</ul>"
-        else:
-            html_content += "<p style='color: #888; font-size: 0.9em; margin-top: 5px;'>- 최근 업데이트된 공지/시간표/설명회 없음 -</p>"
-        html_content += "<br>"
+    # Playwright 실행 및 크롤링
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            ignore_https_errors=True
+        )
+        page = context.new_page()
+        
+        try:
+            crawl_results = crawl_academies(page) # 또는 기존 크롤링 함수
+        finally:
+            # 브라우저와 컨텍스트를 확실하게 종료
+            context.close()
+            browser.close()
 
-    html_content += f"""
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-weight: bold;">총 감지된 신규 업데이트: <span style="color: #d9534f;">{total_count}건</span></p>
-    </body>
-    </html>
-    """
-    
-    subject = f"[학원모니터링] {datetime.now().strftime('%Y-%m-%d')} 공지·시간표·설명회 요약 ({total_count}건)"
+    # 메일 발송
     send_email_report(crawl_results)
-    print("=== 메일 발송 완료 ===")
 
 if __name__ == "__main__":
     main()
