@@ -63,10 +63,11 @@ def send_email_report(results):
         else:
             html_content += '<ul class="notice-list">'
             for item in items:
-                html_content += f"""
-                    <li class="notice-item">
-                        • <a class="notice-link" href="{item['link']}" target="_blank">{item['title']}</a>
-                    </li>
+    
+    if "[📢" in item:
+        html += f"<li style='margin-bottom: 8px; color: #d9534f; font-weight: bold;'>{item}</li>\n"
+    else:
+        html += f"<li style='margin-bottom: 8px;'>{item}</li>\n"
                 """
             html_content += '</ul>'
         html_content += '</div>'
