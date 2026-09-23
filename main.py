@@ -63,43 +63,55 @@ academies_info = {
 # 2. 최근 2일 이내 날짜 및 키워드 검증 함수
 # ==========================================
 def is_recent(text):
-    """텍스트 내 날짜를 추출하여 최근 2일 이내 게시글인지 판별"""
+    """
+    1) 날짜가 명시된 글 -> 최근 2일 이내 날짜인 경우만 수집
+    2) 날짜가 없는 글 -> 단순 고정 메뉴는 제외하고, 시간표/설명회 관련 핵심 텍스트만 감지
+    """
     today = datetime.now()
     two_days_ago = today - timedelta(days=2)
     
-    # 단순 메뉴 버튼 텍스트 필터링 (메뉴명만 들어있는 경우 스킵)
-    if text.strip() in ["시간표", "설명회", "간담회", "시간표 안내", "설명회 신청", "공지사항"]:
+    clean_text = text.strip()
+
+    # 1. 고정 메뉴 및 단순 버튼 텍스트 필터링 (잡음/중복 방지)
+    ignore_menu_texts = [
+        "시간표", "설명회", "간담회", "시간표 안내", "설명회 신청", 
+        "공지사항", "학원소개", "오시는길", "수강신청", "마이페이지", "로그인", "전체보기"
+    ]
+    if clean_text in ignore_menu_texts or len(clean_text) < 6:
         return False
 
+    # 2. 날짜 패턴 검색 (YYYY-MM-DD, YY.MM.DD 등)
     date_patterns = [
         r'(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})',
         r'(\d{2})[-.\/](\d{1,2})[-.\/](\d{1,2})'
     ]
     
-    # 1. 날짜가 포함된 경우 날짜 우선 검증
+    has_date = False
     for pattern in date_patterns:
-        match = re.search(pattern, text)
+        match = re.search(pattern, clean_text)
         if match:
+            has_date = True
             try:
                 groups = match.groups()
-                if len(groups[0]) == 4:
-                    year, month, day = int(groups[0]), int(groups[1]), int(groups[2])
-                else:
-                    year, month, day = 2000 + int(groups[0]), int(groups[1]), int(groups[2])
+                year = int(groups[0]) if len(groups[0]) == 4 else 2000 + int(groups[0])
+                month, day = int(groups[1]), int(groups[2])
                 
                 item_date = datetime(year, month, day)
+                # 날짜가 명시된 게시물: 최근 2일 이내 날짜만 수집
                 if two_days_ago <= item_date <= today + timedelta(days=1):
                     return True
                 else:
-                    return False # 2일 이전 과거 데이터는 통과하지 못함
+                    return False # 2일 이전의 오래된 게시물은 필터링
             except ValueError:
                 continue
 
-    # 2. 날짜 표기가 없지만 본문 길이가 적절하고 핵심 키워드가 포함된 신규 공지/배너 처리
-    keywords = ["시간표", "설명회", "간담회", "개강", "신규반", "모집", "안내"]
-    if len(text) >= 8 and any(kw in text for kw in keywords):
-        return True
-        
+    # 3. 날짜가 작성되어 있지 않은 이미지 배너/게시물 처리
+    # 날짜가 없더라도 '시간표', '설명회' 등 중요 키워드가 있으면 차단하지 않고 정상 수집!
+    if not has_date:
+        important_keywords = ["시간표", "설명회", "간담회", "개강", "신규반", "특강", "모집"]
+        if any(kw in clean_text for kw in important_keywords):
+            return True
+
     return False
 
 # ==========================================
@@ -140,7 +152,7 @@ def crawl_academies():
                 print(f"👉 [{cat_name}] 수집 시도: {target_url}")
                 
                 try:
-                    # 두각학원 등 접속 대기 필요한 사이트 분기
+                    # 두각학원 등 접속 응답 대기가 긴 사이트 분기 처리
                     if "두각" in name:
                         page.goto(target_url, wait_until="commit", timeout=30000)
                         page.wait_for_timeout(4000)
@@ -148,14 +160,14 @@ def crawl_academies():
                         page.goto(target_url, wait_until="domcontentloaded", timeout=15000)
                         page.wait_for_timeout(1500)
 
-                    # --- [기능 1] 이미지/배너/링크 키워드 수집 ---
+                    # --- [기능 1] 이미지/배너/링크 속 키워드 수집 ---
                     images = page.query_selector_all("img, a")
                     for img in images:
                         alt_text = img.get_attribute("alt") or ""
                         title_text = img.get_attribute("title") or ""
                         link_url = img.get_attribute("href") or target_url
                         
-                        # urljoin을 사용하여 상대주소를 정확한 절대주소로 변환
+                        # urljoin으로 정확한 절대 경로 변환
                         link_url = urljoin(target_url, link_url)
 
                         combined_text = f"{alt_text} {title_text}".strip()
@@ -170,7 +182,7 @@ def crawl_academies():
                     elements = page.query_selector_all(info.get("selector", "a, li, tr"))
                     for el in elements:
                         text = el.inner_text().strip().replace("\n", " ")
-                        if len(text) > 5 and is_recent(text):
+                        if is_recent(text):
                             prefix = "[📢 설명회]" if any(k in text for k in ["설명회", "간담회"]) else "[📌 공지/시간표]"
                             
                             link_el = el.query_selector("a")
@@ -187,7 +199,7 @@ def crawl_academies():
                     print(f"❌ [{name} - {cat_name}] 수집 중 에러: {e}")
                     has_error = True
 
-            # 결과 처리
+            # 학원별 모니터링 결과 저장
             if has_error and not academy_updates:
                 results[name] = ["⚠️ 접속 지연 또는 학원 웹사이트 구조 변경으로 수집 실패"]
             else:
