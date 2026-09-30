@@ -16,7 +16,11 @@ SENDER_PASSWORD = "us9wwst7vhqyxxe"
 
 RECEIVER_EMAILS = [
     "c2is@megastudy.net",
-    
+    "profilm@megastudyedu.com",
+    "tocka@megastudyedu.com",
+    "kjm99@megastudyedu.com",
+    "hbkim@megastudyedu.com",
+    "yipsung@megastudyedu.com"
 ]
 
 HISTORY_FILE = "crawl_history.json"
