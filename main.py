@@ -38,10 +38,10 @@ academies_info = {
         "selector": "a, li, tr, img, .board_table tr"
     },
     "SNT학원": {
-        "notice": "https://www.sntedu.co.kr",
-        "briefing": "https://www.sntedu.co.kr/presentation/newclass/",
-        "timetable1": "https://www.sntedu.co.kr/class01/02/?cate03=1&cate04=allimg",
-        "timetable2": "https://www.sntedu.co.kr/class01/02/?cate03=4&cate04=allimg",
+        "notice": "https://snt-edu.com/",
+        "briefing": "https://snt-edu.com/reserve",
+        "timetable1": "https://snt-edu.com/timetable?grade=%EA%B3%A02&term=%EA%B8%B0%EB%A7%90%EA%B3%A0%EC%82%AC",
+        "timetable2": "https://snt-edu.com/timetable?grade=%EA%B3%A01&term=%EA%B8%B0%EB%A7%90%EA%B3%A0%EC%82%AC",
         "selector": "a, li, tr, img, .notice_list tr"
     },
     "미래탐구(Mirae)": {

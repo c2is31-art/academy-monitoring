@@ -16,32 +16,28 @@ SENDER_PASSWORD = "us9wwst7vhqyxxe"
 
 RECEIVER_EMAILS = [
     "c2is@megastudy.net",
-    "profilm@megastudyedu.com",
-    "tocka@megastudyedu.com",
-    "kjm99@megastudyedu.com",
-    "hbkim@megastudyedu.com",
-
+    
 ]
 
 HISTORY_FILE = "crawl_history.json"
 KST = timezone(timedelta(hours=9))
 
 # ==========================================
-# 2. 디자인 스타일 정의 (중복 제거)
+# 2. 디자인 스타일 정의 (모던 UI)
 # ==========================================
+# 모든 클라이언트에서 동일하게 보이도록 인라인 스타일 강화
 STYLES = {
-    "li": "margin-bottom: 12px; line-height: 1.6; color: #334155; font-size: 14px; list-style: none;",
-    "link": "display: inline-block; margin-left: 8px; font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600; padding: 2px 8px; background-color: #eff6ff; border-radius: 4px;",
-    "badge_new": "<span style='background-color: #ef4444; color: #ffffff; font-size: 11px; font-weight: bold; padding: 3px 6px; border-radius: 4px; margin-right: 6px;'>🆕 NEW</span>",
-    "badge_event": "<span style='background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 4px; margin-right: 6px;'>설명회/이벤트</span>",
-    "badge_notice": "<span style='background-color: #f1f5f9; color: #475569; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 4px; margin-right: 6px;'>공지/시간표</span>"
+    "list_item": "margin: 0; padding: 18px 0; border-bottom: 1px solid #f1f5f9; list-style: none;",
+    "link": "display: inline-flex; align-items: center; margin-top: 8px; font-size: 13px; color: #3b82f6; text-decoration: none; font-weight: 600;",
+    "badge_new": "<span style='display: inline-block; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #ffffff; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 12px; margin-right: 8px; letter-spacing: 0.5px; vertical-align: middle;'>NEW</span>",
+    "badge_event": "<span style='display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; margin-right: 8px; vertical-align: middle;'>📢 설명회</span>",
+    "badge_notice": "<span style='display: inline-block; background-color: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; margin-right: 8px; vertical-align: middle;'>📅 시간표/공지</span>"
 }
 
 # ==========================================
 # 3. 데이터 이력 관리 (신규 항목 판별)
 # ==========================================
 def load_previous_history():
-    """어제(또는 직전) 수집된 데이터를 불러옵니다."""
     if os.path.exists(HISTORY_FILE):
         try:
             with open(HISTORY_FILE, "r", encoding="utf-8") as f:
@@ -51,7 +47,6 @@ def load_previous_history():
     return {}
 
 def save_current_history(results):
-    """현재 수집된 데이터를 파일로 저장합니다."""
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
@@ -67,20 +62,18 @@ def format_item_to_html(item_text, is_new=False):
     if url_match:
         url = url_match.group(1)
         clean_text = item_text.replace(f"- ({url})", "").strip()
-        link_html = f'<a href="{url}" target="_blank" style="{STYLES["link"]}">자세히 보기 &rarr;</a>'
+        link_html = f'<br><a href="{url}" target="_blank" style="{STYLES["link"]}">웹사이트에서 확인하기 &rarr;</a>'
 
     new_badge_html = STYLES["badge_new"] if is_new else ""
 
-    if "[📢" in clean_text:
-        content_text = re.sub(r'\[📢[^\]]+\]', '', clean_text).strip()
-        return f'<li style="{STYLES["li"]}">{new_badge_html}{STYLES["badge_event"]} <strong style="color: #0f172a;">{content_text}</strong> {link_html}</li>'
-    
-    elif any(tag in clean_text for tag in ["[📌", "[📄", "[📅"]):
-        content_text = re.sub(r'\[[^\]]+\]', '', clean_text).strip()
-        return f'<li style="{STYLES["li"]}">{new_badge_html}{STYLES["badge_notice"]} {content_text} {link_html}</li>'
-    
+    # 컨텐츠 정제
+    clean_text = re.sub(r'\[📢[^\]]+\]', '', clean_text).strip()
+    clean_text = re.sub(r'\[[^\]]+\]', '', clean_text).strip()
+
+    if "[📢" in item_text:
+        return f'<li style="{STYLES["list_item"]}">{new_badge_html}{STYLES["badge_event"]} <span style="color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6; vertical-align: middle;">{clean_text}</span> {link_html}</li>'
     else:
-        return f'<li style="{STYLES["li"]}">{new_badge_html}{clean_text} {link_html}</li>'
+        return f'<li style="{STYLES["list_item"]}">{new_badge_html}{STYLES["badge_notice"]} <span style="color: #334155; font-size: 14.5px; font-weight: 500; line-height: 1.6; vertical-align: middle;">{clean_text}</span> {link_html}</li>'
 
 # ==========================================
 # 5. 메일 발송 로직
@@ -88,17 +81,20 @@ def format_item_to_html(item_text, is_new=False):
 def send_email_report(results):
     now_kst = datetime.now(KST)
     today_str = now_kst.strftime("%Y-%m-%d")
-    collection_time = now_kst.strftime('%Y-%m-%d %H:%M')
+    collection_time = now_kst.strftime('%Y년 %m월 %d일 %H:%M')
     
     prev_history = load_previous_history()
     
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📢 [{today_str}] 주요 학원 신규 모니터링 리포트"
+    msg["Subject"] = f"[일일 리포트] {today_str} 경쟁학원 모니터링 업데이트"
     msg["From"] = SENDER_EMAIL
     msg["To"] = ", ".join(RECEIVER_EMAILS)
 
     total_count = sum(len(items) for items in results.values() if isinstance(items, list) and not any("수집 실패" in i for i in items))
     
+    # 이메일 클라이언트 호환성을 고려한 폰트 스택
+    font_stack = "'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif"
+
     html = f"""
     <!DOCTYPE html>
     <html lang="ko">
@@ -106,88 +102,78 @@ def send_email_report(results):
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 20px;">
+    <body style="background-color: #f3f4f6; margin: 0; padding: 40px 10px; font-family: {font_stack}; -webkit-font-smoothing: antialiased;">
         
-        <table align="center" border="0" cellpadding="0" cellspacing="0" width="700" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-            <!-- 헤더 -->
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 680px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06);">
+            
+            <!-- 다크 네이비 헤더 -->
             <tr>
-                <td style="background-color: #1e293b; padding: 30px 40px; text-align: left;">
-                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #94a3b8; font-weight: 600; letter-spacing: 1px;">DAILY COMPETITOR REPORT</p>
-                    <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700; line-height: 1.4;">경쟁학원 모니터링 통합 리포트</h1>
+                <td style="background-color: #0f172a; background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 50px 40px; text-align: center;">
+                    <span style="display: inline-block; padding: 6px 14px; background: rgba(255,255,255,0.1); border-radius: 20px; color: #cbd5e1; font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 20px;">DAILY INSIGHT</span>
+                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">경쟁학원 모니터링</h1>
+                    <p style="margin: 12px 0 0 0; color: #94a3b8; font-size: 15px; font-weight: 400;">{collection_time} 업데이트 기준</p>
                 </td>
             </tr>
 
-            <!-- 요약 정보 -->
+            <!-- 서머리 바 -->
             <tr>
-                <td style="background-color: #f1f5f9; padding: 16px 40px; border-bottom: 1px solid #e2e8f0;">
-                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                        <tr>
-                            <td style="font-size: 13px; color: #475569;">
-                                🕒 <strong>수집 일시 (KST):</strong> {collection_time}
-                            </td>
-                            <td align="right" style="font-size: 14px; color: #0f172a; font-weight: 700;">
-                                총 감지 <span style="color: #2563eb;">{total_count}</span>건
-                            </td>
-                        </tr>
-                    </table>
+                <td style="background-color: #ffffff; padding: 24px 40px; border-bottom: 1px solid #e2e8f0; text-align: right;">
+                    <span style="font-size: 14px; color: #64748b; font-weight: 500;">총 수집된 신규/변경 항목 </span>
+                    <span style="display: inline-block; background-color: #eff6ff; color: #2563eb; font-size: 15px; font-weight: 800; padding: 4px 12px; border-radius: 20px; margin-left: 8px;">{total_count}건</span>
                 </td>
             </tr>
 
-            <!-- 본문 내용 -->
+            <!-- 본문 (학원 리스트) -->
             <tr>
-                <td style="padding: 30px 40px;">
+                <td style="padding: 20px 40px 40px 40px;">
     """
 
     for academy, items in results.items():
         is_error = items and any("수집 실패" in item for item in items)
         prev_items = prev_history.get(academy, [])
         
-        # 디자인 변수 설정
-        header_bg = "#fef2f2" if is_error else "#ffffff"
-        header_color = "#b91c1c" if is_error else "#0f172a"
-        border_color = "#fecaca" if is_error else "#e2e8f0"
-
         html += f"""
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px; border: 1px solid {border_color}; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-            <tr>
-                <td style="background-color: {header_bg}; padding: 14px 20px; font-weight: 700; font-size: 16px; color: {header_color}; border-bottom: 1px solid {border_color};">
-                    🏫 {academy}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding: 20px; background-color: #ffffff;">
+                    <div style="margin-top: 32px;">
+                        <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #0f172a; font-weight: 700; display: flex; align-items: center;">
+                            <span style="font-size: 20px; margin-right: 8px;">🏛️</span> {academy}
+                        </h2>
+                        <div style="background-color: #fafafa; border-radius: 12px; padding: 0 24px; border: 1px solid #f1f5f9;">
         """
         
         if is_error:
-            html += '<p style="margin: 0; font-size: 14px; color: #ef4444; font-weight: 600;">⚠️ 접속 지연 또는 웹사이트 구조 변경으로 수집에 실패했습니다.</p>'
+            html += '<p style="padding: 20px 0; margin: 0; font-size: 14px; color: #ef4444; font-weight: 600;">⚠️ 웹사이트 구조 변경 또는 접속 지연으로 데이터를 불러오지 못했습니다.</p>'
         elif items:
             html += '<ul style="margin: 0; padding: 0;">'
             for item in items:
-                # 이전 데이터에 없던 항목이면 신규(True)로 판별
                 is_new = item not in prev_items
                 html += format_item_to_html(item, is_new=is_new)
             html += '</ul>'
         else:
-            html += '<p style="margin: 0; font-size: 14px; color: #94a3b8;">최근 신규 등록된 공지/시간표가 없습니다.</p>'
+            html += '<p style="padding: 24px 0; margin: 0; font-size: 14px; color: #94a3b8; text-align: center;">업데이트된 자료가 없습니다.</p>'
             
         html += """
-                </td>
-            </tr>
-        </table>
+                        </div>
+                    </div>
         """
 
-    html += """
+    # 4. 푸터
+    html += f"""
                 </td>
             </tr>
-            <!-- 푸터 -->
             <tr>
-                <td style="background-color: #f8fafc; padding: 24px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
-                    <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.6;">
-                        본 리포트는 자동화 시스템에 의해 KST 기준으로 매일 발송됩니다.<br>
-                        문의사항이 있으시다면 시스템 관리자에게 연락 바랍니다.
+                <td style="background-color: #f8fafc; padding: 30px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 8px;">Megastudy Education</p>
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.6;">
+                        본 리포트는 KST 기준으로 매일 자동 수집되어 발송됩니다.<br>
+                        데이터 수집 문의 및 모니터링 대상 추가는 시스템 관리자에게 연락 바랍니다.
                     </p>
                 </td>
             </tr>
+        </table>
+        
+        <!-- 이메일 하단 여백 -->
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr><td height="40"></td></tr>
         </table>
     </body>
     </html>
@@ -199,9 +185,9 @@ def send_email_report(results):
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAILS, msg.as_string())
-        print(f"✅ 총 {len(RECEIVER_EMAILS)}명에게 이메일 발송 완료!")
+        print(f"✅ 총 {len(RECEIVER_EMAILS)}명에게 리포트 메일 발송 완료!")
         
-        # 메일 발송이 성공한 후 현재 수집 데이터를 이력으로 덮어씌움
+        # 성공 시 이력 갱신
         save_current_history(results)
     except Exception as e:
         print(f"❌ 이메일 발송 실패: {e}")
