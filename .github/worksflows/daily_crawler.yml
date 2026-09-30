@@ -30,12 +30,10 @@ jobs:
     - name: 크롤러 실행 (메일 발송)
       run: python main.py
 
-    # 👇 이 단계를 맨 밑에 추가해 주세요!
     - name: 수집 기록(History) GitHub에 자동 저장
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Bot"
         git add crawl_history.json
-        # 변경사항이 있을 때만 커밋하고 푸시합니다. [skip ci]는 이 작업으로 인해 actions가 무한 반복되는 것을 막습니다.
         git commit -m "Auto-update crawl history [skip ci]" || echo "No changes to commit"
-        git push  
+        git push
