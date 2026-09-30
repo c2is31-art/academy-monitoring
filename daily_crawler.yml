@@ -1,7 +1,9 @@
-name: Academy Crawler
+name: Daily Academy Crawler Monitoring
 
 on:
-  workflow_dispatch: # 👈 Actions 탭에 '수동 실행' 버튼을 만들어주는 핵심 명령어
+  workflow_dispatch:   # 👈 이 줄을 추가합니다.
+  schedule:
+    - cron: '0 0 * * *'# 👈 Actions 탭에 '수동 실행' 버튼을 만들어주는 핵심 명령어
   # schedule:
   #   - cron: '0 0 * * *' # 만약 매일 KST 오전 9시(UTC 0시)에 자동 실행하고 싶다면 주석(#) 해제
 
