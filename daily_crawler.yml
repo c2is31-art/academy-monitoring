@@ -1,31 +1,28 @@
-name: Daily Academy Crawler Monitoring
+name: Academy Crawler
 
 on:
-  schedule:
-    # 매일 한국 시간(KST) 오전 08:00 실행 (UTC 기준 전날 23:00)
-    - cron: '0 23 * * *'
-  workflow_dispatch: # GitHub 웹페이지에서 수동 실행(버튼 클릭)도 가능하게 설정
+  workflow_dispatch: # 👈 Actions 탭에 '수동 실행' 버튼을 만들어주는 핵심 명령어
+  # schedule:
+  #   - cron: '0 0 * * *' # 만약 매일 KST 오전 9시(UTC 0시)에 자동 실행하고 싶다면 주석(#) 해제
 
 jobs:
-  crawl-and-notify:
+  run-crawler:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out repository
+    - name: 레포지토리 코드 가져오기
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Python 3.10 환경 설정
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: 패키지 및 Playwright 브라우저 설치
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 playwright
-        playwright install chromium
-        playwright install-deps chromium
+        pip install playwright
+        playwright install --with-deps chromium
 
-    - name: Run Crawler & Send Email
-      run: |
-        python main.py
+    - name: 크롤러 실행 (메일 발송)
+      run: python main.py
