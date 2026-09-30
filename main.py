@@ -79,7 +79,7 @@ def is_recent(text):
     if clean_text in ignore_menu_texts or len(clean_text) < 5:
         return False
 
-    # 2. 필수 키워드 포함 여부 확인 (미리 체크만 해둠)
+    # 2. 필수 키워드 포함 여부 확인
     target_keywords = ["2028", "윈터", "예비"]
     has_keyword = any(kw in clean_text for kw in target_keywords)
 
@@ -99,17 +99,13 @@ def is_recent(text):
                 
                 item_date = datetime(year, month, day).date()
                 
-                # 기준일 설정: 최근 7일 이내 등록된 글이거나 미래 날짜인 경우
-                # (7일 이내가 아니라 '오늘 이후'만 원하신다면 timedelta 부분을 빼시면 됩니다)
                 if item_date >= today_date - timedelta(days=7):
-                    return True  # 🟢 키워드가 없어도 날짜가 최신이면 합격!
+                    return True  
                 else:
-                    return False # 🔴 날짜가 너무 오래전(과거)이면 키워드가 있어도 탈락!
+                    return False 
             except ValueError:
                 continue
 
-    # 4. 텍스트에 날짜가 명시되어 있지 않은 경우
-    # 키워드가 들어있다면 통과, 없다면 탈락
     return has_keyword
 
 # ==========================================
@@ -168,7 +164,13 @@ def crawl_academies():
                         combined_text = f"{alt_text} {title_text}".strip()
                         
                         if is_recent(combined_text):
-                            prefix = "[📢 설명회]" if "설명회" in combined_text else "[📌 공지]"
+                            if "설명회" in combined_text or "간담회" in combined_text:
+                                prefix = "[📢 설명회]"
+                            elif "시간표" in combined_text:
+                                prefix = "[📅 시간표]"
+                            else:
+                                prefix = "[📌 신규자료]"
+
                             entry = f"{prefix} [{cat_name}] {combined_text} - ({link_url})"
                             if entry not in academy_updates:
                                 academy_updates.append(entry)
@@ -178,13 +180,12 @@ def crawl_academies():
                     for el in elements:
                         text = el.inner_text().strip().replace("\n", " ")
                         if is_recent(text):
-                            # 텍스트 내용에 따라 뱃지(Prefix)를 3가지로 분류
-                        if "설명회" in text or "간담회" in text:
-                            prefix = "[📢 설명회]"
-                        elif "시간표" in text:
-                            prefix = "[📅 시간표]"
-                        else:
-                            prefix = "[📌 신규자료]"
+                            if "설명회" in text or "간담회" in text:
+                                prefix = "[📢 설명회]"
+                            elif "시간표" in text:
+                                prefix = "[📅 시간표]"
+                            else:
+                                prefix = "[📌 신규자료]"
                             
                             link_el = el.query_selector("a")
                             link_url = link_el.get_attribute("href") if link_el else target_url
