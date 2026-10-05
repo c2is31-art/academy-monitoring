@@ -307,50 +307,38 @@
       "section": "notice"
     },
     {
-      "title": "D-0 ★ 예비고3이면 꼭 알아야 할 2028 대입전형 구조 변화 2026-10-05(월)",
-      "norm_key": "d0예비고3이면꼭알아야할2028대입전형구조변화20261005월",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012129",
-      "primary_cat": "설명회",
-      "raw_text": "D-0  ★ 예비고3이면 꼭 알아야 할 2028 대입전형 구조 변화  2026-10-05(월)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-1 new[예비고1] ◆ 5등급제 <현명한 고교선택> 설명회 2026-10-06(화)",
-      "norm_key": "d1new5등급제현명한고교선택설명회20261006화",
+      "title": "D-0 new[예비고1] ◆ 5등급제 <현명한 고교선택> 설명회 2026-10-06(화)",
+      "norm_key": "d0new5등급제현명한고교선택설명회20261006화",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012145",
       "primary_cat": "설명회",
-      "raw_text": "D-1  new[예비고1] ◆ 5등급제 <현명한 고교선택> 설명회  2026-10-06(화)",
+      "raw_text": "D-0  new[예비고1] ◆ 5등급제 <현명한 고교선택> 설명회  2026-10-06(화)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-3 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
-      "norm_key": "d3new중3외고국제고설명회20261008목",
+      "title": "D-2 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
+      "norm_key": "d2new중3외고국제고설명회20261008목",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012167",
       "primary_cat": "설명회",
-      "raw_text": "D-3  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
+      "raw_text": "D-2  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-9 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d9예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-8 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d8예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-9  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "raw_text": "D-8  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
