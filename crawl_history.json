@@ -1,18 +1,5 @@
 {
-  "시대인재(SdiJ)": [
-    {
-      "title": "예비고1 (현 중3)",
-      "norm_key": "예비고1현중3",
-      "sources": [
-        "시간표"
-      ],
-      "url": "https://www.sdij.com/aca/schd/",
-      "primary_cat": "시간표",
-      "raw_text": "예비고1 (현 중3)",
-      "source_badge": "[시간표]",
-      "section": "notice"
-    }
-  ],
+  "시대인재(SdiJ)": [],
   "메가스터디 MEXX": [
     {
       "title": "손주은의 2028 통합사회 학습전략",
@@ -29,6 +16,18 @@
       "section": "event"
     },
     {
+      "title": "2027 MEXX 윈터스쿨 프로그램",
+      "norm_key": "2027mexx윈터스쿨프로그램",
+      "sources": [
+        "공지사항"
+      ],
+      "url": "https://mexx.megastudy.net/mexx/schedule/?grd=8&sgrd=1",
+      "primary_cat": "공지사항",
+      "raw_text": "2027 MEXX 윈터스쿨 프로그램",
+      "source_badge": "[공지사항]",
+      "section": "notice"
+    },
+    {
       "title": "10/9(금) 오후 1시 30분 손주은의 2028 통합사회 학습전략 예약 신청 마감. 대기 접수 중",
       "norm_key": "109금오후1시30분손주은의2028통합사회학습전략예약신청마감대기접수중",
       "sources": [
@@ -41,6 +40,18 @@
       "raw_text": "10/9(금) 오후 1시 30분  손주은의 2028 통합사회 학습전략  예약 신청 마감. 대기 접수 중",
       "source_badge": "[공지사항+설명회+시간표]",
       "section": "event"
+    },
+    {
+      "title": "겨울, 학습의 방향이 달라집니다 2027 MEXX 윈터스쿨 프로그램 학년별 모집요강을 한눈에 확인하세요",
+      "norm_key": "겨울학습의방향이달라집니다2027mexx윈터스쿨프로그램학년별모집요강을한눈에확인하세요",
+      "sources": [
+        "공지사항"
+      ],
+      "url": "https://mexx.megastudy.net/",
+      "primary_cat": "공지사항",
+      "raw_text": "겨울, 학습의 방향이 달라집니다 2027 MEXX 윈터스쿨 프로그램 학년별 모집요강을 한눈에 확인하세요",
+      "source_badge": "[공지사항]",
+      "section": "notice"
     },
     {
       "title": "손주은이 답하는 2028 통합사회 학습전략",
@@ -65,6 +76,30 @@
       "raw_text": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 대기 신청 접수 중",
       "source_badge": "[설명회]",
       "section": "event"
+    },
+    {
+      "title": "2027 윈터스쿨 로그인 후 강좌 선택 신청하기",
+      "norm_key": "2027윈터스쿨로그인후강좌선택신청하기",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://mexx.megastudy.net/mexx/schedule/",
+      "primary_cat": "시간표",
+      "raw_text": "2027 윈터스쿨  로그인 후 강좌 선택  신청하기",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "2027 윈터스쿨 N",
+      "norm_key": "2027윈터스쿨n",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://mexx.megastudy.net/mexx/schedule/",
+      "primary_cat": "시간표",
+      "raw_text": "2027 윈터스쿨 N",
+      "source_badge": "[시간표]",
+      "section": "notice"
     },
     {
       "title": "예비고1(현중3) 정규",
@@ -307,38 +342,26 @@
       "section": "notice"
     },
     {
-      "title": "D-0 new[예비고1] ◆ 5등급제 <현명한 고교선택> 설명회 2026-10-06(화)",
-      "norm_key": "d0new5등급제현명한고교선택설명회20261006화",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012145",
-      "primary_cat": "설명회",
-      "raw_text": "D-0  new[예비고1] ◆ 5등급제 <현명한 고교선택> 설명회  2026-10-06(화)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-2 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
-      "norm_key": "d2new중3외고국제고설명회20261008목",
+      "title": "D-1 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
+      "norm_key": "d1new중3외고국제고설명회20261008목",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012167",
       "primary_cat": "설명회",
-      "raw_text": "D-2  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
+      "raw_text": "D-1  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-8 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d8예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-7 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d7예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-8  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "raw_text": "D-7  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
