@@ -28,8 +28,8 @@
       "section": "notice"
     },
     {
-      "title": "10/9(금) 오후 1시 30분 손주은의 2028 통합사회 학습전략 예약 신청 마감. 대기 접수 중",
-      "norm_key": "109금오후1시30분손주은의2028통합사회학습전략예약신청마감대기접수중",
+      "title": "10/9(금) 오후 1시 30분 손주은의 2028 통합사회 학습전략 예약 및 대기 접수 마감",
+      "norm_key": "109금오후1시30분손주은의2028통합사회학습전략예약및대기접수마감",
       "sources": [
         "공지사항",
         "설명회",
@@ -37,7 +37,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "10/9(금) 오후 1시 30분  손주은의 2028 통합사회 학습전략  예약 신청 마감. 대기 접수 중",
+      "raw_text": "10/9(금) 오후 1시 30분  손주은의 2028 통합사회 학습전략  예약 및 대기 접수 마감",
       "source_badge": "[공지사항+설명회+시간표]",
       "section": "event"
     },
@@ -66,14 +66,14 @@
       "section": "event"
     },
     {
-      "title": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 대기 신청 접수 중",
-      "norm_key": "공개특강손주은이답하는2028통합사회학습전략109금오후1시30분대기신청접수중",
+      "title": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 예약 및 대기 접수 마감",
+      "norm_key": "공개특강손주은이답하는2028통합사회학습전략109금오후1시30분예약및대기접수마감",
       "sources": [
         "설명회"
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 대기 신청 접수 중",
+      "raw_text": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 예약 및 대기 접수 마감",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -342,26 +342,26 @@
       "section": "notice"
     },
     {
-      "title": "D-1 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
-      "norm_key": "d1new중3외고국제고설명회20261008목",
+      "title": "D-0 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
+      "norm_key": "d0new중3외고국제고설명회20261008목",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012167",
       "primary_cat": "설명회",
-      "raw_text": "D-1  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
+      "raw_text": "D-0  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-7 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d7예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-6 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d6예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-7  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "raw_text": "D-6  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
