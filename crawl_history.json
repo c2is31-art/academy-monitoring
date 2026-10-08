@@ -1,5 +1,18 @@
 {
-  "시대인재(SdiJ)": [],
+  "시대인재(SdiJ)": [
+    {
+      "title": "예비고1 (현 중3)",
+      "norm_key": "예비고1현중3",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고1 (현 중3)",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    }
+  ],
   "메가스터디 MEXX": [
     {
       "title": "손주은의 2028 통합사회 학습전략",
@@ -304,64 +317,136 @@
       "section": "notice"
     },
     {
-      "title": "SNT 여고 Special 교교 선택 설명회 10월 8일 (목) PM 7:00 SNT 14관 (2관 5층) · 예비고1 학부모님 예약하기 →",
-      "norm_key": "snt여고special교교선택설명회10월8일목pm700snt14관2관5층예비고1학부모님예약하기",
+      "title": "SNT 예비고1 수학의 세계- 학교별 수학 전략 설명회 10월 14일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "snt예비고1수학의세계학교별수학전략설명회10월14일수pm700snt14관예비고1학부모님예약하기",
       "sources": [
         "설명회"
       ],
       "url": "https://snt-edu.com/reserve",
       "primary_cat": "설명회",
-      "raw_text": "SNT 여고 Special 교교 선택 설명회 10월 8일 (목) PM 7:00 SNT 14관 (2관 5층) · 예비고1 학부모님 예약하기 →",
+      "raw_text": "SNT 예비고1 수학의 세계- 학교별 수학 전략 설명회 10월 14일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "SNT 예비고1 수학의 세계- 학교별 수학 전략 설명회 10월 14일 (수) PM 7:00 SNT 14관 · 중3 학부모 예약하기 →",
-      "norm_key": "snt예비고1수학의세계학교별수학전략설명회10월14일수pm700snt14관중3학부모예약하기",
+      "title": "가자! 한대부고 미리보기 설명회(1차) 10월 15일 (목) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "가자한대부고미리보기설명회1차10월15일목pm700snt14관예비고1학부모님예약하기",
       "sources": [
         "설명회"
       ],
       "url": "https://snt-edu.com/reserve",
       "primary_cat": "설명회",
-      "raw_text": "SNT 예비고1 수학의 세계- 학교별 수학 전략 설명회 10월 14일 (수) PM 7:00 SNT 14관 · 중3 학부모 예약하기 →",
+      "raw_text": "가자! 한대부고 미리보기 설명회(1차) 10월 15일 (목) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "외대부고 특목고 합격의 바이블 대설명회 10월 15일 (목) PM 7:30 신청자 추후 공지 · 예비중2, 3 학부모님 예약하기 →",
+      "norm_key": "외대부고특목고합격의바이블대설명회10월15일목pm730신청자추후공지예비중23학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "외대부고 특목고 합격의 바이블 대설명회 10월 15일 (목) PM 7:30 신청자 추후 공지 · 예비중2, 3 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "경기/영동 X-RAY 분석 설명회 10월 16일 (금) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "경기영동xray분석설명회10월16일금pm700snt14관예비고1학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "경기/영동 X-RAY 분석 설명회 10월 16일 (금) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "단대/중산 X-RAY 분석 설명회 10월 17일 (토) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "단대중산xray분석설명회10월17일토pm700snt14관예비고1학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "단대/중산 X-RAY 분석 설명회 10월 17일 (토) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "가자! 단대소고 미리보기 설명회 10월 22일 (목) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "가자단대소고미리보기설명회10월22일목pm700snt14관예비고1학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "가자! 단대소고 미리보기 설명회 10월 22일 (목) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "가자! 한대부고 미리보기 설명회(2차) 11월 10일 (화) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "가자한대부고미리보기설명회2차11월10일화pm700snt14관예비고1학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "가자! 한대부고 미리보기 설명회(2차) 11월 10일 (화) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "단대소고 합격자 설명회 12월 2일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "단대소고합격자설명회12월2일수pm700snt14관예비고1학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "단대소고 합격자 설명회 12월 2일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "한대부고 합격자 설명회 12월 9일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "한대부고합격자설명회12월9일수pm700snt14관예비고1학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "한대부고 합격자 설명회 12월 9일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
       "source_badge": "[설명회]",
       "section": "event"
     }
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "【미래탐구논증과추론】수능전 논술 파이널 N 2026.10.01",
-      "norm_key": "미래탐구논증과추론수능전논술파이널n20261001",
+      "title": "【미래탐구논증과추론】수능전 논술 파이널 2026.10.01",
+      "norm_key": "미래탐구논증과추론수능전논술파이널20261001",
       "sources": [
         "공지사항"
       ],
       "url": "https://dh.mirae-academy.co.kr/customer/notice",
       "primary_cat": "공지사항",
-      "raw_text": "[공지] 【미래탐구논증과추론】수능전 논술 파이널 N  2026.10.01",
+      "raw_text": "[공지] 【미래탐구논증과추론】수능전 논술 파이널  2026.10.01",
       "source_badge": "[공지사항]",
       "section": "notice"
     },
     {
-      "title": "D-0 new[예비고1] 중3, 외고/국제고 설명회 2026-10-08(목)",
-      "norm_key": "d0new중3외고국제고설명회20261008목",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012167",
-      "primary_cat": "설명회",
-      "raw_text": "D-0  new[예비고1] 중3, 외고/국제고 설명회  2026-10-08(목)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-6 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d6예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-5 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d5예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-6  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "raw_text": "D-5  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
