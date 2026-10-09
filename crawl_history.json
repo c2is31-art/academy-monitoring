@@ -1,33 +1,6 @@
 {
-  "시대인재(SdiJ)": [
-    {
-      "title": "예비고1 (현 중3)",
-      "norm_key": "예비고1현중3",
-      "sources": [
-        "시간표"
-      ],
-      "url": "https://www.sdij.com/aca/schd/",
-      "primary_cat": "시간표",
-      "raw_text": "예비고1 (현 중3)",
-      "source_badge": "[시간표]",
-      "section": "notice"
-    }
-  ],
+  "시대인재(SdiJ)": [],
   "메가스터디 MEXX": [
-    {
-      "title": "손주은의 2028 통합사회 학습전략",
-      "norm_key": "손주은의2028통합사회학습전략",
-      "sources": [
-        "공지사항",
-        "설명회",
-        "시간표"
-      ],
-      "url": "https://mexx.megastudy.net/mexx/promotion/2026/2028-social/",
-      "primary_cat": "설명회",
-      "raw_text": "손주은의 2028 통합사회 학습전략",
-      "source_badge": "[공지사항+설명회+시간표]",
-      "section": "event"
-    },
     {
       "title": "2027 MEXX 윈터스쿨 프로그램",
       "norm_key": "2027mexx윈터스쿨프로그램",
@@ -41,20 +14,6 @@
       "section": "notice"
     },
     {
-      "title": "10/9(금) 오후 1시 30분 손주은의 2028 통합사회 학습전략 예약 및 대기 접수 마감",
-      "norm_key": "109금오후1시30분손주은의2028통합사회학습전략예약및대기접수마감",
-      "sources": [
-        "공지사항",
-        "설명회",
-        "시간표"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "10/9(금) 오후 1시 30분  손주은의 2028 통합사회 학습전략  예약 및 대기 접수 마감",
-      "source_badge": "[공지사항+설명회+시간표]",
-      "section": "event"
-    },
-    {
       "title": "겨울, 학습의 방향이 달라집니다 2027 MEXX 윈터스쿨 프로그램 학년별 모집요강을 한눈에 확인하세요",
       "norm_key": "겨울학습의방향이달라집니다2027mexx윈터스쿨프로그램학년별모집요강을한눈에확인하세요",
       "sources": [
@@ -65,30 +24,6 @@
       "raw_text": "겨울, 학습의 방향이 달라집니다 2027 MEXX 윈터스쿨 프로그램 학년별 모집요강을 한눈에 확인하세요",
       "source_badge": "[공지사항]",
       "section": "notice"
-    },
-    {
-      "title": "손주은이 답하는 2028 통합사회 학습전략",
-      "norm_key": "손주은이답하는2028통합사회학습전략",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/mexx/promotion/2026/2028-social/",
-      "primary_cat": "설명회",
-      "raw_text": "손주은이 답하는 2028 통합사회 학습전략",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 예약 및 대기 접수 마감",
-      "norm_key": "공개특강손주은이답하는2028통합사회학습전략109금오후1시30분예약및대기접수마감",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "공개특강 손주은이 답하는 2028 통합사회 학습전략 10/9(금) 오후 1시 30분 예약 및 대기 접수 마감",
-      "source_badge": "[설명회]",
-      "section": "event"
     },
     {
       "title": "2027 윈터스쿨 로그인 후 강좌 선택 신청하기",
@@ -128,18 +63,6 @@
     }
   ],
   "두각(Dugak)": [
-    {
-      "title": "(예비중3,고1,고2) 겨울특강 안내 2026-10-01",
-      "norm_key": "예비중3고1고2겨울특강안내20261001",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://www.dugak.net/info/notice_dt.do",
-      "primary_cat": "공지사항",
-      "raw_text": "(예비중3,고1,고2) 겨울특강 안내 2026-10-01",
-      "source_badge": "[공지사항]",
-      "section": "notice"
-    },
     {
       "title": "예비고2 모집안내",
       "norm_key": "예비고2모집안내",
@@ -427,50 +350,14 @@
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "【미래탐구논증과추론】수능전 논술 파이널 2026.10.01",
-      "norm_key": "미래탐구논증과추론수능전논술파이널20261001",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://dh.mirae-academy.co.kr/customer/notice",
-      "primary_cat": "공지사항",
-      "raw_text": "[공지] 【미래탐구논증과추론】수능전 논술 파이널  2026.10.01",
-      "source_badge": "[공지사항]",
-      "section": "notice"
-    },
-    {
-      "title": "D-5 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d5예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-4 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d4예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-5  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "<시즌2> 예비고1 영어 변소연T 입반테스트 예약하기 2026-10-01(목) ~ 2026-10-18(일)",
-      "norm_key": "시즌2예비고1영어변소연t입반테스트예약하기20261001목20261018일",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012130",
-      "primary_cat": "설명회",
-      "raw_text": "<시즌2> 예비고1 영어 변소연T 입반테스트 예약하기  2026-10-01(목) ~ 2026-10-18(일)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "[윤원중T 최상위 심화반 / 기본심화반 정규반] 입반테스트 2026-10-01(목) ~ 2026-10-18(일)",
-      "norm_key": "입반테스트20261001목20261018일",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012132",
-      "primary_cat": "설명회",
-      "raw_text": "[윤원중T 최상위 심화반 / 기본심화반 정규반] 입반테스트  2026-10-01(목) ~ 2026-10-18(일)",
+      "raw_text": "D-4  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
       "source_badge": "[설명회]",
       "section": "event"
     }
