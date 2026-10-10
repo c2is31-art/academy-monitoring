@@ -1,5 +1,18 @@
 {
-  "시대인재(SdiJ)": [],
+  "시대인재(SdiJ)": [
+    {
+      "title": "예비고1 (현 중3)",
+      "norm_key": "예비고1현중3",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고1 (현 중3)",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    }
+  ],
   "메가스터디 MEXX": [
     {
       "title": "2027 MEXX 윈터스쿨 프로그램",
@@ -350,14 +363,14 @@
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "D-4 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d4예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-3 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d3예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-4  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "raw_text": "D-3  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
       "source_badge": "[설명회]",
       "section": "event"
     }
