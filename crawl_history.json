@@ -363,14 +363,26 @@
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "D-3 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
-      "norm_key": "d3예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
+      "title": "D-2 ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회 2026-10-14(수)",
+      "norm_key": "d2예비고1성공적인고등수학을위한수학mts수학전략설명회20261014수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012070",
       "primary_cat": "설명회",
-      "raw_text": "D-3  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "raw_text": "D-2  ★ 예비고1 성공적인 고등수학을 위한 수학 M.T.S 수학 전략 설명회  2026-10-14(수)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-6 new◆ (예비고1) '성공하는 고교생활을 위한 안내서' 설명회 2026-10-18(일)",
+      "norm_key": "d6new예비고1성공하는고교생활을위한안내서설명회20261018일",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012262",
+      "primary_cat": "설명회",
+      "raw_text": "D-6  new◆ (예비고1) '성공하는 고교생활을 위한 안내서' 설명회  2026-10-18(일)",
       "source_badge": "[설명회]",
       "section": "event"
     }
