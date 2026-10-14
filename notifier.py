@@ -20,7 +20,9 @@ RECEIVER_EMAILS = [
     "tocka@megastudyedu.com",
     "kjm99@megastudyedu.com",
     "hbkim@megastudyedu.com",
-    "yipsung@megastudyedu.com"
+    "yipsung@megastudyedu.com",
+    "ms20673@megastudyedu.com",
+    "ms20674@megastudyedu.com"
 ]
 
 HISTORY_FILE = "crawl_history.json"
