@@ -52,7 +52,7 @@ academies_info = {
     },
     "세정학원": {
         "notice": "https://sejungedu.com",
-        "briefing": "https://sejungedu.com/explain/presentationplan?co=%EC%A4%91%EB%93%B1",
+        "briefing": "https://sejungedu.com/explain/presentationplan?co=%EA%B3%A01",
         "timetable1": "https://sejungedu.com/schedule/timetable?co=%EA%B3%A03",
         "timetable2": "https://sejungedu.com/schedule/timetable?t=&co=%EA%B3%A02",
         "selector": "a, li, tr, img, .notice_table tr"
