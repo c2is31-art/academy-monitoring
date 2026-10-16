@@ -1,5 +1,18 @@
 {
-  "시대인재(SdiJ)": [],
+  "시대인재(SdiJ)": [
+    {
+      "title": "예비고1 (현 중3)",
+      "norm_key": "예비고1현중3",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고1 (현 중3)",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    }
+  ],
   "메가스터디 MEXX": [
     {
       "title": "2027 윈터스쿨 프로그램 OPEN",
@@ -268,18 +281,6 @@
       "section": "notice"
     },
     {
-      "title": "10.16 금요일 · PM 7:00 설명회 접수 경기/영동 X-RAY 분석 설명회 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "1016금요일pm700설명회접수경기영동xray분석설명회snt14관예비고1학부모님예약하기",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://snt-edu.com/reserve?briefing=cms-40",
-      "primary_cat": "공지사항",
-      "raw_text": "10.16 금요일 · PM 7:00 설명회 접수 경기/영동 X-RAY 분석 설명회 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
       "title": "10.17 토요일 · PM 7:00 설명회 접수 단대/중산 X-RAY 분석 설명회 SNT 14관 · 예비고1 학부모님 예약하기 →",
       "norm_key": "1017토요일pm700설명회접수단대중산xray분석설명회snt14관예비고1학부모님예약하기",
       "sources": [
@@ -304,15 +305,15 @@
       "section": "event"
     },
     {
-      "title": "경기/영동 X-RAY 분석 설명회 10월 16일 (금) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "경기영동xray분석설명회10월16일금pm700snt14관예비고1학부모님예약하기",
+      "title": "11.10 화요일 · PM 7:00 설명회 접수 가자! 한대부고 미리보기 설명회(2차) SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "norm_key": "1110화요일pm700설명회접수가자한대부고미리보기설명회2차snt14관예비고1학부모님예약하기",
       "sources": [
-        "설명회"
+        "공지사항"
       ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "경기/영동 X-RAY 분석 설명회 10월 16일 (금) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[설명회]",
+      "url": "https://snt-edu.com/reserve?briefing=cms-43",
+      "primary_cat": "공지사항",
+      "raw_text": "11.10 화요일 · PM 7:00 설명회 접수 가자! 한대부고 미리보기 설명회(2차) SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "source_badge": "[공지사항]",
       "section": "event"
     },
     {
@@ -390,26 +391,50 @@
       "section": "notice"
     },
     {
-      "title": "D-2 new◆ (예비고1) '성공하는 고교생활을 위한 안내서' 설명회 2026-10-18(일)",
-      "norm_key": "d2new예비고1성공하는고교생활을위한안내서설명회20261018일",
+      "title": "D-1 new◆ (예비고1) '성공하는 고교생활을 위한 안내서' 설명회 2026-10-18(일)",
+      "norm_key": "d1new예비고1성공하는고교생활을위한안내서설명회20261018일",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012262",
       "primary_cat": "설명회",
-      "raw_text": "D-2  new◆ (예비고1) '성공하는 고교생활을 위한 안내서' 설명회  2026-10-18(일)",
+      "raw_text": "D-1  new◆ (예비고1) '성공하는 고교생활을 위한 안내서' 설명회  2026-10-18(일)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-4 new■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회 2026-10-20(화)",
-      "norm_key": "d4new고22027년새로운통합과목을위한수능설명회20261020화",
+      "title": "D-3 new■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회 2026-10-20(화)",
+      "norm_key": "d3new고22027년새로운통합과목을위한수능설명회20261020화",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012273",
       "primary_cat": "설명회",
-      "raw_text": "D-4  new■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회  2026-10-20(화)",
+      "raw_text": "D-3  new■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회  2026-10-20(화)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-16 new[예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
+      "norm_key": "d16new2028학년도인문계열논술설명회20261102월",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012349",
+      "primary_cat": "설명회",
+      "raw_text": "D-16  new[예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-18 new[예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
+      "norm_key": "d18new2028학년도자연계열논술설명회20261104수",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012348",
+      "primary_cat": "설명회",
+      "raw_text": "D-18  new[예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
