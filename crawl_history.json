@@ -175,18 +175,6 @@
       "section": "event"
     },
     {
-      "title": "예약중 중3 [예비고1] 손주은 회장 입시 설명회 [예비고1] 고교선택전략 설명회 일시 2026. 10. 25(일) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약중중3손주은회장입시설명회고교선택전략설명회일시20261025일오후1시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 중3 [예비고1] 손주은 회장 입시 설명회  [예비고1] 고교선택전략 설명회  일시 2026. 10. 25(일) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
       "title": "예약중 중3 [예비고1] 정문찬 대표 입시 설명회 2차 [예비고1] 고교 선택 기준 및 진로, 계열 일시 2026. 10. 26(월) 오후 1시 30분 장소 MEXX학원 본관",
       "norm_key": "예약중중3정문찬대표입시설명회2차고교선택기준및진로계열일시20261026월오후1시30분장소mexx학원본관",
       "sources": [
@@ -194,7 +182,19 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 정문찬 대표 입시 설명회 2차 \t\t\t\t \t\t\t\t\t [예비고1] 고교 선택 기준 및 진로, 계열 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 26(월) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 본관",
+      "raw_text": "예약중 중3 [예비고1] 정문찬 대표 입시 설명회 2차  [예비고1] 고교 선택 기준 및 진로, 계열  일시 2026. 10. 26(월) 오후 1시 30분 장소 MEXX학원 본관",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "예약마감 중3 [예비고1] 손주은 회장 입시 설명회 [예비고1] 고교선택전략 설명회 일시 2026. 10. 25(일) 오후 1시 30분 장소 MEXX학원 (본관)",
+      "norm_key": "예약마감중3손주은회장입시설명회고교선택전략설명회일시20261025일오후1시30분장소mexx학원본관",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
+      "primary_cat": "설명회",
+      "raw_text": "예약마감 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 손주은 회장 입시 설명회 \t\t\t\t \t\t\t\t\t[예비고1] 고교선택전략 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 25(일) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -499,6 +499,18 @@
   ],
   "미래탐구(Mirae)": [
     {
+      "title": "【미래탐구 논증과추론】고3/N수_수능후 논술파이널 N 2026.10.19",
+      "norm_key": "미래탐구논증과추론고3n수수능후논술파이널n20261019",
+      "sources": [
+        "공지사항"
+      ],
+      "url": "https://dh.mirae-academy.co.kr/customer/notice",
+      "primary_cat": "공지사항",
+      "raw_text": "[공지] 【미래탐구 논증과추론】고3/N수_수능후 논술파이널 N  2026.10.19",
+      "source_badge": "[공지사항]",
+      "section": "notice"
+    },
+    {
       "title": "예비고1 MTS 수학 정규 입반테스트 N 2026.10.14",
       "norm_key": "예비고1mts수학정규입반테스트n20261014",
       "sources": [
@@ -511,38 +523,86 @@
       "section": "notice"
     },
     {
-      "title": "D-1 new■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회 2026-10-20(화)",
-      "norm_key": "d1new고22027년새로운통합과목을위한수능설명회20261020화",
+      "title": "D-0 ■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회 2026-10-20(화)",
+      "norm_key": "d0고22027년새로운통합과목을위한수능설명회20261020화",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012273",
       "primary_cat": "설명회",
-      "raw_text": "D-1  new■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회  2026-10-20(화)",
+      "raw_text": "D-0  ■ (고2) 2027년 새로운 통합 과목을 위한 수능 설명회  2026-10-20(화)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-14 new[예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
-      "norm_key": "d14new2028학년도인문계열논술설명회20261102월",
+      "title": "D-3 new(예비고1) ◆ 고등 5등급제 내신! <1등급 선점 학습 전략> 설명회 2026-10-23(금)",
+      "norm_key": "d3new예비고1고등5등급제내신1등급선점학습전략설명회20261023금",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012361",
+      "primary_cat": "설명회",
+      "raw_text": "D-3  new(예비고1) ◆ 고등 5등급제 내신! <1등급 선점 학습 전략> 설명회  2026-10-23(금)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-13 new[예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
+      "norm_key": "d13new2028학년도인문계열논술설명회20261102월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012349",
       "primary_cat": "설명회",
-      "raw_text": "D-14  new[예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
+      "raw_text": "D-13  new[예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-16 new[예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
-      "norm_key": "d16new2028학년도자연계열논술설명회20261104수",
+      "title": "D-15 new[예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
+      "norm_key": "d15new2028학년도자연계열논술설명회20261104수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012348",
       "primary_cat": "설명회",
-      "raw_text": "D-16  new[예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
+      "raw_text": "D-15  new[예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "<시즌2> 예비고1 영어 변소연T 입반테스트 예약하기 2026-11-04(수) ~ 2026-11-08(일)",
+      "norm_key": "시즌2예비고1영어변소연t입반테스트예약하기20261104수20261108일",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012130",
+      "primary_cat": "설명회",
+      "raw_text": "<시즌2> 예비고1 영어 변소연T 입반테스트 예약하기  2026-11-04(수) ~ 2026-11-08(일)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "[윤원중T 최상위 심화반 / 기본심화반 정규반] 입반테스트 2026-11-04(수) ~ 2026-11-08(일)",
+      "norm_key": "입반테스트20261104수20261108일",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012132",
+      "primary_cat": "설명회",
+      "raw_text": "[윤원중T 최상위 심화반 / 기본심화반 정규반] 입반테스트  2026-11-04(수) ~ 2026-11-08(일)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "new★예비고1 영어 문희진T 입반테스트 예약 2026-10-21(수) ~ 2026-11-08(일)",
+      "norm_key": "new예비고1영어문희진t입반테스트예약20261021수20261108일",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012384",
+      "primary_cat": "설명회",
+      "raw_text": "new★예비고1 영어 문희진T 입반테스트 예약  2026-10-21(수) ~ 2026-11-08(일)",
       "source_badge": "[설명회]",
       "section": "event"
     },
