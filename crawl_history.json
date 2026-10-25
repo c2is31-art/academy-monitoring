@@ -126,6 +126,18 @@
       "section": "event"
     },
     {
+      "title": "예약중 고1 [예비고2] 펜타킬 입시 설명회 [예비고2] 펜타킬 입시 설명회 일시 2026. 10. 27(화) 오후 1시 30분 장소 MEXX학원 (본관)",
+      "norm_key": "예약중고1펜타킬입시설명회펜타킬입시설명회일시20261027화오후1시30분장소mexx학원본관",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
+      "primary_cat": "설명회",
+      "raw_text": "예약중 고1 [예비고2] 펜타킬 입시 설명회  [예비고2] 펜타킬 입시 설명회  일시 2026. 10. 27(화) 오후 1시 30분 장소 MEXX학원 (본관)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
       "title": "예약중 중3 [예비고1] 박성진 컨설던트 입시 설명회 [예비고1] 박성진 컨설던트 입시 설명회 일시 2026. 10. 27(화) 오후 7시 장소 MEXX학원 (본관)",
       "norm_key": "예약중중3박성진컨설던트입시설명회박성진컨설던트입시설명회일시20261027화오후7시장소mexx학원본관",
       "sources": [
@@ -181,7 +193,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 중3 [예비고1] 윤앤고 김민경 입시 설명회  [예비고1] 윤앤고 김민경 입시 설명회  일시 2026. 10. 29(목) 오전 10시 30분 장소 MEXX학원 (본관)",
+      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 윤앤고 김민경 입시 설명회 \t\t\t\t \t\t\t\t\t[예비고1] 윤앤고 김민경 입시 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 29(목) 오전 10시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -326,18 +338,6 @@
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
       "raw_text": "예약마감 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 손주은 회장 입시 설명회 \t\t\t\t \t\t\t\t\t[예비고1] 고교선택전략 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 25(일) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약마감 고1 [예비고2] 펜타킬 입시 설명회 [예비고2] 펜타킬 입시 설명회 일시 2026. 10. 27(화) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약마감고1펜타킬입시설명회펜타킬입시설명회일시20261027화오후1시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약마감 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 펜타킬 입시 설명회 \t\t\t\t \t\t\t\t\t[예비고2] 펜타킬 입시 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 27(화) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -582,38 +582,50 @@
       "section": "notice"
     },
     {
-      "title": "D-2 new♥예비고1 영어 문희진T 단독 간담회 2026-10-26(월)",
-      "norm_key": "d2new예비고1영어문희진t단독간담회20261026월",
+      "title": "D-1 new♥예비고1 영어 문희진T 단독 간담회 2026-10-26(월)",
+      "norm_key": "d1new예비고1영어문희진t단독간담회20261026월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012428",
       "primary_cat": "설명회",
-      "raw_text": "D-2  new♥예비고1 영어 문희진T 단독 간담회  2026-10-26(월)",
+      "raw_text": "D-1  new♥예비고1 영어 문희진T 단독 간담회  2026-10-26(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-9 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
-      "norm_key": "d92028학년도인문계열논술설명회20261102월",
+      "title": "D-5 new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해 2026-10-30(금)",
+      "norm_key": "d5new2028새로운수능세대를위한수시와정시의이해20261030금",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012449",
+      "primary_cat": "설명회",
+      "raw_text": "D-5  new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해  2026-10-30(금)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-8 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
+      "norm_key": "d82028학년도인문계열논술설명회20261102월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012349",
       "primary_cat": "설명회",
-      "raw_text": "D-9  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
+      "raw_text": "D-8  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-11 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
-      "norm_key": "d112028학년도자연계열논술설명회20261104수",
+      "title": "D-10 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
+      "norm_key": "d102028학년도자연계열논술설명회20261104수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012348",
       "primary_cat": "설명회",
-      "raw_text": "D-11  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
+      "raw_text": "D-10  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
