@@ -66,30 +66,6 @@
       "section": "event"
     },
     {
-      "title": "예약중 고1 [예비고2] 펜타킬 입시 설명회 [예비고2] 펜타킬 입시 설명회 일시 2026. 10. 27(화) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약중고1펜타킬입시설명회펜타킬입시설명회일시20261027화오후1시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 고1 [예비고2] 펜타킬 입시 설명회  [예비고2] 펜타킬 입시 설명회  일시 2026. 10. 27(화) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 중3 [예비고1] 박성진 컨설던트 입시 설명회 [예비고1] 박성진 컨설던트 입시 설명회 일시 2026. 10. 27(화) 오후 7시 장소 MEXX학원 (본관)",
-      "norm_key": "예약중중3박성진컨설던트입시설명회박성진컨설던트입시설명회일시20261027화오후7시장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 중3 [예비고1] 박성진 컨설던트 입시 설명회  [예비고1] 박성진 컨설던트 입시 설명회  일시 2026. 10. 27(화) 오후 7시 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
       "title": "예약중 중3 [예비고1] 피오르에듀 입시 설명회 이과 [예비고1] 피오르에듀 입시 설명회 이과 일시 2026. 10. 28(수) 오후 1시 30분 장소 MEXX학원 (본관)",
       "norm_key": "예약중중3피오르에듀입시설명회이과피오르에듀입시설명회이과일시20261028수오후1시30분장소mexx학원본관",
       "sources": [
@@ -193,7 +169,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 피오르에듀 입시 설명회 문과 \t\t\t\t \t\t\t\t\t[예비고1] 피오르에듀 입시 설명회 문과 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 30(금) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 중3 [예비고1] 피오르에듀 입시 설명회 문과  [예비고1] 피오르에듀 입시 설명회 문과  일시 2026. 10. 30(금) 오후 1시 30분 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -205,7 +181,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 이만기 입시소장 설명회 \t\t\t\t \t\t\t\t\t[예비고2] 이만기 입시소장 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 30(금) 오후 7시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 고1 [예비고2] 이만기 입시소장 설명회  [예비고2] 이만기 입시소장 설명회  일시 2026. 10. 30(금) 오후 7시 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -258,14 +234,26 @@
       "section": "event"
     },
     {
-      "title": "예약중 고1 [예비고2] 사회내신 학습전략 간담회 [사회학습전략] 최적T /어준규T /김종웅T 일시 2026. 11. 02(월) 오후 7시 장소 MEXX학원 (본관)",
-      "norm_key": "예약중고1사회내신학습전략간담회최적t어준규t김종웅t일시20261102월오후7시장소mexx학원본관",
+      "title": "예약중 고1 [예비고2] 사회내신 학습전략 간담회 1차 사회내신전략 - 최적 /어준규 /김종웅 일시 2026. 11. 02(월) 오후 7시 장소 MEXX학원 (본관)",
+      "norm_key": "예약중고1사회내신학습전략간담회1차사회내신전략최적어준규김종웅일시20261102월오후7시장소mexx학원본관",
       "sources": [
         "설명회"
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 사회내신 학습전략 간담회 \t\t\t\t \t\t\t\t\t[사회학습전략] 최적T /어준규T /김종웅T \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 02(월) 오후 7시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 사회내신 학습전략 간담회 1차 \t\t\t\t \t\t\t\t\t사회내신전략 - 최적 /어준규 /김종웅 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 02(월) 오후 7시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "예약중 고1 [예비고2] 사회내신 학습전략 간담회 2차 사회내신전략 - 최해나 /민정 /박성일 일시 2026. 11. 03(화) 오후 2시 장소 MEXX 본관",
+      "norm_key": "예약중고1사회내신학습전략간담회2차사회내신전략최해나민정박성일일시20261103화오후2시장소mexx본관",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
+      "primary_cat": "설명회",
+      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 사회내신 학습전략 간담회 2차 \t\t\t\t \t\t\t\t\t사회내신전략 - 최해나 /민정 /박성일 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 03(화) 오후 2시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX 본관",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -484,6 +472,18 @@
       "section": "event"
     },
     {
+      "title": "SNT 중등 설명회 [3탄] 가자! 외고 설명회 데보라원장 × 외고 전교권들이 직접 출연 11월 13일 (금) PM 7:00 신청자 추후 공지 · 예비 중1,2,3 학부모님 예약하",
+      "norm_key": "snt중등설명회가자외고설명회데보라원장외고전교권들이직접출연11월13일금pm700신청자추후공지예비중123학부모님예약하기",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://snt-edu.com/reserve",
+      "primary_cat": "설명회",
+      "raw_text": "SNT 중등 설명회 [3탄] 가자! 외고 설명회 데보라원장 × 외고 전교권들이 직접 출연 11월 13일 (금) PM 7:00 신청자 추후 공지 · 예비 중1,2,3 학부모님 예약하기 →",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
       "title": "가자! 한대부고 미리보기 설명회(2차) 11월 10일 (화) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
       "norm_key": "가자한대부고미리보기설명회2차11월10일화pm700snt14관예비고1학부모님예약하기",
       "sources": [
@@ -510,50 +510,62 @@
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "D-2 new◆예비고1 2030학년도 입시환경에 따른 <고교 선택 전략> 설명회 2026-10-29(목)",
-      "norm_key": "d2new예비고12030학년도입시환경에따른고교선택전략설명회20261029목",
+      "title": "D-1 new◆예비고1 2030학년도 입시환경에 따른 <고교 선택 전략> 설명회 2026-10-29(목)",
+      "norm_key": "d1new예비고12030학년도입시환경에따른고교선택전략설명회20261029목",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012455",
       "primary_cat": "설명회",
-      "raw_text": "D-2  new◆예비고1 2030학년도 입시환경에 따른 <고교 선택 전략> 설명회  2026-10-29(목)",
+      "raw_text": "D-1  new◆예비고1 2030학년도 입시환경에 따른 <고교 선택 전략> 설명회  2026-10-29(목)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-3 new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해 2026-10-30(금)",
-      "norm_key": "d3new2028새로운수능세대를위한수시와정시의이해20261030금",
+      "title": "D-2 new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해 2026-10-30(금)",
+      "norm_key": "d2new2028새로운수능세대를위한수시와정시의이해20261030금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012449",
       "primary_cat": "설명회",
-      "raw_text": "D-3  new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해  2026-10-30(금)",
+      "raw_text": "D-2  new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해  2026-10-30(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-6 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
-      "norm_key": "d62028학년도인문계열논술설명회20261102월",
+      "title": "D-5 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
+      "norm_key": "d52028학년도인문계열논술설명회20261102월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012349",
       "primary_cat": "설명회",
-      "raw_text": "D-6  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
+      "raw_text": "D-5  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-8 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
-      "norm_key": "d82028학년도자연계열논술설명회20261104수",
+      "title": "D-6 new예비고2★상위권의 고민! < 내신과 수능 동시대비>를 위한 설명회 2026-11-03(화)",
+      "norm_key": "d6new예비고2상위권의고민내신과수능동시대비를위한설명회20261103화",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012487",
+      "primary_cat": "설명회",
+      "raw_text": "D-6  new예비고2★상위권의 고민! < 내신과 수능 동시대비>를 위한 설명회  2026-11-03(화)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-7마감 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
+      "norm_key": "d7마감2028학년도자연계열논술설명회20261104수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012348",
       "primary_cat": "설명회",
-      "raw_text": "D-8  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
+      "raw_text": "D-7마감  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -590,18 +602,6 @@
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012384",
       "primary_cat": "설명회",
       "raw_text": "★예비고1 영어 문희진T 입반테스트 예약  2026-10-21(수) ~ 2026-11-08(일)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "■ 예비고1 수학 MTS 정규 입학 테스트 2026-11-06(금) ~ 2026-11-10(화)",
-      "norm_key": "예비고1수학mts정규입학테스트20261106금20261110화",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012201",
-      "primary_cat": "설명회",
-      "raw_text": "■ 예비고1 수학 MTS 정규 입학 테스트  2026-11-06(금) ~ 2026-11-10(화)",
       "source_badge": "[설명회]",
       "section": "event"
     }
