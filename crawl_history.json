@@ -1,5 +1,246 @@
 {
-  "시대인재(SdiJ)": [],
+  "시대인재(SdiJ)": [
+    {
+      "title": "예비고2 겨울방학 시간표 1",
+      "norm_key": "예비고2겨울방학시간표1",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 1",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 2",
+      "norm_key": "예비고2겨울방학시간표2",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 2",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 3",
+      "norm_key": "예비고2겨울방학시간표3",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 3",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 4",
+      "norm_key": "예비고2겨울방학시간표4",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 4",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 5",
+      "norm_key": "예비고2겨울방학시간표5",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 5",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 6",
+      "norm_key": "예비고2겨울방학시간표6",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 6",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 7",
+      "norm_key": "예비고2겨울방학시간표7",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 7",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 8",
+      "norm_key": "예비고2겨울방학시간표8",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 8",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 9",
+      "norm_key": "예비고2겨울방학시간표9",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 9",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 10",
+      "norm_key": "예비고2겨울방학시간표10",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 10",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 11",
+      "norm_key": "예비고2겨울방학시간표11",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 11",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 12",
+      "norm_key": "예비고2겨울방학시간표12",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 12",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 13",
+      "norm_key": "예비고2겨울방학시간표13",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 13",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 14",
+      "norm_key": "예비고2겨울방학시간표14",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 14",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 15",
+      "norm_key": "예비고2겨울방학시간표15",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 15",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 16",
+      "norm_key": "예비고2겨울방학시간표16",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 16",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 17",
+      "norm_key": "예비고2겨울방학시간표17",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 17",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 18",
+      "norm_key": "예비고2겨울방학시간표18",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 18",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 19",
+      "norm_key": "예비고2겨울방학시간표19",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 19",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 20",
+      "norm_key": "예비고2겨울방학시간표20",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 20",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    }
+  ],
   "메가스터디 MEXX": [
     {
       "title": "2027 윈터스쿨 프로그램 OPEN",
@@ -63,66 +304,6 @@
       "primary_cat": "공지사항",
       "raw_text": "학년별 입시 설명회 입시의 중요한 순간, 필요한 전략을 확인하세요 예비 고1,고2,고3 변화하는 교육과정 대비 전략",
       "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 중3 [예비고1] 피오르에듀 입시 설명회 이과 [예비고1] 피오르에듀 입시 설명회 이과 일시 2026. 10. 28(수) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약중중3피오르에듀입시설명회이과피오르에듀입시설명회이과일시20261028수오후1시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 중3 [예비고1] 피오르에듀 입시 설명회 이과  [예비고1] 피오르에듀 입시 설명회 이과  일시 2026. 10. 28(수) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 고1 [예비고2] 정문찬 대표 입시 설명회 [예비고2] 정문찬 대표 입시 설명회 일시 2026. 10. 28(수) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약중고1정문찬대표입시설명회정문찬대표입시설명회일시20261028수오후1시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 고1 [예비고2] 정문찬 대표 입시 설명회  [예비고2] 정문찬 대표 입시 설명회  일시 2026. 10. 28(수) 오후 1시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 고1 [예비고2] 이도경 컨설턴트 설명회(직장인) [예비고2] 이도경 컨설턴트 설명회(직장인) 일시 2026. 10. 28(수) 오후 7시 장소 MEXX학원 (본관)",
-      "norm_key": "예약중고1이도경컨설턴트설명회직장인이도경컨설턴트설명회직장인일시20261028수오후7시장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 고1 [예비고2] 이도경 컨설턴트 설명회(직장인)  [예비고2] 이도경 컨설턴트 설명회(직장인)  일시 2026. 10. 28(수) 오후 7시 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 중3 [예비고1] 윤앤고 김민경 입시 설명회 [예비고1] 윤앤고 김민경 입시 설명회 일시 2026. 10. 29(목) 오전 10시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약중중3윤앤고김민경입시설명회윤앤고김민경입시설명회일시20261029목오전10시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 중3 [예비고1] 윤앤고 김민경 입시 설명회  [예비고1] 윤앤고 김민경 입시 설명회  일시 2026. 10. 29(목) 오전 10시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 고1 [예비고2] 이도경 컨설턴트 입시설명회 2차 [예비고2] 이도경 컨설턴트 입시설명회 2차 일시 2026. 10. 29(목) 오전 10시 30분 장소 MEXX학원 (본관",
-      "norm_key": "예약중고1이도경컨설턴트입시설명회2차이도경컨설턴트입시설명회2차일시20261029목오전10시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 고1 [예비고2] 이도경 컨설턴트 입시설명회 2차  [예비고2] 이도경 컨설턴트 입시설명회 2차  일시 2026. 10. 29(목) 오전 10시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
       "section": "event"
     },
     {
@@ -193,7 +374,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 피오르에듀(이과2차) 입시설명회 \t\t\t\t \t\t\t\t\t[예비고2] 피오르에듀(이과2차) 입시설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 10. 31(토) 오후 7시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 고1 [예비고2] 피오르에듀(이과2차) 입시설명회  [예비고2] 피오르에듀(이과2차) 입시설명회  일시 2026. 10. 31(토) 오후 7시 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -205,7 +386,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 윤앤고 김민경 컨설던트 설명회 \t\t\t\t \t\t\t\t\t[예비고2] 윤앤고 김민경 컨설던트 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 02(월) 오전 10시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 고1 [예비고2] 윤앤고 김민경 컨설던트 설명회  [예비고2] 윤앤고 김민경 컨설던트 설명회  일시 2026. 11. 02(월) 오전 10시 30분 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -217,7 +398,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 나병희 컨설던트 입시 설명회 \t\t\t\t \t\t\t\t\t[예비고1] 나병희 컨설던트 입시 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 02(월) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 중3 [예비고1] 나병희 컨설던트 입시 설명회  [예비고1] 나병희 컨설던트 입시 설명회  일시 2026. 11. 02(월) 오후 1시 30분 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -229,7 +410,7 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 장혁진 컨설던트 입시 설명회 \t\t\t\t \t\t\t\t\t[예비고2] 장혁진 컨설던트 입시 설명회 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 02(월) 오후 1시 30분 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 고1 [예비고2] 장혁진 컨설던트 입시 설명회  [예비고2] 장혁진 컨설던트 입시 설명회  일시 2026. 11. 02(월) 오후 1시 30분 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -241,7 +422,19 @@
       ],
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
-      "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 사회내신 학습전략 간담회 1차 \t\t\t\t \t\t\t\t\t사회내신전략 - 최적 /어준규 /김종웅 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 02(월) 오후 7시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX학원 (본관)",
+      "raw_text": "예약중 고1 [예비고2] 사회내신 학습전략 간담회 1차  사회내신전략 - 최적 /어준규 /김종웅  일시 2026. 11. 02(월) 오후 7시 장소 MEXX학원 (본관)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "예약중 중3 [예비고1] 수학 콘서트 1차 [예비고1] 수학 신경식T/송형주T/전현우T 일시 2026. 11. 03(화) 오전 11시 장소 MEXX 본관",
+      "norm_key": "예약중중3수학콘서트1차수학신경식t송형주t전현우t일시20261103화오전11시장소mexx본관",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
+      "primary_cat": "설명회",
+      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 수학 콘서트 1차 \t\t\t\t \t\t\t\t\t[예비고1] 수학 신경식T/송형주T/전현우T \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 03(화) 오전 11시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX 본관",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -254,6 +447,30 @@
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
       "raw_text": "예약중 \t\t\t 고1 \t\t \t\t \t\t\t \t\t\t\t[예비고2] 사회내신 학습전략 간담회 2차 \t\t\t\t \t\t\t\t\t사회내신전략 - 최해나 /민정 /박성일 \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 03(화) 오후 2시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX 본관",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "예약중 중3 [예비고1] 수학 콘서트 2차 [예비고1] 수학 김지원T/김해인T/채수용T 일시 2026. 11. 04(수) 오전 11시 장소 MEXX 본관",
+      "norm_key": "예약중중3수학콘서트2차수학김지원t김해인t채수용t일시20261104수오전11시장소mexx본관",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
+      "primary_cat": "설명회",
+      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 수학 콘서트 2차 \t\t\t\t \t\t\t\t\t[예비고1] 수학 김지원T/김해인T/채수용T \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 04(수) 오전 11시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX 본관",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "예약중 중3 [예비고1] 수학 콘서트 3차 [예비고1] 수학 윤대호T/이치옥T/전성환T 일시 2026. 11. 05(목) 오전 11시 장소 MEXX 본관",
+      "norm_key": "예약중중3수학콘서트3차수학윤대호t이치옥t전성환t일시20261105목오전11시장소mexx본관",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
+      "primary_cat": "설명회",
+      "raw_text": "예약중 \t\t\t 중3 \t\t \t\t \t\t\t \t\t\t\t[예비고1] 수학 콘서트 3차 \t\t\t\t \t\t\t\t\t[예비고1] 수학 윤대호T/이치옥T/전성환T \t\t\t\t \t\t\t \t\t\t \t\t\t\t \t\t\t\t\t일시 \t\t\t\t\t2026. 11. 05(목) 오전 11시 \t\t\t\t \t\t\t\t\t \t\t\t\t\t장소 \t\t\t\t\tMEXX 본관",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -448,6 +665,18 @@
       "section": "notice"
     },
     {
+      "title": "11.3 화요일 · PM 7:00 설명회 접수 한대부고 예비고2 (현고1) 윈터 설명회 추후공지 예약하기 →",
+      "norm_key": "113화요일pm700설명회접수한대부고예비고2현고1윈터설명회추후공지예약하기",
+      "sources": [
+        "공지사항"
+      ],
+      "url": "https://snt-edu.com/reserve?briefing=cms-54",
+      "primary_cat": "공지사항",
+      "raw_text": "11.3 화요일 · PM 7:00 설명회 접수 한대부고 예비고2 (현고1) 윈터 설명회 추후공지 예약하기 →",
+      "source_badge": "[공지사항]",
+      "section": "event"
+    },
+    {
       "title": "한대부고 합격자 설명회 12월 9일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
       "norm_key": "한대부고합격자설명회12월9일수pm700snt14관예비고1학부모님예약하기",
       "sources": [
@@ -508,103 +737,6 @@
       "section": "event"
     }
   ],
-  "미래탐구(Mirae)": [
-    {
-      "title": "D-1 new◆예비고1 2030학년도 입시환경에 따른 <고교 선택 전략> 설명회 2026-10-29(목)",
-      "norm_key": "d1new예비고12030학년도입시환경에따른고교선택전략설명회20261029목",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012455",
-      "primary_cat": "설명회",
-      "raw_text": "D-1  new◆예비고1 2030학년도 입시환경에 따른 <고교 선택 전략> 설명회  2026-10-29(목)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-2 new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해 2026-10-30(금)",
-      "norm_key": "d2new2028새로운수능세대를위한수시와정시의이해20261030금",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012449",
-      "primary_cat": "설명회",
-      "raw_text": "D-2  new■ 2028 새로운 수능 세대를 위한 수시 와 정시의 이해  2026-10-30(금)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-5 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
-      "norm_key": "d52028학년도인문계열논술설명회20261102월",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012349",
-      "primary_cat": "설명회",
-      "raw_text": "D-5  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-6 new예비고2★상위권의 고민! < 내신과 수능 동시대비>를 위한 설명회 2026-11-03(화)",
-      "norm_key": "d6new예비고2상위권의고민내신과수능동시대비를위한설명회20261103화",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012487",
-      "primary_cat": "설명회",
-      "raw_text": "D-6  new예비고2★상위권의 고민! < 내신과 수능 동시대비>를 위한 설명회  2026-11-03(화)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-7마감 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
-      "norm_key": "d7마감2028학년도자연계열논술설명회20261104수",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012348",
-      "primary_cat": "설명회",
-      "raw_text": "D-7마감  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "<시즌2> 예비고1 영어 변소연T 입반테스트 예약하기 2026-11-04(수) ~ 2026-11-08(일)",
-      "norm_key": "시즌2예비고1영어변소연t입반테스트예약하기20261104수20261108일",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012130",
-      "primary_cat": "설명회",
-      "raw_text": "<시즌2> 예비고1 영어 변소연T 입반테스트 예약하기  2026-11-04(수) ~ 2026-11-08(일)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "[윤원중T 최상위 심화반 / 기본심화반 정규반] 입반테스트 2026-11-04(수) ~ 2026-11-08(일)",
-      "norm_key": "입반테스트20261104수20261108일",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012132",
-      "primary_cat": "설명회",
-      "raw_text": "[윤원중T 최상위 심화반 / 기본심화반 정규반] 입반테스트  2026-11-04(수) ~ 2026-11-08(일)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "★예비고1 영어 문희진T 입반테스트 예약 2026-10-21(수) ~ 2026-11-08(일)",
-      "norm_key": "예비고1영어문희진t입반테스트예약20261021수20261108일",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012384",
-      "primary_cat": "설명회",
-      "raw_text": "★예비고1 영어 문희진T 입반테스트 예약  2026-10-21(수) ~ 2026-11-08(일)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    }
-  ],
+  "미래탐구(Mirae)": [],
   "세정학원": []
 }
