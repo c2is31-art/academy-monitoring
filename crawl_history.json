@@ -251,6 +251,18 @@
       "raw_text": "예비고2 겨울방학 시간표 21",
       "source_badge": "[시간표]",
       "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 22",
+      "norm_key": "예비고2겨울방학시간표22",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 22",
+      "source_badge": "[시간표]",
+      "section": "notice"
     }
   ],
   "메가스터디 MEXX": [
@@ -316,18 +328,6 @@
       "primary_cat": "공지사항",
       "raw_text": "학년별 입시 설명회 입시의 중요한 순간, 필요한 전략을 확인하세요 예비 고1,고2,고3 변화하는 교육과정 대비 전략",
       "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "예약중 고1 [예비고2] 피오르에듀(이과2차) 입시설명회 [예비고2] 피오르에듀(이과2차) 입시설명회 일시 2026. 10. 31(토) 오후 7시 장소 MEXX학원 (본관)",
-      "norm_key": "예약중고1피오르에듀이과2차입시설명회피오르에듀이과2차입시설명회일시20261031토오후7시장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약중 고1 [예비고2] 피오르에듀(이과2차) 입시설명회  [예비고2] 피오르에듀(이과2차) 입시설명회  일시 2026. 10. 31(토) 오후 7시 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
       "section": "event"
     },
     {
@@ -727,74 +727,74 @@
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "D-2 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
-      "norm_key": "d22028학년도인문계열논술설명회20261102월",
+      "title": "D-1 [예비고3] 2028학년도 인문계열 논술설명회 2026-11-02(월)",
+      "norm_key": "d12028학년도인문계열논술설명회20261102월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012349",
       "primary_cat": "설명회",
-      "raw_text": "D-2  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
+      "raw_text": "D-1  [예비고3] 2028학년도 인문계열 논술설명회  2026-11-02(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-3 new예비고2■ 28학년도 이후 \"대입 변화의 주요 흐름 이해\"를 위한 설명회 2026-11-03(화)",
-      "norm_key": "d3new예비고228학년도이후대입변화의주요흐름이해를위한설명회20261103화",
+      "title": "D-2 new예비고2■ 28학년도 이후 \"대입 변화의 주요 흐름 이해\"를 위한 설명회 2026-11-03(화)",
+      "norm_key": "d2new예비고228학년도이후대입변화의주요흐름이해를위한설명회20261103화",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012487",
       "primary_cat": "설명회",
-      "raw_text": "D-3  new예비고2■ 28학년도 이후 \"대입 변화의 주요 흐름 이해\"를 위한 설명회  2026-11-03(화)",
+      "raw_text": "D-2  new예비고2■ 28학년도 이후 \"대입 변화의 주요 흐름 이해\"를 위한 설명회  2026-11-03(화)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-3 new★2028 고3 현역으로 통합 수능 만점 전략! 설명회 2026-11-03(화)",
-      "norm_key": "d3new2028고3현역으로통합수능만점전략설명회20261103화",
+      "title": "D-2 new★2028 고3 현역으로 통합 수능 만점 전략! 설명회 2026-11-03(화)",
+      "norm_key": "d2new2028고3현역으로통합수능만점전략설명회20261103화",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012519",
       "primary_cat": "설명회",
-      "raw_text": "D-3  new★2028 고3 현역으로 통합 수능 만점 전략! 설명회  2026-11-03(화)",
+      "raw_text": "D-2  new★2028 고3 현역으로 통합 수능 만점 전략! 설명회  2026-11-03(화)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-4마감 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
-      "norm_key": "d4마감2028학년도자연계열논술설명회20261104수",
+      "title": "D-3마감 [예비고3] 2028학년도 자연계열 논술설명회 2026-11-04(수)",
+      "norm_key": "d3마감2028학년도자연계열논술설명회20261104수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012348",
       "primary_cat": "설명회",
-      "raw_text": "D-4마감  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
+      "raw_text": "D-3마감  [예비고3] 2028학년도 자연계열 논술설명회  2026-11-04(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-4 new■(예비고1) <28학년도 대입변화에 대한 준비> 설명회 2026-11-04(수)",
-      "norm_key": "d4new예비고128학년도대입변화에대한준비설명회20261104수",
+      "title": "D-3 new■(예비고1) <28학년도 대입변화에 대한 준비> 설명회 2026-11-04(수)",
+      "norm_key": "d3new예비고128학년도대입변화에대한준비설명회20261104수",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012499",
       "primary_cat": "설명회",
-      "raw_text": "D-4  new■(예비고1) <28학년도 대입변화에 대한 준비> 설명회  2026-11-04(수)",
+      "raw_text": "D-3  new■(예비고1) <28학년도 대입변화에 대한 준비> 설명회  2026-11-04(수)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-7 new(예비고1)■ 대치동 고교 간 장점*단점 비교 분석 설명회 2026-11-07(토)",
-      "norm_key": "d7new예비고1대치동고교간장점단점비교분석설명회20261107토",
+      "title": "D-6 new(예비고1)■ 대치동 고교 간 장점*단점 비교 분석 설명회 2026-11-07(토)",
+      "norm_key": "d6new예비고1대치동고교간장점단점비교분석설명회20261107토",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012500",
       "primary_cat": "설명회",
-      "raw_text": "D-7  new(예비고1)■ 대치동 고교 간 장점*단점 비교 분석 설명회  2026-11-07(토)",
+      "raw_text": "D-6  new(예비고1)■ 대치동 고교 간 장점*단점 비교 분석 설명회  2026-11-07(토)",
       "source_badge": "[설명회]",
       "section": "event"
     },
