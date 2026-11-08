@@ -1025,12 +1025,13 @@ def run_rms_pdf_crosscheck(
             if not raw_txts and p_row.get("원문전체텍스트"):
                 raw_txts = [str(p_row.get("원문전체텍스트", ""))]
 
+            # 업로드 시점에는 순수 0.1초 로컬 규칙(120종 맞춤법/오탈자 + 긴문장 축약)만 즉시 실행 (외부 API 호출 배제)
             analysis_res = analyze_course_text_content(
                 course_name=c_title,
                 instructor=c_inst,
                 raw_texts=raw_txts,
                 max_char_threshold=max_char_threshold,
-                gemini_api_key=gemini_api_key,
+                gemini_api_key=None,
             )
             all_spelling_issues.extend(analysis_res["맞춤법_상세목록"])
             all_long_proposals.extend(analysis_res["긴문장_상세목록"])

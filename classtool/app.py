@@ -66,6 +66,10 @@ from core.matcher import (
     generate_pdf_fix_request_messages,
     run_rms_pdf_crosscheck,
 )
+from core.text_improver import (
+    analyze_course_text_content,
+    batch_run_external_spelling_parallel,
+)
 from core.title_suggester import (
     DIRECTION_PROMPTS,
     batch_suggest_course_titles,
@@ -194,6 +198,24 @@ def get_or_init_mapper() -> InstructorMapper:
     return InstructorMapper(CONFIG_PATH)
 
 
+@st.cache_data(show_spinner=False)
+def parse_pdf_cached(file_bytes: bytes, file_name: str, target_ym: str = "2027-01") -> pd.DataFrame:
+    """
+    st.file_uploader로 전달받은 PDF 파일 바이트(file_bytes)를 인자로 받아
+    초고속 pypdf 엔진으로 파싱하고 결과를 캐싱합니다.
+    (탭 이동, 필터 조작 시 재파싱 100% 방지)
+    """
+    return parse_syllabus_pdf(file_bytes, target_ym=target_ym)
+
+
+@st.cache_data(show_spinner=False)
+def parse_rms_cached(file_bytes: bytes, file_name: str) -> pd.DataFrame:
+    """
+    RMS 엑셀 파일 바이트를 캐싱하여 불필요한 반복 연산을 방지합니다.
+    """
+    return parse_rms_xls(io.BytesIO(file_bytes))
+
+
 mapper = get_or_init_mapper()
 user_settings = load_user_settings()
 
@@ -306,75 +328,65 @@ with col_toggle:
     )
 
 # -------------------------------------------------------------------------
-# RMS 파일 파싱 및 처리 (세션 캐싱 적용)
+# RMS 파일 파싱 및 처리 (@st.cache_data 파일 바이트 캐싱 적용)
 # -------------------------------------------------------------------------
 raw_rms_df = None
 selected_rms_ym = user_settings.get("target_ym", "2027-01")
 
 if uploaded_rms_files:
-    rms_sig = tuple((getattr(f, "name", ""), getattr(f, "size", 0)) for f in uploaded_rms_files)
-    if st.session_state.get("cached_rms_sig") == rms_sig and st.session_state.get("rms_df_raw") is not None:
-        raw_rms_df = st.session_state["rms_df_raw"]
-        selected_rms_ym = st.session_state.get("selected_rms_ym", selected_rms_ym)
+    if len(uploaded_rms_files) == 1:
+        f = uploaded_rms_files[0]
+        try:
+            raw_rms_df = parse_rms_cached(f.getvalue(), f.name)
+            detected_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
+            selected_rms_ym = detected_ym
+            st.session_state["rms_df_raw"] = raw_rms_df
+            st.session_state["selected_rms_ym"] = selected_rms_ym
+        except Exception as e:
+            st.error(f"❌ RMS 엑셀 파싱 중 오류가 발생했습니다: {e}")
     else:
-        # 파일이 1개 또는 여러 개인 경우 처리
-        if len(uploaded_rms_files) == 1:
-            f = uploaded_rms_files[0]
+        file_map: Dict[str, pd.DataFrame] = {}
+        for f in uploaded_rms_files:
             try:
-                raw_rms_df = parse_rms_xls(f)
-                detected_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
-                selected_rms_ym = detected_ym
-                st.session_state["rms_df_raw"] = raw_rms_df
-                st.session_state["selected_rms_ym"] = selected_rms_ym
-                st.session_state["cached_rms_sig"] = rms_sig
+                parsed = parse_rms_cached(f.getvalue(), f.name)
+                ym_found = detect_dominant_year_month(parsed, default_ym="2027-01")
+                file_map[f"{f.name} ({ym_found})"] = parsed
+                upsert_month_data(parsed, ym_found, filter_stopped=exclude_stopped)
             except Exception as e:
-                st.error(f"❌ RMS 엑셀 파싱 중 오류가 발생했습니다: {e}")
-        else:
-            # 여러 개 파일이 업로드된 경우
-            file_map: Dict[str, pd.DataFrame] = {}
-            for f in uploaded_rms_files:
-                try:
-                    parsed = parse_rms_xls(f)
-                    ym_found = detect_dominant_year_month(parsed, default_ym="2027-01")
-                    file_map[f"{f.name} ({ym_found})"] = parsed
-                    # 누적 DB 자동 Upsert
-                    upsert_month_data(parsed, ym_found, filter_stopped=exclude_stopped)
-                except Exception as e:
-                    st.warning(f"⚠️ '{f.name}' 파싱 실패: {e}")
+                st.warning(f"⚠️ '{f.name}' 파싱 실패: {e}")
 
-            if file_map:
-                st.success(f"🎉 **총 {len(file_map)}개 월의 RMS 파일이 파싱되어 누적 DB에 자동 반영되었습니다.**")
-                selected_name = st.selectbox(
-                    "현재 검수 및 대시보드 기준으로 볼 RMS 파일을 선택하세요:",
-                    options=list(file_map.keys()),
-                    index=0,
-                )
-                raw_rms_df = file_map[selected_name]
-                st.session_state["rms_df_raw"] = raw_rms_df
-                selected_rms_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
-                st.session_state["selected_rms_ym"] = selected_rms_ym
-                st.session_state["cached_rms_sig"] = rms_sig
+        if file_map:
+            st.success(f"🎉 **총 {len(file_map)}개 월의 RMS 파일이 파싱되어 누적 DB에 자동 반영되었습니다.**")
+            selected_name = st.selectbox(
+                "현재 검수 및 대시보드 기준으로 볼 RMS 파일을 선택하세요:",
+                options=list(file_map.keys()),
+                index=0,
+            )
+            raw_rms_df = file_map[selected_name]
+            st.session_state["rms_df_raw"] = raw_rms_df
+            selected_rms_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
+            st.session_state["selected_rms_ym"] = selected_rms_ym
 elif st.session_state.get("rms_df_raw") is not None:
     raw_rms_df = st.session_state["rms_df_raw"]
     selected_rms_ym = st.session_state.get("selected_rms_ym", selected_rms_ym)
 
 # -------------------------------------------------------------------------
-# PDF 파일 파싱 및 처리 (세션 캐싱으로 0.00초 즉시 반환)
+# PDF 파일 파싱 및 처리 (@st.cache_data 파일 바이트 캐싱 적용 - 0.00초 즉시 반환)
 # -------------------------------------------------------------------------
 syllabus_pdf_df = None
 if uploaded_pdf_files:
-    pdf_sig = tuple((getattr(f, "name", ""), getattr(f, "size", 0)) for f in uploaded_pdf_files)
-    if st.session_state.get("cached_pdf_sig") == pdf_sig and st.session_state.get("syllabus_pdf_df") is not None:
-        syllabus_pdf_df = st.session_state["syllabus_pdf_df"]
-    else:
-        pdf_source = uploaded_pdf_files[0] if len(uploaded_pdf_files) == 1 else uploaded_pdf_files
-        try:
-            with st.spinner("📄 PDF 강의계획서 초고속 정밀 파싱 중..."):
-                syllabus_pdf_df = parse_syllabus_pdf(pdf_source)
-                st.session_state["syllabus_pdf_df"] = syllabus_pdf_df
-                st.session_state["cached_pdf_sig"] = pdf_sig
-        except Exception as e:
-            st.error(f"❌ PDF 파싱 중 오류가 발생했습니다: {e}")
+    try:
+        parsed_dfs = []
+        for f in uploaded_pdf_files:
+            f_bytes = f.getvalue()
+            df_part = parse_pdf_cached(f_bytes, f.name, target_ym=selected_rms_ym)
+            if df_part is not None and not df_part.empty:
+                parsed_dfs.append(df_part)
+        if parsed_dfs:
+            syllabus_pdf_df = pd.concat(parsed_dfs, ignore_index=True)
+            st.session_state["syllabus_pdf_df"] = syllabus_pdf_df
+    except Exception as e:
+        st.error(f"❌ PDF 파싱 중 오류가 발생했습니다: {e}")
 elif st.session_state.get("syllabus_pdf_df") is not None:
     syllabus_pdf_df = st.session_state["syllabus_pdf_df"]
 
@@ -717,10 +729,41 @@ with tab3:
         if crosscheck_result is None or syllabus_pdf_df is None:
             st.info("💡 강의계획서 PDF를 업로드하면 맞춤법 및 긴 문장 축약 검수가 자동으로 실행됩니다.")
         else:
-            spelling_df = crosscheck_result.get("spelling_df", pd.DataFrame())
+            # 세션에 커스텀 맞춤법 검사 결과가 있으면 우선 사용
+            if "custom_spelling_df" in st.session_state:
+                spelling_df = st.session_state["custom_spelling_df"]
+            else:
+                spelling_df = crosscheck_result.get("spelling_df", pd.DataFrame())
+
             long_sentence_df = crosscheck_result.get("long_sentence_df", pd.DataFrame())
 
-            st.markdown(f"#### 🔍 1. 국어 맞춤법 및 오탈자 검수 ({len(spelling_df)}건 발견)")
+            col_sp_head, col_sp_btn = st.columns([3, 2])
+            with col_sp_head:
+                st.markdown(f"#### 🔍 1. 국어 맞춤법 및 오탈자 검수 ({len(spelling_df)}건 발견)")
+            with col_sp_btn:
+                btn_run_ext_spell = st.button("⚡ **외부 정밀 맞춤법 추가 스캔 (10개 병렬 스레드)**", type="primary", use_container_width=True)
+
+            if btn_run_ext_spell:
+                with st.spinner("⚡ 10개 병렬 스레드로 외부 정밀 맞춤법을 고속 스캔 중입니다..."):
+                    courses_for_ext = syllabus_pdf_df.to_dict(orient="records")
+                    ext_hits = batch_run_external_spelling_parallel(
+                        pdf_courses=courses_for_ext,
+                        gemini_api_key=gemini_key_input or None,
+                        max_workers=10,
+                    )
+                    if ext_hits:
+                        ext_df = pd.DataFrame(ext_hits)
+                        merged_spell = pd.concat([spelling_df, ext_df], ignore_index=True)
+                        if "원문문장" in merged_spell.columns and "대상어구" in merged_spell.columns:
+                            merged_spell = merged_spell.drop_duplicates(subset=["강좌명", "원문문장", "대상어구"])
+                        st.session_state["custom_spelling_df"] = merged_spell
+                        if crosscheck_result is not None:
+                            crosscheck_result["spelling_df"] = merged_spell
+                        st.success(f"🎉 총 {len(ext_hits)}건의 외부 정밀 맞춤법 교정안이 10개 병렬 스레드로 신속하게 스캔 완료되었습니다.")
+                        st.rerun()
+                    else:
+                        st.info("ℹ️ 외부 정밀 맞춤법 스캔 결과 추가 오류가 발견되지 않았습니다. (내장 규칙 120종 결과 유지)")
+
             if not spelling_df.empty:
                 st.dataframe(spelling_df, use_container_width=True, hide_index=True)
             else:
