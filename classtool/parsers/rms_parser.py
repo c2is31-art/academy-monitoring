@@ -368,9 +368,29 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
             pass
 
     # 2) HTML 테이블 기반 .xls 파싱
+    raw_banner_text = ""
+    banner_counts = None
     if not matched_candidates:
         html_text = decode_rms_bytes(raw_bytes)
         preprocessed_html = re.sub(r"<br\s*/?>|<br[^>]*>", " ", html_text, flags=re.IGNORECASE)
+
+        # 상단 요약 배너 텍스트 추출 (HTML 태그 제거 후 정규식 매칭)
+        clean_text_for_summary = re.sub(r"<[^>]+>", " ", preprocessed_html)
+        clean_text_for_summary = re.sub(r"\s+", " ", clean_text_for_summary)
+        m_banner = re.search(
+            r"총\s*강좌\s*수\s*:\s*(\d+)\s*건\s*,\s*총\s*수강생\s*:\s*(\d+)\s*명\s*\(\s*결제완료\s*:\s*(\d+)\s*명\s*\)",
+            clean_text_for_summary,
+        )
+        if m_banner:
+            banner_courses = int(m_banner.group(1))
+            banner_total_stu = int(m_banner.group(2))
+            banner_paid_stu = int(m_banner.group(3))
+            banner_counts = {
+                "total_courses": banner_courses,
+                "total_students": banner_total_stu,
+                "paid_students": banner_paid_stu,
+            }
+            raw_banner_text = f"총 강좌 수 : {banner_courses} 건 , 총 수강생 : {banner_total_stu} 명 ( 결제완료 : {banner_paid_stu} 명 )"
 
         tables: List[pd.DataFrame] = []
         for flavor in ("lxml", "bs4", "html5lib"):
@@ -510,6 +530,67 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
     target_df["표준수업시간"] = [ps["formatted_schedule"] for ps in parsed_schedules]
     target_df["간결수업시간"] = [ps["compact_schedule"] for ps in parsed_schedules]
 
+    # 수강생 관련 수치 컬럼 정수화 및 파생 컬럼 생성
+    for stu_col in ("가등록포함수강생수", "완납&분납수강생수", "결제인원"):
+        if stu_col in target_df.columns:
+            target_df[stu_col] = (
+                pd.to_numeric(target_df[stu_col], errors="coerce")
+                .fillna(0)
+                .astype(int)
+            )
+        else:
+            target_df[stu_col] = 0
+
+    # 가등록(미결제) 인원 및 결제율 계산
+    target_df["가등록(미결제)"] = (
+        target_df["가등록포함수강생수"] - target_df["결제인원"]
+    ).apply(lambda v: max(0, int(v)))
+
+    target_df["결제율(%)"] = [
+        round((paid / total) * 100.0, 1) if total > 0 else 0.0
+        for paid, total in zip(target_df["결제인원"], target_df["가등록포함수강생수"])
+    ]
+
+    # 전체 요약 통계 딕셔너리 생성
+    sum_total_students = int(target_df["가등록포함수강생수"].sum())
+    sum_paid_students = int(target_df["결제인원"].sum())
+    sum_inst_students = int(target_df["완납&분납수강생수"].sum())
+    sum_unpaid_students = max(0, sum_total_students - sum_paid_students)
+    total_courses_count = len(target_df)
+
+    # 원본 상단 배너 값이 있었으면 검증 및 기록
+    if banner_counts:
+        # 배너 상의 수치가 테이블 합계와 다를 경우 배너 값 보존
+        disp_courses = banner_counts["total_courses"] or total_courses_count
+        disp_students = banner_counts["total_students"] if banner_counts["total_students"] > 0 else sum_total_students
+        disp_paid = banner_counts["paid_students"] if banner_counts["paid_students"] > 0 else sum_paid_students
+    else:
+        disp_courses = total_courses_count
+        disp_students = sum_total_students
+        disp_paid = sum_paid_students
+
+    disp_unpaid = max(0, disp_students - disp_paid)
+    calc_payment_rate = round((disp_paid / disp_students * 100.0), 1) if disp_students > 0 else 0.0
+
+    summary_info = {
+        "total_courses": disp_courses,
+        "total_students": disp_students,
+        "paid_students": disp_paid,
+        "unpaid_students": disp_unpaid,
+        "installment_students": sum_inst_students,
+        "payment_rate": calc_payment_rate,
+        "raw_summary_text": (
+            raw_banner_text
+            or f"총 강좌 수 : {disp_courses} 건 , 총 수강생 : {disp_students} 명 ( 결제완료 : {disp_paid} 명 )"
+        ),
+        "headline_banner": (
+            f"📢 RMS 강의정보 요약 — 총 강좌수 : {disp_courses}건 | "
+            f"총 수강생 : {disp_students:,}명 (결제완료 : {disp_paid:,}명 / 미결제 가등록 : {disp_unpaid:,}명)"
+        ),
+    }
+
+    target_df.attrs["summary"] = summary_info
+
     return target_df
 
 
@@ -545,3 +626,110 @@ def detect_dominant_year_month(df: Optional[pd.DataFrame], default_ym: str = "20
         return str(modes.iloc[0]) if not modes.empty else default_ym
     except Exception:
         return default_ym
+
+
+def extract_rms_summary(df: Optional[pd.DataFrame]) -> Dict[str, Any]:
+    """
+    RMS DataFrame에서 요약 통계 딕셔너리를 추출합니다.
+    df.attrs['summary']가 없으면 본 데이터 합계로 자동 계산합니다.
+    """
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        return {
+            "total_courses": 0,
+            "total_students": 0,
+            "paid_students": 0,
+            "unpaid_students": 0,
+            "installment_students": 0,
+            "payment_rate": 0.0,
+            "raw_summary_text": "데이터 없음",
+            "headline_banner": "📢 RMS 강의정보 — 등록된 강좌 데이터가 없습니다.",
+        }
+
+    if "summary" in df.attrs and isinstance(df.attrs["summary"], dict):
+        return df.attrs["summary"]
+
+    total_courses = len(df)
+    tot_stu = int(df["가등록포함수강생수"].sum()) if "가등록포함수강생수" in df.columns else 0
+    paid_stu = int(df["결제인원"].sum()) if "결제인원" in df.columns else 0
+    inst_stu = int(df["완납&분납수강생수"].sum()) if "완납&분납수강생수" in df.columns else 0
+    unpaid_stu = max(0, tot_stu - paid_stu)
+    rate = round((paid_stu / tot_stu * 100.0), 1) if tot_stu > 0 else 0.0
+
+    return {
+        "total_courses": total_courses,
+        "total_students": tot_stu,
+        "paid_students": paid_stu,
+        "unpaid_students": unpaid_stu,
+        "installment_students": inst_stu,
+        "payment_rate": rate,
+        "raw_summary_text": f"총 강좌 수 : {total_courses} 건 , 총 수강생 : {tot_stu} 명 ( 결제완료 : {paid_stu} 명 )",
+        "headline_banner": (
+            f"📢 RMS 강의정보 요약 — 총 강좌수 : {total_courses}건 | "
+            f"총 수강생 : {tot_stu:,}명 (결제완료 : {paid_stu:,}명 / 미결제 가등록 : {unpaid_stu:,}명)"
+        ),
+    }
+
+
+def generate_instructor_student_summary(df: Optional[pd.DataFrame]) -> pd.DataFrame:
+    """
+    강사별 수강생 현황 집계표를 생성합니다:
+    - 컬럼: 순위, 과목(영역), 강사명, 개설 강좌수, 총 수강생수(가등록포함), 결제완료 인원,
+            완납&분납 인원, 가등록(미결제) 인원, 결제율(%), 강좌당 평균 수강생
+    - 정렬: 총 수강생수 내림차순 (동률 시 결제완료 인원 -> 개설 강좌수 내림차순)
+    """
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        return pd.DataFrame()
+
+    inst_rows: List[Dict[str, Any]] = []
+    # 강사 및 과목 기준으로 GroupBy
+    group_cols = ["강사"]
+    if "과목" in df.columns:
+        group_cols.append("과목")
+
+    for keys, grp in df.groupby(group_cols, sort=False):
+        if isinstance(keys, tuple):
+            inst_name = str(keys[0]).strip()
+            subj_name = str(keys[1]).strip()
+        else:
+            inst_name = str(keys).strip()
+            subj_name = str(grp["과목"].iloc[0]).strip() if "과목" in grp.columns else "-"
+
+        area_name = str(grp["영역"].iloc[0]).strip() if "영역" in grp.columns else ""
+        disp_subj = f"{subj_name} ({area_name})" if area_name and area_name != subj_name else subj_name
+
+        c_count = len(grp)
+        tot_stu = int(grp["가등록포함수강생수"].sum()) if "가등록포함수강생수" in grp.columns else 0
+        paid_stu = int(grp["결제인원"].sum()) if "결제인원" in grp.columns else 0
+        inst_stu = int(grp["완납&분납수강생수"].sum()) if "완납&분납수강생수" in grp.columns else 0
+        unpaid_stu = max(0, tot_stu - paid_stu)
+        pay_rate = round((paid_stu / tot_stu * 100.0), 1) if tot_stu > 0 else 0.0
+        avg_stu = round((tot_stu / c_count), 1) if c_count > 0 else 0.0
+
+        inst_rows.append(
+            {
+                "과목(영역)": disp_subj,
+                "강사명": inst_name,
+                "개설 강좌수": c_count,
+                "총 수강생수(가등록포함)": tot_stu,
+                "결제완료 인원": paid_stu,
+                "완납&분납 인원": inst_stu,
+                "가등록(미결제) 인원": unpaid_stu,
+                "결제율(%)": pay_rate,
+                "강좌당 평균 수강생": avg_stu,
+            }
+        )
+
+    summary_df = pd.DataFrame(inst_rows)
+    if summary_df.empty:
+        return summary_df
+
+    # 정렬: 총 수강생수 내림차순 -> 결제완료 인원 내림차순 -> 개설 강좌수 내림차순
+    summary_df = summary_df.sort_values(
+        by=["총 수강생수(가등록포함)", "결제완료 인원", "개설 강좌수"],
+        ascending=[False, False, False],
+    ).reset_index(drop=True)
+
+    # 순위 컬럼 추가 (1위부터)
+    summary_df.insert(0, "순위", range(1, len(summary_df) + 1))
+
+    return summary_df

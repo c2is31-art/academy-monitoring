@@ -26,7 +26,9 @@ import pandas as pd
 from rapidfuzz import fuzz
 
 from parsers.rms_parser import (
+    extract_rms_summary,
     format_short_md_with_weekday,
+    generate_instructor_student_summary,
     get_korean_weekday,
     normalize_baza_hours,
     strip_course_brackets,
@@ -585,6 +587,8 @@ def run_rms_pdf_crosscheck(
             "pdf_schedule_df": pd.DataFrame(),
             "spelling_df": pd.DataFrame(),
             "long_sentence_df": pd.DataFrame(),
+            "instructor_summary_df": pd.DataFrame(),
+            "rms_summary": extract_rms_summary(None),
             "kpi": {
                 "total_rms": 0,
                 "total_pdf": 0,
@@ -727,6 +731,11 @@ def run_rms_pdf_crosscheck(
         r_fee = int(r_row.get("수강료", 0) or 0)
         r_unit_fee = int(r_row.get("1회차 기준 수강료", 0) or 0)
         r_baza = normalize_baza_hours(r_row.get("바자관시수", r_row.get("바자관 인정기준", "-")))
+        r_total_stu = int(r_row.get("가등록포함수강생수", 0) or 0)
+        r_paid_stu = int(r_row.get("결제인원", 0) or 0)
+        r_inst_stu = int(r_row.get("완납&분납수강생수", 0) or 0)
+        r_unpaid_stu = int(r_row.get("가등록(미결제)", 0) or max(0, r_total_stu - r_paid_stu))
+        r_pay_rate = float(r_row.get("결제율(%)", 0.0) or (round(r_paid_stu / r_total_stu * 100.0, 1) if r_total_stu > 0 else 0.0))
 
         rms_period_short_disp = f"{r_open_short}~{r_close_short} ({r_sessions}회)"
         rms_fee_disp = (
@@ -820,6 +829,11 @@ def run_rms_pdf_crosscheck(
                 "PDF 1월진도표(첫날~끝날/회차)": p_jan_plan_disp,
                 "RMS 수강료": rms_fee_disp,
                 "PDF 수강료": p_fee_disp,
+                "총수강생(가등록포함)": r_total_stu,
+                "결제완료인원": r_paid_stu,
+                "완납&분납인원": r_inst_stu,
+                "가등록(미결제)": r_unpaid_stu,
+                "결제율(%)": r_pay_rate,
                 "수업시간 비교": sched_compare_str,
                 "바자관시수 비교": baza_compare_str,
                 "오류 상세 내역": detail_str,
@@ -979,6 +993,8 @@ def run_rms_pdf_crosscheck(
         "pdf_schedule_df": pdf_schedule_df,
         "spelling_df": spelling_df,
         "long_sentence_df": long_sentence_df,
+        "instructor_summary_df": generate_instructor_student_summary(rms),
+        "rms_summary": extract_rms_summary(rms),
         "kpi": {
             "total_rms": len(rms),
             "total_pdf": len(pdf_df),
@@ -1213,10 +1229,16 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "PDF 1월진도표(첫날~끝날/회차)",
         "RMS 수강료",
         "PDF 수강료",
+        "총수강생(가등록포함)",
+        "결제완료인원",
+        "완납&분납인원",
+        "결제율(%)",
         "수업시간 비교",
         "바자관시수 비교",
         "오류 상세 내역",
         "자동 생성된 수정 요청 사항 요약",
+        "AI추천강좌명",
+        "추천슬로건",
     ]
     _write_styled_sheet(
         ws_s1,
@@ -1226,9 +1248,62 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         highlight_error_cells=True,
     )
 
-    # Sheet 2: 데이터오류_수정요청
-    ws_s2 = wb.create_sheet(title="데이터오류_수정요청")
+    # Sheet 2: 강사별_수강생현황 (상단 요약 배너 포함)
+    ws_s2 = wb.create_sheet(title="강사별_수강생현황")
+    rms_sum = crosscheck_result.get("rms_summary", {}) or {}
+    banner_str = rms_sum.get(
+        "headline_banner",
+        f"총 강좌수 : {rms_sum.get('total_courses', 0)}건 | 총 수강생 : {rms_sum.get('total_students', 0)}명 (결제완료 : {rms_sum.get('paid_students', 0)}명)"
+    )
+    # 1행에 요약 헤더 삽입
+    ws_s2.append([banner_str])
+    ws_s2.cell(row=1, column=1).font = Font(name="맑은 고딕", size=11, bold=True, color="1E3A8A")
+    ws_s2.row_dimensions[1].height = 24
+    ws_s2.append([])  # 빈 행
+
+    inst_summary_df = crosscheck_result.get("instructor_summary_df", pd.DataFrame())
     sheet2_cols = [
+        "순위",
+        "과목(영역)",
+        "강사명",
+        "개설 강좌수",
+        "총 수강생수(가등록포함)",
+        "결제완료 인원",
+        "완납&분납 인원",
+        "가등록(미결제) 인원",
+        "결제율(%)",
+        "강좌당 평균 수강생",
+    ]
+    if not inst_summary_df.empty:
+        cols = [c for c in sheet2_cols if c in inst_summary_df.columns]
+        ws_s2.append(cols)
+        h_row = 3
+        ws_s2.row_dimensions[h_row].height = 26
+        for c_idx in range(1, len(cols) + 1):
+            cell = ws_s2.cell(row=h_row, column=c_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = cell_border
+
+        for r_offset, (_, r_data) in enumerate(inst_summary_df.iterrows(), start=h_row + 1):
+            row_vals = [r_data[c] for c in cols]
+            ws_s2.append(row_vals)
+            ws_s2.row_dimensions[r_offset].height = 20
+            for c_idx in range(1, len(cols) + 1):
+                c_cell = ws_s2.cell(row=r_offset, column=c_idx)
+                c_cell.border = cell_border
+                c_cell.font = base_font
+                c_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        ws_s2.auto_filter.ref = f"A3:{get_column_letter(len(cols))}{len(inst_summary_df) + 3}"
+        for col_idx, col_name in enumerate(cols, start=1):
+            col_letter = get_column_letter(col_idx)
+            ws_s2.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 4, 12)
+
+    # Sheet 3: 데이터오류_수정요청
+    ws_s3 = wb.create_sheet(title="데이터오류_수정요청")
+    sheet3_cols = [
         "검수상태",
         "No",
         "강좌코드",
@@ -1249,36 +1324,15 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "자동 생성된 수정 요청 사항 요약",
     ]
     _write_styled_sheet(
-        ws_s2,
+        ws_s3,
         crosscheck_result.get("error_df", pd.DataFrame()),
-        columns_to_export=sheet2_cols,
+        columns_to_export=sheet3_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
     )
 
-    # Sheet 3: 맞춤법_오탈자교정
-    ws_s3 = wb.create_sheet(title="맞춤법_오탈자교정")
-    sheet3_cols = [
-        "강좌명",
-        "강사명",
-        "섹션",
-        "오류유형",
-        "대상어구",
-        "교정제안",
-        "사유",
-        "원문문장",
-        "교정문장",
-    ]
-    _write_styled_sheet(
-        ws_s3,
-        crosscheck_result.get("spelling_df", pd.DataFrame()),
-        columns_to_export=sheet3_cols,
-        status_col_name="오류유형",
-        highlight_error_cells=False,
-    )
-
-    # Sheet 4: 긴문장_간략화제안
-    ws_s4 = wb.create_sheet(title="긴문장_간략화제안")
+    # Sheet 4: 맞춤법_및_긴문장축약
+    ws_s4 = wb.create_sheet(title="맞춤법_및_긴문장축약")
     sheet4_cols = [
         "강좌명",
         "강사명",
@@ -1298,9 +1352,36 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         highlight_error_cells=False,
     )
 
-    # Sheet 5: PDF누락강좌
-    ws_s5 = wb.create_sheet(title="PDF누락강좌")
+    # Sheet 5: AI_강의명_수정제안
+    ws_s5 = wb.create_sheet(title="AI_강의명_수정제안")
+    ai_df = crosscheck_result.get("ai_titles_df", pd.DataFrame())
     sheet5_cols = [
+        "순번",
+        "과목",
+        "학년",
+        "강사명",
+        "현재강좌명",
+        "현재슬로건",
+        "임팩트점수",
+        "진단비평",
+        "추천슬로건",
+        "제안1_직관형",
+        "제안2_시그니처형",
+        "제안3_킬러임팩트형",
+        "생성엔진",
+        "최종선택강좌명",
+    ]
+    _write_styled_sheet(
+        ws_s5,
+        ai_df,
+        columns_to_export=sheet5_cols,
+        status_col_name="생성엔진",
+        highlight_error_cells=False,
+    )
+
+    # Sheet 6: PDF누락강좌
+    ws_s6 = wb.create_sheet(title="PDF누락강좌")
+    sheet6_cols = [
         "검수상태",
         "No",
         "강좌코드",
@@ -1311,21 +1392,23 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "RMS 강좌명",
         "RMS 개강~종강(회차)",
         "RMS 수강료",
+        "총수강생(가등록포함)",
+        "결제완료인원",
         "수업시간 비교",
         "바자관시수 비교",
         "오류 상세 내역",
     ]
     _write_styled_sheet(
-        ws_s5,
+        ws_s6,
         crosscheck_result.get("missing_pdf_df", pd.DataFrame()),
-        columns_to_export=sheet5_cols,
+        columns_to_export=sheet6_cols,
         status_col_name="검수상태",
         highlight_error_cells=False,
     )
 
-    # Sheet 6: PDF진도표상세검수
-    ws_s6 = wb.create_sheet(title="PDF진도표상세검수")
-    sheet6_cols = [
+    # Sheet 7: PDF진도표상세검수
+    ws_s7 = wb.create_sheet(title="PDF진도표상세검수")
+    sheet7_cols = [
         "PDF_순번",
         "PDF_페이지",
         "검수상태",
@@ -1349,9 +1432,9 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "자동 생성된 수정 요청 사항 요약",
     ]
     _write_styled_sheet(
-        ws_s6,
+        ws_s7,
         crosscheck_result.get("pdf_schedule_df", pd.DataFrame()),
-        columns_to_export=sheet6_cols,
+        columns_to_export=sheet7_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
     )
@@ -1376,6 +1459,10 @@ EXPORT_DISPLAY_COLUMNS = [
     "PDF 1월진도표(첫날~끝날/회차)",
     "RMS 수강료",
     "PDF 수강료",
+    "총수강생(가등록포함)",
+    "결제완료인원",
+    "완납&분납인원",
+    "결제율(%)",
     "수업시간 비교",
     "바자관시수 비교",
     "오류 상세 내역",
