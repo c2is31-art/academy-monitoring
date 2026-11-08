@@ -1023,92 +1023,133 @@ with tab3:
                 st.session_state["ai_titles_df"] = pd.DataFrame(ai_results)
                 if crosscheck_result is not None:
                     crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
-                st.success(f"🎉 **총 {len(ai_results)}개 강좌의 15자 이내 초단축 강의명 생성이 완료되었습니다.**")
+                st.success(f"🎉 **총 {len(ai_results)}개 강좌의 임팩트 분석 및 초단축 강의명 생성이 완료되었습니다.**")
 
             # 결과 데이터프레임 표시
             ai_df = st.session_state.get("ai_titles_df")
             if ai_df is not None and not ai_df.empty:
+                # 1. 상단 요약 배지 및 필터 제공
+                rev_mask = ai_df["needs_revision"] == True if "needs_revision" in ai_df.columns else ai_df["판정결과"].str.contains("수정")
+                rev_cnt = int(rev_mask.sum())
+                keep_cnt = len(ai_df) - rev_cnt
+
+                st.markdown(
+                    f"""
+                    <div style="background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 8px; padding: 0.75rem 1.25rem; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 1.05rem; font-weight: 700; color: #15803d;">
+                            📊 전체 {len(ai_df)}개 강좌 분석 완료 — 🔧 수정 추천 : {rev_cnt}건 &nbsp;|&nbsp; ✅ 기존 유지 권장 : {keep_cnt}건
+                        </span>
+                        <span style="font-size: 0.88rem; color: #166534; font-weight: 600;">
+                            Gemini 3.8 고유 시그니처 자동 보존 로직 가동
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                # 라디오 필터: [🔧 수정 추천 강좌만 보기 (기본값)] vs [전체 강좌 보기 (기존 유지 포함)]
+                filter_ai_view = st.radio(
+                    "표시 필터:",
+                    options=["🔧 수정 추천 강좌만 보기 (기본값)", "전체 강좌 보기 (기존 유지 포함)"],
+                    horizontal=True,
+                    key="radio_filter_ai_view",
+                )
+
+                if filter_ai_view.startswith("🔧"):
+                    disp_ai_df = ai_df[rev_mask].copy()
+                    st.caption(f"💡 평이하거나 서술적이어서 15자 이내 초단축 리브랜딩이 권장되는 **{len(disp_ai_df)}건의 강좌**만 표시 중입니다.")
+                else:
+                    disp_ai_df = ai_df.copy()
+                    st.caption(f"💡 기존 유지 권장 강좌를 포함한 **전체 {len(disp_ai_df)}건의 강좌**를 표시 중입니다.")
+
+                table_cols = [
+                    "순번",
+                    "판정결과",
+                    "과목",
+                    "학년",
+                    "강사명",
+                    "현재강의명",
+                    "임팩트점수",
+                    "판정사유",
+                    "⚡ 추천 강의명 1 (직관·시그니처형)",
+                    "🔥 추천 강의명 2 (킬러·임팩트형)",
+                    "생성엔진",
+                ]
+                valid_tbl_cols = [c for c in table_cols if c in disp_ai_df.columns]
+
                 st.dataframe(
-                    ai_df[
-                        [
-                            "순번",
-                            "과목",
-                            "학년",
-                            "강사명",
-                            "현재강좌명",
-                            "제안1_초단축직관형",
-                            "제안2_초단축시그니처",
-                            "제안3_초단축킬러형",
-                            "임팩트점수",
-                            "진단비평",
-                        ]
-                    ],
+                    disp_ai_df[valid_tbl_cols],
                     use_container_width=True,
                     column_config={
                         "임팩트점수": st.column_config.NumberColumn("임팩트점수", format="%d점"),
+                        "순번": st.column_config.NumberColumn("순번", format="%d"),
                     },
                     hide_index=True,
                 )
 
                 st.markdown("---")
-                st.markdown("#### 🎴 개별 강좌 초단축 스타일 카드 및 원클릭 복사")
+                st.markdown("#### 🎴 개별 강좌 상세 카드 및 실시간 재추천")
                 sel_c_idx = st.selectbox(
                     "상세 카드 및 재추천을 확인할 강좌를 선택하세요:",
                     options=range(len(ai_df)),
-                    format_func=lambda i: f"[{ai_df.iloc[i]['과목']} {ai_df.iloc[i]['강사명']}T] {ai_df.iloc[i]['현재강좌명']}",
+                    format_func=lambda i: f"[{ai_df.iloc[i].get('판정결과', '')}] [{ai_df.iloc[i]['과목']} {ai_df.iloc[i]['강사명']}T] {ai_df.iloc[i].get('현재강의명', ai_df.iloc[i].get('현재강좌명', ''))}",
                 )
                 c_data = ai_df.iloc[sel_c_idx].to_dict()
+                is_keep = not bool(c_data.get("needs_revision", False)) or ("기존 유지" in str(c_data.get("판정결과", "")))
 
-                col_c1, col_c2, col_c3 = st.columns(3)
-                with col_c1:
-                    st.markdown(
-                        f"""
-                        <div class="proposal-card">
-                            <div class="proposal-title">⚡ 스타일 1: 핵심직관형 (12자 내외)</div>
-                            <h4 style="color: #1e3a8a; margin: 0.4rem 0;">{c_data.get('제안1_초단축직관형', '')}</h4>
-                            <p style="font-size: 0.85rem; color: #475569;">글자수: {len(c_data.get('제안1_초단축직관형', ''))}자 | 직관적 목표 각인</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
+                if is_keep:
+                    st.success(
+                        f"✅ **[기존 강의명 유지 권장]** 현재 강의명이 충분히 임팩트 있거나 고유 시그니처 브랜드가 확립되어 있어 수정을 추천하지 않습니다.\n\n"
+                        f"• **현재 강의명:** `{c_data.get('현재강의명', c_data.get('현재강좌명', ''))}`\n"
+                        f"• **판정 사유:** {c_data.get('판정사유', c_data.get('진단비평', ''))}"
                     )
-                with col_c2:
-                    st.markdown(
-                        f"""
-                        <div class="proposal-card">
-                            <div class="proposal-title">💎 스타일 2: 시그니처형 (14자 내외)</div>
-                            <h4 style="color: #065f46; margin: 0.4rem 0;">{c_data.get('제안2_초단축시그니처', '')}</h4>
-                            <p style="font-size: 0.85rem; color: #475569;">글자수: {len(c_data.get('제안2_초단축시그니처', ''))}자 | 강사 브랜드 시그니처</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                with col_c3:
-                    st.markdown(
-                        f"""
-                        <div class="proposal-card">
-                            <div class="proposal-title">🔥 스타일 3: 킬러임팩트형 (12자 내외)</div>
-                            <h4 style="color: #991b1b; margin: 0.4rem 0;">{c_data.get('제안3_초단축킬러형', '')}</h4>
-                            <p style="font-size: 0.85rem; color: #475569;">글자수: {len(c_data.get('제안3_초단축킬러형', ''))}자 | 1등급 킬러 공략</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                else:
+                    col_c1, col_c2 = st.columns(2)
+                    r1_title = c_data.get("⚡ 추천 강의명 1 (직관·시그니처형)") or c_data.get("제안1_초단축직관형", "")
+                    r2_title = c_data.get("🔥 추천 강의명 2 (킬러·임팩트형)") or c_data.get("제안2_초단축시그니처", "")
 
-                st.info(f"💡 **진단 비평:** {c_data.get('진단비평', '')}")
+                    with col_c1:
+                        st.markdown(
+                            f"""
+                            <div class="proposal-card">
+                                <div class="proposal-title">⚡ 추천 1: 직관·시그니처형 (12자 내외)</div>
+                                <h4 style="color: #1e3a8a; margin: 0.4rem 0;">{r1_title}</h4>
+                                <p style="font-size: 0.85rem; color: #475569;">글자수: {len(r1_title)}자 | 목표와 시그니처 0.5초 직관 각인</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                    with col_c2:
+                        st.markdown(
+                            f"""
+                            <div class="proposal-card">
+                                <div class="proposal-title">🔥 추천 2: 킬러·임팩트형 (12자 내외)</div>
+                                <h4 style="color: #991b1b; margin: 0.4rem 0;">{r2_title}</h4>
+                                <p style="font-size: 0.85rem; color: #475569;">글자수: {len(r2_title)}자 | 1등급 킬러 정복·실전 무기 공략</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
-                if st.button(f"🔄 [{c_data['강사명']}T {c_data['현재강좌명']}] 이 강좌만 다시 추천받기"):
-                    with st.spinner("AI가 새로운 초단축 카피를 생성 중입니다..."):
+                    st.info(f"💡 **판정 사유:** {c_data.get('판정사유', c_data.get('진단비평', ''))}")
+
+                if st.button(f"🔄 [{c_data['강사명']}T {c_data.get('현재강의명', c_data.get('현재강좌명', ''))}] 이 강좌만 다시 분석/추천받기"):
+                    with st.spinner("AI가 강좌명을 다시 분석 중입니다..."):
                         new_sug = suggest_course_titles_with_gemini(
                             course_info=courses_for_ai[sel_c_idx],
                             api_key=gemini_key_input or None,
                             direction=direction_choice,
                         )
-                        ai_df.at[sel_c_idx, "제안1_초단축직관형"] = new_sug["style_1_short"]
-                        ai_df.at[sel_c_idx, "제안2_초단축시그니처"] = new_sug["style_2_brand"]
-                        ai_df.at[sel_c_idx, "제안3_초단축킬러형"] = new_sug["style_3_punch"]
-                        ai_df.at[sel_c_idx, "진단비평"] = new_sug["critique"]
+                        ai_df.at[sel_c_idx, "판정결과"] = new_sug["status_badge"]
+                        ai_df.at[sel_c_idx, "needs_revision"] = new_sug["needs_revision"]
+                        ai_df.at[sel_c_idx, "임팩트점수"] = new_sug["impact_score"]
+                        ai_df.at[sel_c_idx, "판정사유"] = new_sug["evaluation_reason"]
+                        ai_df.at[sel_c_idx, "진단비평"] = new_sug["evaluation_reason"]
+                        ai_df.at[sel_c_idx, "⚡ 추천 강의명 1 (직관·시그니처형)"] = new_sug["recommended_title_1"]
+                        ai_df.at[sel_c_idx, "🔥 추천 강의명 2 (킬러·임팩트형)"] = new_sug["recommended_title_2"]
+                        ai_df.at[sel_c_idx, "제안1_초단축직관형"] = new_sug["recommended_title_1"]
+                        ai_df.at[sel_c_idx, "제안2_초단축시그니처"] = new_sug["recommended_title_2"]
                         st.session_state["ai_titles_df"] = ai_df
-                        st.rerun()
                         st.rerun()
 
 # =========================================================================

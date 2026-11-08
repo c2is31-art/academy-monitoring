@@ -1173,7 +1173,7 @@ def export_crosscheck_to_excel(
     - Sheet 4 (전체검수결과_유효강좌): 전 강좌 RMS vs PDF 비교표 (오류 행 연한 빨강, 불일치 셀 강조)
     - Sheet 5 (데이터오류_및_판매중지확인): 오류 및 판매중지 강좌 통합 시트
     - Sheet 6 (맞춤법_및_긴문장축약): 맞춤법 교정 및 긴 문장 축약 제안
-    - Sheet 7 (AI_초단축강의명제안): Gemini 3.8 초단축 강의명 3종 제안
+    - Sheet 7 (AI_강의명제안): 우수 강좌명 유지 판정 및 15자 이내 초단축 강의명 2종 제안
     - Sheet 8 (판매중지_제외강좌목록): 판매중지 강좌 원본 리스트
     - Sheet 9 (PDF진도표상세검수): PDF 진도표 날짜 및 요일 정합성 검수 내역
     """
@@ -1668,21 +1668,21 @@ def export_crosscheck_to_excel(
     )
 
     # =========================================================================
-    # Sheet 7: AI_초단축강의명제안
+    # Sheet 7: AI_강의명제안
     # =========================================================================
-    ws_s7 = wb.create_sheet(title="AI_초단축강의명제안")
+    ws_s7 = wb.create_sheet(title="AI_강의명제안")
     ai_df = crosscheck_result.get("ai_titles_df", pd.DataFrame())
     sheet7_cols = [
         "순번",
+        "판정결과",
         "과목",
         "학년",
         "강사명",
-        "현재강좌명",
+        "현재강의명",
         "임팩트점수",
-        "진단비평",
-        "제안1_초단축직관형",
-        "제안2_초단축시그니처",
-        "제안3_초단축킬러형",
+        "판정사유",
+        "⚡ 추천 강의명 1 (직관·시그니처형)",
+        "🔥 추천 강의명 2 (킬러·임팩트형)",
         "생성엔진",
         "최종선택강좌명",
     ]
@@ -1690,7 +1690,7 @@ def export_crosscheck_to_excel(
         ws_s7,
         ai_df,
         columns_to_export=sheet7_cols,
-        status_col_name="생성엔진",
+        status_col_name="판정결과",
         highlight_error_cells=False,
     )
 
