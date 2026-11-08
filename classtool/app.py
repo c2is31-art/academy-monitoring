@@ -48,13 +48,22 @@ importlib.reload(_matcher_mod)
 
 from core.cumulative_db import (
     build_pivot_table,
+    build_snapshot_pivot_table,
+    compare_two_snapshots,
     delete_month_data,
+    delete_snapshot_data,
+    detect_snapshot_date_from_filename,
     export_enrollment_backup_excel,
+    format_short_snapshot_header,
+    format_snapshot_label,
     get_available_months,
+    get_available_snapshots,
     get_monthly_summary_table,
     import_enrollment_backup,
     load_enrollment_db,
+    normalize_snapshot_key,
     upsert_month_data,
+    upsert_snapshot_data,
 )
 from core.matcher import (
     EXPORT_DISPLAY_COLUMNS,
@@ -315,9 +324,26 @@ with col_upload_pdf:
     )
 
 # -------------------------------------------------------------------------
-# 상단 컨트롤 바: [☑️ 판매중지 강좌 제외] & [다운로드/복사 버튼]
+# 상단 컨트롤 바: [📅 스냅샷 기준일 설정] & [☑️ 판매중지 강좌 제외] & [다운로드/복사 버튼]
 # -------------------------------------------------------------------------
-col_toggle, col_dn_excel, col_btn_copy = st.columns([2.5, 1.5, 1.5])
+col_snap_cfg, col_toggle, col_dn_excel, col_btn_copy = st.columns([1.5, 1.8, 1.35, 1.35])
+
+# RMS 엑셀 파일명에서 기준 스냅샷 날짜 선감지
+detected_default_snap = "2027-01-20"
+if uploaded_rms_files:
+    first_f = uploaded_rms_files[0]
+    detected_default_snap = detect_snapshot_date_from_filename(first_f.name, fallback_ym=user_settings.get("target_ym", "2027-01"))
+
+with col_snap_cfg:
+    snapshot_date_input = st.text_input(
+        "📅 **통계 기준일(스냅샷)**",
+        value=st.session_state.get("custom_snapshot_date", detected_default_snap),
+        help="RMS 수강생 누적 관리 기준일입니다. 기본값: 파일명 기반 매월 20일(YYYY-MM-20).",
+        key="input_snapshot_date",
+    )
+    current_snapshot_key = normalize_snapshot_key(snapshot_date_input)
+    st.session_state["custom_snapshot_date"] = current_snapshot_key
+    st.caption(f"📌 **{format_snapshot_label(current_snapshot_key)}**")
 
 with col_toggle:
     exclude_stopped = st.checkbox(
@@ -342,6 +368,9 @@ if uploaded_rms_files:
             selected_rms_ym = detected_ym
             st.session_state["rms_df_raw"] = raw_rms_df
             st.session_state["selected_rms_ym"] = selected_rms_ym
+            # 매월 20일 기준 스냅샷 DB에 자동 등록/업데이트
+            upsert_snapshot_data(raw_rms_df, current_snapshot_key, filter_stopped=exclude_stopped)
+            st.session_state["active_snapshot_key"] = current_snapshot_key
         except Exception as e:
             st.error(f"❌ RMS 엑셀 파싱 중 오류가 발생했습니다: {e}")
     else:
@@ -350,22 +379,25 @@ if uploaded_rms_files:
             try:
                 parsed = parse_rms_cached(f.getvalue(), f.name)
                 ym_found = detect_dominant_year_month(parsed, default_ym="2027-01")
-                file_map[f"{f.name} ({ym_found})"] = parsed
-                upsert_month_data(parsed, ym_found, filter_stopped=exclude_stopped)
+                f_snap = detect_snapshot_date_from_filename(f.name, fallback_ym=ym_found)
+                file_map[f"{f.name} ({format_snapshot_label(f_snap)})"] = (parsed, f_snap, ym_found)
+                # 각 파일별 매월 20일 스냅샷 DB에 자동 등록
+                upsert_snapshot_data(parsed, f_snap, filter_stopped=exclude_stopped)
             except Exception as e:
                 st.warning(f"⚠️ '{f.name}' 파싱 실패: {e}")
 
         if file_map:
-            st.success(f"🎉 **총 {len(file_map)}개 월의 RMS 파일이 파싱되어 누적 DB에 자동 반영되었습니다.**")
+            st.success(f"🎉 **총 {len(file_map)}개 시점의 RMS 파일이 파싱되어 매월 20일 스냅샷 DB에 자동 분류·저장되었습니다.**")
             selected_name = st.selectbox(
                 "현재 검수 및 대시보드 기준으로 볼 RMS 파일을 선택하세요:",
                 options=list(file_map.keys()),
                 index=0,
             )
-            raw_rms_df = file_map[selected_name]
+            raw_rms_df, cur_snap, cur_ym = file_map[selected_name]
             st.session_state["rms_df_raw"] = raw_rms_df
-            selected_rms_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
+            selected_rms_ym = cur_ym
             st.session_state["selected_rms_ym"] = selected_rms_ym
+            st.session_state["active_snapshot_key"] = cur_snap
 elif st.session_state.get("rms_df_raw") is not None:
     raw_rms_df = st.session_state["rms_df_raw"]
     selected_rms_ym = st.session_state.get("selected_rms_ym", selected_rms_ym)
@@ -476,7 +508,14 @@ if active_rms_df is not None:
 # 상단 컨트롤 바의 [다운로드 버튼] 및 [복사 버튼] 활성화
 if crosscheck_result is not None:
     with col_dn_excel:
-        excel_bytes = export_crosscheck_to_excel(crosscheck_result, target_ym=selected_rms_ym)
+        snap_a = st.session_state.get("selected_snapshot_a", None)
+        snap_b = st.session_state.get("selected_snapshot_b", None)
+        excel_bytes = export_crosscheck_to_excel(
+            crosscheck_result,
+            target_ym=selected_rms_ym,
+            snapshot_a_key=snap_a,
+            snapshot_b_key=snap_b,
+        )
         st.download_button(
             label="📥 **통합 결과지 엑셀(.xlsx)**",
             data=excel_bytes,
@@ -498,7 +537,7 @@ st.markdown("---")
 # -------------------------------------------------------------------------
 tab1, tab2, tab3, tab4 = st.tabs(
     [
-        "📈 Tab 1: 강사별 수강생 & 월별 누적 통계",
+        "📈 Tab 1: 강사별 수강생 & 매월 20일 기준 비교 통계",
         "🔍 Tab 2: 엑셀 vs PDF 강의계획서 정밀 검수",
         "✍️ Tab 3: 맞춤법 교정 & ⚡ 초단축 문장·강의명 제안",
         "💾 Tab 4: 누적 DB 백업/관리 & 제외 강좌 확인",
@@ -506,116 +545,261 @@ tab1, tab2, tab3, tab4 = st.tabs(
 )
 
 # =========================================================================
-# Tab 1: 📈 강사별 수강생 & 월별 누적 통계
+# Tab 1: 📈 강사별 수강생 & 매월 20일 기준 비교 통계
 # =========================================================================
 with tab1:
-    if active_rms_df is None:
-        st.info("💡 상단 업로드 영역에서 **RMS 수업목록 엑셀 파일(.xls, .xlsx)**을 업로드하면 수강생 현황이 즉시 표시됩니다.")
+    avail_snaps = get_available_snapshots()
+
+    if not avail_snaps:
+        st.info("💡 상단 업로드 영역에서 **RMS 수업목록 엑셀 파일(.xls, .xlsx)**을 업로드하면 매월 20일 기준 스냅샷이 자동 등록되어 비교 분석할 수 있습니다.")
     else:
-        st.markdown(f"### 📊 1. 당월({selected_rms_ym}) 강사별 수강생 순위 집계표")
-        inst_summary_df = generate_instructor_student_summary(active_rms_df)
+        st.markdown("### 📅 1. 스냅샷 비교 시점 선택 (Snapshot Selector)")
+        st.caption("매월 20일 시점의 수강생 및 결제자수 데이터를 1:1로 대조하여 정확한 증감 통계를 분석합니다.")
 
-        col_search_inst, col_save_db = st.columns([3, 1])
-        with col_search_inst:
-            kw_inst = st.text_input("🔍 강사명 또는 과목 검색:", placeholder="강사명(예: 이지원, 지인해) 또는 과목 입력", key="kw_inst_search")
-        with col_save_db:
+        # 최근 2개 스냅샷 자동 선택 (2개 이상이면 이전 달과 당월)
+        if len(avail_snaps) >= 2:
+            def_idx_a = len(avail_snaps) - 2
+            def_idx_b = len(avail_snaps) - 1
+        else:
+            def_idx_a = 0
+            def_idx_b = 0
+
+        col_snap_a, col_snap_b, col_btn_sync = st.columns([2, 2, 1.2])
+        with col_snap_a:
+            sel_snap_a = st.selectbox(
+                "📅 **기준 시점 A (전월 20일)**",
+                options=avail_snaps,
+                index=def_idx_a,
+                format_func=format_snapshot_label,
+                key="tab1_sel_snap_a",
+            )
+        with col_snap_b:
+            sel_snap_b = st.selectbox(
+                "📅 **비교 시점 B (당월 20일)**",
+                options=avail_snaps,
+                index=def_idx_b,
+                format_func=format_snapshot_label,
+                key="tab1_sel_snap_b",
+            )
+        with col_btn_sync:
             st.write("")
             st.write("")
-            if st.button("💾 **현재 월 누적 DB에 저장**", use_container_width=True):
-                ok, msg = upsert_month_data(raw_rms_df, selected_rms_ym, filter_stopped=exclude_stopped)
-                if ok:
-                    st.toast(msg, icon="✅")
-                    st.success(msg)
-                else:
-                    st.error(msg)
+            if raw_rms_df is not None:
+                if st.button("💾 **현재 RMS 스냅샷 갱신**", use_container_width=True):
+                    cur_key = st.session_state.get("active_snapshot_key", normalize_snapshot_key(selected_rms_ym))
+                    ok, msg = upsert_snapshot_data(raw_rms_df, cur_key, filter_stopped=exclude_stopped)
+                    if ok:
+                        st.toast(msg, icon="✅")
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
 
-        filtered_inst_df = inst_summary_df.copy()
-        if kw_inst.strip():
-            filtered_inst_df = filtered_inst_df[
-                filtered_inst_df["강사명"].str.contains(kw_inst.strip(), case=False, na=False)
-                | filtered_inst_df["과목(영역)"].str.contains(kw_inst.strip(), case=False, na=False)
-            ]
+        st.session_state["selected_snapshot_a"] = sel_snap_a
+        st.session_state["selected_snapshot_b"] = sel_snap_b
 
-        st.dataframe(
-            filtered_inst_df,
-            use_container_width=True,
-            column_config={
-                "순위": st.column_config.NumberColumn("순위", format="%d위"),
-                "총 수강생수(가등록포함)": st.column_config.NumberColumn("총 수강생", format="%d명"),
-                "결제완료 인원": st.column_config.NumberColumn("결제완료", format="%d명"),
-                "완납&분납 인원": st.column_config.NumberColumn("완납·분납", format="%d명"),
-                "가등록(미결제) 인원": st.column_config.NumberColumn("미결제", format="%d명"),
-                "결제율(%)": st.column_config.ProgressColumn("결제율", min_value=0, max_value=100, format="%.1f%%"),
-                "강좌당 평균 수강생": st.column_config.NumberColumn("강좌당 평균", format="%.1f명"),
-            },
-            hide_index=True,
-        )
+        # 1:1 비교 데이터 산출
+        comp_res = compare_two_snapshots(sel_snap_a, sel_snap_b)
+        kpi = comp_res.get("kpi", {})
+        comp_df = comp_res.get("comparison_df", pd.DataFrame())
+        short_a = comp_res.get("short_a", "전월")
+        short_b = comp_res.get("short_b", "당월")
+
+        # 4대 핵심 KPI 카드
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            crs_diff = kpi.get("courses_diff", 0)
+            st.metric(
+                label=f"유효 강좌수 변화 ({short_b})",
+                value=f"{kpi.get('courses_b', 0)}건",
+                delta=f"{'+' if crs_diff > 0 else ''}{crs_diff}건 ({short_a} {kpi.get('courses_a', 0)}건)",
+            )
+        with c2:
+            stu_diff = kpi.get("students_diff", 0)
+            stu_pct = kpi.get("students_pct", 0.0)
+            st.metric(
+                label=f"총 수강생수 변화 ({short_b})",
+                value=f"{kpi.get('students_b', 0):,}명",
+                delta=f"{'+' if stu_diff > 0 else ''}{stu_diff:,}명 ({'+' if stu_pct > 0 else ''}{stu_pct}%)",
+            )
+        with c3:
+            paid_diff = kpi.get("paid_diff", 0)
+            paid_pct = kpi.get("paid_pct", 0.0)
+            st.metric(
+                label=f"결제완료 인원 변화 ({short_b})",
+                value=f"{kpi.get('paid_b', 0):,}명",
+                delta=f"{'+' if paid_diff > 0 else ''}{paid_diff:,}명 ({'+' if paid_pct > 0 else ''}{paid_pct}%)",
+            )
+        with c4:
+            rate_diff = kpi.get("rate_diff", 0.0)
+            st.metric(
+                label=f"평균 결제율 변화 ({short_b})",
+                value=f"{kpi.get('rate_b', 0.0)}%",
+                delta=f"{'+' if rate_diff > 0 else ''}{rate_diff}%p ({short_a} {kpi.get('rate_a', 0.0)}%)",
+            )
 
         st.markdown("---")
         # -------------------------------------------------------------
-        # 월별 강사 결제자수 누적 추이 피벗 테이블
+        # 2. 강사별 [A vs B] 1:1 정밀 비교 분석표 (Full Outer Join)
         # -------------------------------------------------------------
-        st.markdown("### 📅 2. 월별 강사 누적 통계 피벗 테이블 (전월 대비 증감 MoM)")
-        col_metric, col_dummy = st.columns([2.5, 2.5])
+        st.markdown(f"### 👥 2. 강사별 [{short_a} vs {short_b}] 1:1 정밀 비교 분석표 (Full Outer Join)")
+        st.caption("• 신규개설(`🆕`) 강좌 및 종강(`⚪`) 강좌까지 누락 없이 자동 분류·대조됩니다.")
+
+        if not comp_df.empty:
+            # 4열 필터 컨트롤 바
+            f_col1, f_col2, f_col3, f_col4 = st.columns([1.5, 1.5, 2.0, 2.0])
+            all_subjects = sorted(list(comp_df["과목"].dropna().unique()))
+            with f_col1:
+                subj_choice = st.selectbox("과목(영역) 필터:", options=["전체"] + all_subjects, key="tab1_filter_subj")
+            with f_col2:
+                status_choice = st.selectbox(
+                    "변동 상태 필터:",
+                    options=["전체", "🔺 증가", "🔻 감소", "➖ 유지", "🆕 당월 신규개설", "⚪ 당월 미개설(종강)"],
+                    key="tab1_filter_status",
+                )
+            with f_col3:
+                search_kw = st.text_input("🔍 강사명 검색:", placeholder="강사명(예: 이지원, 지인해)", key="tab1_search_inst")
+            with f_col4:
+                sort_choice = st.selectbox(
+                    "정렬 기준:",
+                    options=[
+                        f"[B] {short_b} 결제자수 많은 순",
+                        "결제자 증감(명) 많은 순",
+                        f"[B] {short_b} 총수강생 많은 순",
+                        "강좌수 많은 순",
+                        "강사명 가나다순",
+                    ],
+                    key="tab1_sort_choice",
+                )
+
+            filtered_df = comp_df.copy()
+            if subj_choice != "전체":
+                filtered_df = filtered_df[filtered_df["과목"] == subj_choice]
+            if status_choice != "전체":
+                filtered_df = filtered_df[filtered_df["변동 상태"] == status_choice]
+            if search_kw.strip():
+                filtered_df = filtered_df[
+                    filtered_df["강사명"].str.contains(search_kw.strip(), case=False, na=False)
+                    | filtered_df["과목(영역)"].str.contains(search_kw.strip(), case=False, na=False)
+                ]
+
+            if sort_choice == f"[B] {short_b} 결제자수 많은 순":
+                filtered_df = filtered_df.sort_values(by=f"[B] {short_b} 결제자수", ascending=False)
+            elif sort_choice == "결제자 증감(명) 많은 순":
+                filtered_df = filtered_df.sort_values(by="결제자_증감_정수", ascending=False)
+            elif sort_choice == f"[B] {short_b} 총수강생 많은 순":
+                filtered_df = filtered_df.sort_values(by=f"[B] {short_b} 총수강생", ascending=False)
+            elif sort_choice == "강좌수 많은 순":
+                filtered_df = filtered_df.sort_values(by=f"[B] {short_b} 강좌수", ascending=False)
+            elif sort_choice == "강사명 가나다순":
+                filtered_df = filtered_df.sort_values(by="강사명", ascending=True)
+
+            # 순위 재부여
+            filtered_df = filtered_df.reset_index(drop=True)
+            filtered_df["순위"] = filtered_df.index + 1
+
+            disp_cols = [
+                "순위",
+                "과목(영역)",
+                "강사명",
+                f"[A] {short_a} 강좌수",
+                f"[B] {short_b} 강좌수",
+                "강좌수 증감",
+                f"[A] {short_a} 결제자수",
+                f"[B] {short_b} 결제자수",
+                "결제자 증감(명)",
+                "결제자 증감률(%)",
+                f"[A] {short_a} 총수강생",
+                f"[B] {short_b} 총수강생",
+                "총수강생 증감(명)",
+                "[A] 결제율(%)",
+                "[B] 결제율(%)",
+                "결제율 증감(%p)",
+                "변동 상태",
+            ]
+            valid_disp_cols = [c for c in disp_cols if c in filtered_df.columns]
+
+            st.dataframe(
+                filtered_df[valid_disp_cols],
+                use_container_width=True,
+                column_config={
+                    "순위": st.column_config.NumberColumn("순위", format="%d위"),
+                    f"[A] {short_a} 결제자수": st.column_config.NumberColumn(f"[A] {short_a} 결제", format="%d명"),
+                    f"[B] {short_b} 결제자수": st.column_config.NumberColumn(f"[B] {short_b} 결제", format="%d명"),
+                    f"[A] {short_a} 총수강생": st.column_config.NumberColumn(f"[A] {short_a} 수강생", format="%d명"),
+                    f"[B] {short_b} 총수강생": st.column_config.NumberColumn(f"[B] {short_b} 수강생", format="%d명"),
+                },
+                hide_index=True,
+            )
+        else:
+            st.info("비교할 강사 데이터가 없습니다.")
+
+        st.markdown("---")
+        # -------------------------------------------------------------
+        # 3. 매월 20일 기준 연간 시계열 누적 피벗 테이블
+        # -------------------------------------------------------------
+        st.markdown("### 📊 3. 매월 20일 기준 연간 시계열 누적 피벗 테이블")
+        col_metric, _ = st.columns([3, 2])
         with col_metric:
             selected_metric = st.radio(
                 "조회할 누적 통계 지표 선택:",
                 options=["결제완료 인원", "총 수강생(가등록포함)", "유효 강좌수", "결제 매출액"],
                 horizontal=True,
-                key="pivot_metric_radio",
+                key="snapshot_pivot_metric_radio",
             )
 
-        pivot_df = build_pivot_table(metric_label=selected_metric)
+        pivot_df = build_snapshot_pivot_table(metric_label=selected_metric)
         if pivot_df.empty:
-            st.info("💡 아직 저장된 월별 누적 데이터가 없습니다. 상단의 `[💾 현재 월 누적 DB에 저장]` 버튼을 누르거나, 여러 달의 RMS 엑셀 파일을 업로드하세요.")
+            st.info("💡 아직 저장된 매월 20일 기준 누적 데이터가 없습니다.")
         else:
             st.dataframe(
                 pivot_df,
                 use_container_width=True,
                 column_config={
                     "순위": st.column_config.NumberColumn("순위", format="%d위"),
-                    "누적 합계": st.column_config.NumberColumn("누적 합계", format="%d"),
-                    "월평균": st.column_config.NumberColumn("월평균", format="%.1f"),
+                    "기간 누적 합계": st.column_config.NumberColumn("누적 합계", format="%d"),
+                    "매월 20일 평균": st.column_config.NumberColumn("월평균", format="%.1f"),
                 },
                 hide_index=True,
             )
 
         st.markdown("---")
         # -------------------------------------------------------------
-        # 강사별 개별 강좌 상세 드릴다운
+        # 4. 강사별 개설 강좌 상세 드릴다운
         # -------------------------------------------------------------
-        st.markdown("### 🔎 3. 강사별 개설 강좌 상세 드릴다운")
-        all_instructors = sorted(list(active_rms_df["강사"].dropna().unique()))
-        selected_drill_inst = st.selectbox("상세 조회할 강사를 선택하세요:", options=all_instructors)
-        if selected_drill_inst:
-            drill_df = active_rms_df[active_rms_df["강사"] == selected_drill_inst].copy()
-            show_cols = [
-                "강좌코드",
-                "과목",
-                "학년",
-                "강좌명",
-                "간결수업시간",
-                "개강일_짧은표시",
-                "종강일_짧은표시",
-                "회차",
-                "수강료",
-                "가등록포함수강생수",
-                "결제인원",
-                "가등록(미결제)",
-                "결제율(%)",
-            ]
-            valid_show_cols = [c for c in show_cols if c in drill_df.columns]
-            st.dataframe(
-                drill_df[valid_show_cols].reset_index(drop=True),
-                use_container_width=True,
-                column_config={
-                    "수강료": st.column_config.NumberColumn("수강료", format="%d원"),
-                    "가등록포함수강생수": st.column_config.NumberColumn("가등록", format="%d명"),
-                    "결제인원": st.column_config.NumberColumn("결제완료", format="%d명"),
-                    "가등록(미결제)": st.column_config.NumberColumn("미결제", format="%d명"),
-                },
-                hide_index=True,
-            )
+        st.markdown("### 🔎 4. 강사별 개설 강좌 상세 드릴다운")
+        if active_rms_df is not None:
+            all_instructors = sorted(list(active_rms_df["강사"].dropna().unique()))
+            selected_drill_inst = st.selectbox("상세 조회할 강사를 선택하세요:", options=all_instructors, key="tab1_drill_inst")
+            if selected_drill_inst:
+                drill_df = active_rms_df[active_rms_df["강사"] == selected_drill_inst].copy()
+                show_cols = [
+                    "강좌코드",
+                    "과목",
+                    "학년",
+                    "강좌명",
+                    "간결수업시간",
+                    "개강일_짧은표시",
+                    "종강일_짧은표시",
+                    "회차",
+                    "수강료",
+                    "가등록포함수강생수",
+                    "결제인원",
+                    "가등록(미결제)",
+                    "결제율(%)",
+                ]
+                valid_show_cols = [c for c in show_cols if c in drill_df.columns]
+                st.dataframe(
+                    drill_df[valid_show_cols].reset_index(drop=True),
+                    use_container_width=True,
+                    column_config={
+                        "수강료": st.column_config.NumberColumn("수강료", format="%d원"),
+                        "가등록포함수강생수": st.column_config.NumberColumn("가등록", format="%d명"),
+                        "결제인원": st.column_config.NumberColumn("결제완료", format="%d명"),
+                        "가등록(미결제)": st.column_config.NumberColumn("미결제", format="%d명"),
+                    },
+                    hide_index=True,
+                )
 
 # =========================================================================
 # Tab 2: 🔍 엑셀 vs PDF 강의계획서 정밀 검수
@@ -993,24 +1177,31 @@ with tab4:
             else:
                 st.error(f"❌ {msg}")
 
-    # 현재 DB에 저장된 월 목록 조회 및 삭제 기능
+    # 현재 DB에 저장된 매월 20일 스냅샷 목록 조회 및 삭제 기능
     st.markdown("---")
-    st.markdown("#### 🗄️ 현재 등록된 월별 데이터 목록")
-    db_months = get_available_months()
-    if db_months:
-        st.write(f"현재 등록된 연월: **{', '.join(db_months)}** (총 {len(db_months)}개 월)")
+    st.markdown("#### 🗄️ 현재 등록된 매월 20일 기준 스냅샷 목록")
+    db_snaps = get_available_snapshots()
+    if db_snaps:
+        disp_snap_labels = [f"{format_snapshot_label(k)} ({k})" for k in db_snaps]
+        st.write(f"현재 등록된 스냅샷: **{', '.join(disp_snap_labels)}** (총 {len(db_snaps)}개 시점)")
         col_del_m, col_del_btn = st.columns([3, 1])
         with col_del_m:
-            del_m_target = st.selectbox("삭제할 월을 선택하세요:", options=db_months)
+            del_target_idx = st.selectbox(
+                "삭제할 스냅샷을 선택하세요:",
+                options=range(len(db_snaps)),
+                format_func=lambda i: f"{format_snapshot_label(db_snaps[i])} [{db_snaps[i]}]",
+                key="tab4_del_snap_target",
+            )
         with col_del_btn:
             st.write("")
             st.write("")
-            if st.button("🗑️ 해당 월 데이터 삭제", use_container_width=True):
-                if delete_month_data(del_m_target):
-                    st.success(f"'{del_m_target}' 데이터가 삭제되었습니다.")
+            if st.button("🗑️ 해당 스냅샷 데이터 삭제", use_container_width=True):
+                target_to_del = db_snaps[del_target_idx]
+                if delete_snapshot_data(target_to_del):
+                    st.success(f"'{format_snapshot_label(target_to_del)}' 스냅샷 데이터가 삭제되었습니다.")
                     st.rerun()
     else:
-        st.info("등록된 월별 누적 데이터가 없습니다.")
+        st.info("등록된 매월 20일 기준 스냅샷 데이터가 없습니다.")
 
     st.markdown("---")
     # -------------------------------------------------------------

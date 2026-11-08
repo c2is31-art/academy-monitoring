@@ -1,11 +1,11 @@
 """
-월별·강사별 수강생 및 결제자수 누적 통계 관리 DB 모듈 (core/cumulative_db.py)
-- 매월 RMS 수업목록 엑셀 업로드 시 월별(YYYY-MM) 강사별 수강생/결제자수/매출액 누적 저장 (data/enrollment_history.json)
-- '판매중지 강좌 제외' 필터 적용 유효 강좌 기준 자동 집계 (전체 기준 포함 지원)
-- 다중 월별 파일 업로드 시 일괄 Upsert 지원
-- 강사별·월별 누적 통계 피벗 테이블 생성 (결제완료 인원, 총 수강생, 유효 강좌수, 결제 매출액 전환)
-- 전월 대비 증감(MoM, +00명 / +00.0%), 누적 합계, 월평균 자동 산출
-- 클라우드 재시작 대비 누적 DB 백업 엑셀(.xlsx) 다운로드 및 복원(불러오기) 지원
+매월 20일 기준(As-of 20th of each month) 강사별 수강생·결제자수 스냅샷 누적 관리 및 비교 통계 모듈 (core/cumulative_db.py)
+- 매월 RMS 수업목록 엑셀 업로드 시 파일명(YYMMDD) 또는 지정 기준일 기반 '매월 20일 기준'(YYYY-MM-20) 스냅샷 생성
+- 저장 스키마: data/enrollment_history.json (키: "2027-01-20", "2027-02-20", 표시 라벨: "27년 1월 20일 기준")
+- '전월 20일 vs 당월 20일'(예: 1월 20일 ↔ 2월 20일) 강사별 1:1 정밀 비교 대조 (Full Outer Join)
+- 강사별 강좌수·결제자수·총수강생·결제율 증감(명/%/%p) 및 변동 상태(🔺증가, 🔻감소, ➖유지, 🆕신규개설, ⚪미개설/종강) 자동 산출
+- 매월 20일 기준 연간 시계열 누적 피벗 테이블 (결제완료, 총수강생, 강좌수, 매출액)
+- 엑셀 결과지(매월20일_강사별비교, 매월20일_연간누적추이, 당월20일_강사별상세) 자동 생성 및 백업/복원 지원
 """
 
 from __future__ import annotations
@@ -20,40 +20,125 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
-DB_FILE_PATH = Path("data/enrollment_history.json")
-
 
 def get_db_path() -> Path:
     """누적 DB 파일 경로를 반환하며 부모 디렉토리가 없으면 생성합니다."""
-    # classtool 내부 data 디렉토리 우선
     base_dir = Path(__file__).resolve().parent.parent
     data_dir = base_dir / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir / "enrollment_history.json"
 
 
+def normalize_snapshot_key(date_str: str) -> str:
+    """
+    임의의 날짜/연월 문자열을 'YYYY-MM-20' 형태의 표준 스냅샷 키로 정규화합니다.
+    예: '2027-01-20' -> '2027-01-20'
+        '2027-01' -> '2027-01-20'
+        '27.01.20' -> '2027-01-20'
+    """
+    s = str(date_str).strip()
+    # 1) YYYY-MM-DD
+    m_ymd = re.match(r"^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$", s)
+    if m_ymd:
+        return f"{int(m_ymd.group(1)):04d}-{int(m_ymd.group(2)):02d}-20"
+
+    # 2) YY-MM-DD or YY.MM.DD
+    m_yymmdd_sep = re.match(r"^(\d{2})[-./](\d{1,2})[-./](\d{1,2})$", s)
+    if m_yymmdd_sep:
+        yy = int(m_yymmdd_sep.group(1))
+        yyyy = 2000 + yy if yy < 70 else 1900 + yy
+        return f"{yyyy:04d}-{int(m_yymmdd_sep.group(2)):02d}-20"
+
+    # 3) YYYY-MM
+    m_ym = re.match(r"^(\d{4})[-./](\d{1,2})$", s)
+    if m_ym:
+        return f"{int(m_ym.group(1)):04d}-{int(m_ym.group(2)):02d}-20"
+
+    # 4) YYMMDD
+    m_yymmdd = re.match(r"^(\d{2})(\d{2})(\d{2})$", s)
+    if m_yymmdd:
+        yy = int(m_yymmdd.group(1))
+        yyyy = 2000 + yy if yy < 70 else 1900 + yy
+        return f"{yyyy:04d}-{int(m_yymmdd.group(2)):02d}-20"
+
+    return datetime.now().strftime("%Y-%m-20")
+
+
+def format_snapshot_label(snapshot_key: str) -> str:
+    """
+    '2027-01-20' 형태의 키를 사람이 읽기 좋은 '27년 1월 20일 기준' 라벨로 변환합니다.
+    """
+    s = normalize_snapshot_key(snapshot_key)
+    parts = s.split("-")
+    if len(parts) >= 2:
+        yy = parts[0][2:]
+        mm = int(parts[1])
+        return f"{yy}년 {mm}월 20일 기준"
+    return f"{snapshot_key} 기준"
+
+
+def format_short_snapshot_header(snapshot_key: str) -> str:
+    """
+    '2027-01-20' 형태의 키를 시계열 테이블 헤더용 '27.01.20' 형태로 변환합니다.
+    """
+    s = normalize_snapshot_key(snapshot_key)
+    parts = s.split("-")
+    if len(parts) >= 3:
+        return f"{parts[0][2:]}.{parts[1]}.20"
+    return snapshot_key
+
+
+def detect_snapshot_date_from_filename(filename: str, fallback_ym: Optional[str] = None) -> str:
+    """
+    RMS 엑셀 파일명(예: 'Chr_SSDan_List_2611021410.xls', 'Chr_SSDan_List_2701201030.xls')에서
+    YYMMDD 패턴을 추출하여 'YYYY-MM-20' 기준 스냅샷 날짜로 자동 매핑합니다.
+    """
+    fname = str(filename).strip()
+    m = re.search(r"(\d{2})(\d{2})(\d{2})\d{4}", fname)
+    if m:
+        yy = int(m.group(1))
+        mm = int(m.group(2))
+        yyyy = 2000 + yy if yy < 70 else 1900 + yy
+        return f"{yyyy:04d}-{mm:02d}-20"
+
+    if fallback_ym:
+        return normalize_snapshot_key(fallback_ym)
+
+    return datetime.now().strftime("%Y-%m-20")
+
+
 def load_enrollment_db() -> Dict[str, Any]:
     """누적 DB JSON을 안전하게 로드합니다."""
     db_path = get_db_path()
     if not db_path.exists():
-        return {"version": "1.0", "updated_at": "", "months": {}}
+        return {"version": "2.0", "updated_at": "", "months": {}}
 
     try:
         content = db_path.read_text(encoding="utf-8")
         if not content.strip():
-            return {"version": "1.0", "updated_at": "", "months": {}}
+            return {"version": "2.0", "updated_at": "", "months": {}}
         data = json.loads(content)
         if not isinstance(data, dict):
-            return {"version": "1.0", "updated_at": "", "months": {}}
+            return {"version": "2.0", "updated_at": "", "months": {}}
         if "months" not in data or not isinstance(data["months"], dict):
             data["months"] = {}
+
+        # 기존 YYYY-MM 키가 있는 경우 YYYY-MM-20으로 키 자동 마이그레이션
+        migrated_months = {}
+        for k, v in data["months"].items():
+            norm_k = normalize_snapshot_key(k)
+            if isinstance(v, dict):
+                v["snapshot_key"] = norm_k
+                v["snapshot_label"] = format_snapshot_label(norm_k)
+            migrated_months[norm_k] = v
+        data["months"] = migrated_months
         return data
     except Exception:
-        return {"version": "1.0", "updated_at": "", "months": {}}
+        return {"version": "2.0", "updated_at": "", "months": {}}
 
 
 def save_enrollment_db(data: Dict[str, Any]) -> None:
-    """누적 DB JSON을 저장합니다."""
+    """누적 DB JSON을 안전하게 저장합니다."""
     db_path = get_db_path()
     data["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     tmp_path = db_path.with_suffix(".tmp")
@@ -61,17 +146,22 @@ def save_enrollment_db(data: Dict[str, Any]) -> None:
     tmp_path.replace(db_path)
 
 
-def extract_month_stats_from_rms(
+def extract_snapshot_stats_from_rms(
     rms_df: pd.DataFrame,
-    year_month: str,
+    snapshot_key: str,
     filter_stopped: bool = True,
 ) -> Dict[str, Any]:
     """
-    RMS DataFrame으로부터 해당 연월(YYYY-MM)의 요약 통계 및 강사별 집계 딕셔너리를 추출합니다.
+    RMS DataFrame으로부터 '매월 20일 기준'(YYYY-MM-20)의 요약 통계 및 강사별 집계 딕셔너리를 추출합니다.
     """
+    norm_key = normalize_snapshot_key(snapshot_key)
+    label = format_snapshot_label(norm_key)
+
     if rms_df is None or rms_df.empty:
         return {
-            "year_month": year_month,
+            "snapshot_key": norm_key,
+            "snapshot_label": label,
+            "year_month": norm_key[:7],
             "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "filter_stopped": filter_stopped,
             "summary": {},
@@ -105,7 +195,9 @@ def extract_month_stats_from_rms(
     pay_rate = round((paid_students / tot_students * 100.0), 1) if tot_students > 0 else 0.0
 
     summary = {
-        "year_month": year_month,
+        "snapshot_key": norm_key,
+        "snapshot_label": label,
+        "year_month": norm_key[:7],
         "total_courses": tot_courses,
         "stopped_courses_count": stopped_count,
         "raw_total_courses": total_raw_courses,
@@ -144,7 +236,6 @@ def extract_month_stats_from_rms(
         rev = int((grp["수강료"] * grp["결제인원"]).sum())
         avg_s = round((t_stu / c_cnt), 1) if c_cnt > 0 else 0.0
 
-        # 개별 강좌 간략 정보
         c_details = []
         for _, c_row in grp.iterrows():
             c_details.append(
@@ -178,11 +269,13 @@ def extract_month_stats_from_rms(
             }
         )
 
-    # 총 수강생 내림차순 정렬
+    # 총수강생 -> 결제완료 순 내림차순 정렬
     inst_list.sort(key=lambda x: (x["총수강생"], x["결제완료"], x["개설강좌수"]), reverse=True)
 
     return {
-        "year_month": year_month,
+        "snapshot_key": norm_key,
+        "snapshot_label": label,
+        "year_month": norm_key[:7],
         "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "filter_stopped": filter_stopped,
         "summary": summary,
@@ -190,49 +283,234 @@ def extract_month_stats_from_rms(
     }
 
 
-def upsert_month_data(
+def upsert_snapshot_data(
     rms_df: pd.DataFrame,
-    year_month: str,
+    snapshot_key: str,
     filter_stopped: bool = True,
 ) -> Tuple[bool, str]:
-    """특정 연월의 데이터를 누적 DB에 Upsert(생성 또는 덮어쓰기)합니다."""
-    ym = str(year_month).strip()
-    if not re.match(r"^\d{4}-\d{2}$", ym):
-        return False, f"기준 연월 포맷이 올바르지 않습니다: '{ym}' (YYYY-MM 형식이어야 함)"
-
-    month_data = extract_month_stats_from_rms(rms_df, ym, filter_stopped=filter_stopped)
+    """특정 20일 기준 스냅샷 데이터를 누적 DB에 Upsert합니다."""
+    norm_key = normalize_snapshot_key(snapshot_key)
+    data = extract_snapshot_stats_from_rms(rms_df, norm_key, filter_stopped=filter_stopped)
     db = load_enrollment_db()
-    db["months"][ym] = month_data
+    db["months"][norm_key] = data
     save_enrollment_db(db)
-    return True, f"'{ym}' 기준 데이터가 누적 DB에 성공적으로 저장되었습니다."
+    label = format_snapshot_label(norm_key)
+    return True, f"'{label}' 스냅샷 데이터가 누적 DB에 성공적으로 저장되었습니다."
 
 
-def delete_month_data(year_month: str) -> bool:
-    """누적 DB에서 특정 연월 데이터를 삭제합니다."""
+# 기존 호환용 alias
+def upsert_month_data(rms_df: pd.DataFrame, year_month: str, filter_stopped: bool = True) -> Tuple[bool, str]:
+    return upsert_snapshot_data(rms_df, year_month, filter_stopped=filter_stopped)
+
+
+def delete_snapshot_data(snapshot_key: str) -> bool:
+    """누적 DB에서 특정 스냅샷 데이터를 삭제합니다."""
+    norm_key = normalize_snapshot_key(snapshot_key)
     db = load_enrollment_db()
-    if year_month in db.get("months", {}):
-        del db["months"][year_month]
+    deleted = False
+    for k in (norm_key, norm_key[:7]):
+        if k in db.get("months", {}):
+            del db["months"][k]
+            deleted = True
+    if deleted:
         save_enrollment_db(db)
-        return True
-    return False
+    return deleted
 
 
-def get_available_months() -> List[str]:
-    """저장된 연월 목록을 시간 오름차순(예: '2026-11', '2026-12', '2027-01')으로 반환합니다."""
+# 기존 호환용 alias
+def delete_month_data(year_month: str) -> bool:
+    return delete_snapshot_data(year_month)
+
+
+def get_available_snapshots() -> List[str]:
+    """저장된 스냅샷 키 목록을 날짜 오름차순(예: '2026-11-20', '2027-01-20')으로 반환합니다."""
     db = load_enrollment_db()
-    months = list(db.get("months", {}).keys())
-    return sorted(months)
+    keys = list(db.get("months", {}).keys())
+    return sorted(keys)
 
 
-def build_pivot_table(metric_label: str = "결제완료 인원") -> pd.DataFrame:
+# 기존 호환용 alias
+def get_available_months() -> List[str]:
+    return get_available_snapshots()
+
+
+# -------------------------------------------------------------------------
+# 2. '전월 20일 vs 당월 20일' 1:1 비교 핵심 함수
+# -------------------------------------------------------------------------
+def compare_two_snapshots(
+    snapshot_a_key: str,
+    snapshot_b_key: str,
+) -> Dict[str, Any]:
     """
-    모든 연월의 강사별 통계를 피벗하여 비교 데이터프레임을 생성합니다.
-    - metric_label 옵션:
-        '결제완료 인원' (기본값)
-        '총 수강생(가등록포함)'
-        '유효 강좌수'
-        '결제 매출액'
-    - 요약 컬럼: 누적 합계, 월평균, 전월 대비 증감(MoM, +00명 / +00.0%)
+    저장된 두 시점(스냅샷 A: 전월 20일 vs 스냅샷 B: 당월 20일)의 데이터를 1:1로 정밀 대조하여
+    전체 KPI 변화와 강사별 1:1 비교 데이터프레임을 생성합니다.
+    """
+    norm_a = normalize_snapshot_key(snapshot_a_key)
+    norm_b = normalize_snapshot_key(snapshot_b_key)
+    label_a = format_snapshot_label(norm_a)
+    label_b = format_snapshot_label(norm_b)
+
+    # 간결 표시 라벨 (예: '1월 20일', '2월 20일')
+    mm_a = int(norm_a.split("-")[1]) if len(norm_a.split("-")) >= 2 else norm_a
+    mm_b = int(norm_b.split("-")[1]) if len(norm_b.split("-")) >= 2 else norm_b
+    short_a = f"{mm_a}월 20일"
+    short_b = f"{mm_b}월 20일"
+
+    db = load_enrollment_db()
+    data_a = db["months"].get(norm_a, {})
+    data_b = db["months"].get(norm_b, {})
+
+    sum_a = data_a.get("summary", {})
+    sum_b = data_b.get("summary", {})
+
+    # 1. 전체 KPI 증감
+    crs_a = sum_a.get("total_courses", 0)
+    crs_b = sum_b.get("total_courses", 0)
+    crs_diff = crs_b - crs_a
+
+    stu_a = sum_a.get("total_students", 0)
+    stu_b = sum_b.get("total_students", 0)
+    stu_diff = stu_b - stu_a
+    stu_pct = round((stu_diff / stu_a * 100.0), 1) if stu_a > 0 else (100.0 if stu_b > 0 else 0.0)
+
+    paid_a = sum_a.get("paid_students", 0)
+    paid_b = sum_b.get("paid_students", 0)
+    paid_diff = paid_b - paid_a
+    paid_pct = round((paid_diff / paid_a * 100.0), 1) if paid_a > 0 else (100.0 if paid_b > 0 else 0.0)
+
+    rate_a = sum_a.get("payment_rate", 0.0)
+    rate_b = sum_b.get("payment_rate", 0.0)
+    rate_diff = round(rate_b - rate_a, 1)
+
+    kpi_comparison = {
+        "label_a": label_a,
+        "label_b": label_b,
+        "short_a": short_a,
+        "short_b": short_b,
+        "courses_a": crs_a,
+        "courses_b": crs_b,
+        "courses_diff": crs_diff,
+        "students_a": stu_a,
+        "students_b": stu_b,
+        "students_diff": stu_diff,
+        "students_pct": stu_pct,
+        "paid_a": paid_a,
+        "paid_b": paid_b,
+        "paid_diff": paid_diff,
+        "paid_pct": paid_pct,
+        "rate_a": rate_a,
+        "rate_b": rate_b,
+        "rate_diff": rate_diff,
+    }
+
+    # 2. 강사별 Full Outer Join
+    inst_a_map = {(i["과목"], i["강사명"]): i for i in data_a.get("instructors", [])}
+    inst_b_map = {(i["과목"], i["강사명"]): i for i in data_b.get("instructors", [])}
+    all_keys = sorted(list(set(inst_a_map.keys()) | set(inst_b_map.keys())), key=lambda x: (x[0], x[1]))
+
+    comparison_rows: List[Dict[str, Any]] = []
+
+    for subj, inst_name in all_keys:
+        a_info = inst_a_map.get((subj, inst_name))
+        b_info = inst_b_map.get((subj, inst_name))
+
+        # 과목(영역) 표시
+        disp_subj = (b_info.get("과목(영역)") if b_info else None) or (a_info.get("과목(영역)") if a_info else subj)
+
+        c_a = int(a_info.get("개설강좌수", 0)) if a_info else 0
+        c_b = int(b_info.get("개설강좌수", 0)) if b_info else 0
+        c_diff = c_b - c_a
+        c_diff_str = f"+{c_diff}" if c_diff > 0 else str(c_diff)
+
+        p_a = int(a_info.get("결제완료", 0)) if a_info else 0
+        p_b = int(b_info.get("결제완료", 0)) if b_info else 0
+        p_diff = p_b - p_a
+        if p_a > 0:
+            p_pct = round((p_diff / p_a * 100.0), 1)
+            p_pct_str = f"+{p_pct}%" if p_pct > 0 else f"{p_pct}%"
+        elif p_b > 0:
+            p_pct_str = "신규"
+        else:
+            p_pct_str = "-"
+
+        t_a = int(a_info.get("총수강생", 0)) if a_info else 0
+        t_b = int(b_info.get("총수강생", 0)) if b_info else 0
+        t_diff = t_b - t_a
+        t_diff_str = f"+{t_diff}명" if t_diff > 0 else (f"{t_diff}명" if t_diff < 0 else "0명")
+
+        r_a = float(a_info.get("결제율(%)", 0.0)) if a_info else 0.0
+        r_b = float(b_info.get("결제율(%)", 0.0)) if b_info else 0.0
+        r_diff = round(r_b - r_a, 1)
+        r_diff_str = f"+{r_diff}%p" if r_diff > 0 else f"{r_diff}%p"
+
+        # 변동 상태 배지
+        if a_info is None and b_info is not None:
+            status_badge = "🆕 당월 신규개설"
+            status_category = "신규"
+        elif a_info is not None and b_info is None:
+            status_badge = "⚪ 당월 미개설(종강)"
+            status_category = "종강"
+        elif p_diff > 0:
+            status_badge = "🔺 증가"
+            status_category = "증가"
+        elif p_diff < 0:
+            status_badge = "🔻 감소"
+            status_category = "감소"
+        else:
+            status_badge = "➖ 유지"
+            status_category = "유지"
+
+        p_diff_disp = f"+{p_diff}명" if p_diff > 0 else (f"{p_diff}명" if p_diff < 0 else "0명")
+
+        comparison_rows.append(
+            {
+                "과목(영역)": disp_subj,
+                "과목": subj,
+                "강사명": inst_name,
+                f"[A] {short_a} 강좌수": c_a,
+                f"[B] {short_b} 강좌수": c_b,
+                "강좌수 증감": c_diff_str,
+                f"[A] {short_a} 결제자수": p_a,
+                f"[B] {short_b} 결제자수": p_b,
+                "결제자 증감(명)": p_diff_disp,
+                "결제자_증감_정수": p_diff,
+                "결제자 증감률(%)": p_pct_str,
+                f"[A] {short_a} 총수강생": t_a,
+                f"[B] {short_b} 총수강생": t_b,
+                "총수강생 증감(명)": t_diff_str,
+                "총수강생_증감_정수": t_diff,
+                f"[A] 결제율(%)": f"{r_a}%" if a_info else "-",
+                f"[B] 결제율(%)": f"{r_b}%" if b_info else "-",
+                "결제율 증감(%p)": r_diff_str if (a_info and b_info) else "-",
+                "변동 상태": status_badge,
+                "변동분류": status_category,
+            }
+        )
+
+    # 기본 정렬: [B] 당월 20일 결제자수 내림차순 -> 증감 내림차순
+    comparison_rows.sort(key=lambda x: (x[f"[B] {short_b} 결제자수"], x["결제자_증감_정수"]), reverse=True)
+    df_compare = pd.DataFrame(comparison_rows)
+    if not df_compare.empty:
+        df_compare.insert(0, "순위", range(1, len(df_compare) + 1))
+
+    return {
+        "kpi": kpi_comparison,
+        "comparison_df": df_compare,
+        "label_a": label_a,
+        "label_b": label_b,
+        "short_a": short_a,
+        "short_b": short_b,
+    }
+
+
+# -------------------------------------------------------------------------
+# 3. 매월 20일 기준 연간 시계열 누적 피벗 테이블 생성
+# -------------------------------------------------------------------------
+def build_snapshot_pivot_table(metric_label: str = "결제완료 인원") -> pd.DataFrame:
+    """
+    모든 스냅샷(매월 20일 기준)의 강사별 통계를 피벗하여 연간 시계열 데이터프레임을 생성합니다.
+    - 열 헤더: '26.11.20', '26.12.20', '27.01.20', '27.02.20' ...
+    - 요약열: '기간 누적 합계', '매월 20일 평균 인원', '최근월(20일) 증감'
     """
     metric_key_map = {
         "결제완료 인원": ("결제완료", "명"),
@@ -243,15 +521,13 @@ def build_pivot_table(metric_label: str = "결제완료 인원") -> pd.DataFrame
     field_name, unit = metric_key_map.get(metric_label, ("결제완료", "명"))
 
     db = load_enrollment_db()
-    months = sorted(list(db.get("months", {}).keys()))
-    if not months:
+    snapshots = sorted(list(db.get("months", {}).keys()))
+    if not snapshots:
         return pd.DataFrame()
 
-    # 모든 강사 및 과목 목록 수집
-    inst_keys: Dict[Tuple[str, str], Dict[str, Any]] = {}  # (과목(영역), 강사명) -> info
-
-    for ym in months:
-        m_data = db["months"][ym]
+    inst_keys: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    for snap in snapshots:
+        m_data = db["months"][snap]
         for inst in m_data.get("instructors", []):
             k = (inst["과목(영역)"], inst["강사명"])
             if k not in inst_keys:
@@ -269,40 +545,38 @@ def build_pivot_table(metric_label: str = "결제완료 인원") -> pd.DataFrame
         }
 
         val_list: List[int] = []
-        for ym in months:
-            m_data = db["months"][ym]
+        for snap in snapshots:
+            col_hdr = format_short_snapshot_header(snap)
+            m_data = db["months"][snap]
             found_val = 0
             for inst in m_data.get("instructors", []):
                 if inst["강사명"] == inst_name and inst["과목(영역)"] == disp_subj:
                     found_val = int(inst.get(field_name, 0))
                     break
-            row_dict[ym] = found_val
+            row_dict[col_hdr] = found_val
             val_list.append(found_val)
 
-        # 누적 합계
         total_sum = sum(val_list)
-        # 월평균 (데이터가 등록된 월 수 기준)
-        active_months_count = len([v for v in val_list if v > 0]) or 1
-        avg_val = round(total_sum / len(months), 1)
+        avg_val = round(total_sum / len(snapshots), 1)
 
-        row_dict["누적 합계"] = total_sum
-        row_dict["월평균"] = avg_val
+        row_dict["기간 누적 합계"] = total_sum
+        row_dict["매월 20일 평균"] = avg_val
 
-        # 전월 대비 증감 (MoM)
-        if len(months) >= 2:
-            last_val = val_list[-1]
-            prev_val = val_list[-2]
-            diff = last_val - prev_val
-            if prev_val > 0:
-                pct = round((diff / prev_val) * 100.0, 1)
+        # 최근월 증감
+        if len(snapshots) >= 2:
+            last_v = val_list[-1]
+            prev_v = val_list[-2]
+            diff = last_v - prev_v
+            if prev_v > 0:
+                pct = round((diff / prev_v) * 100.0, 1)
                 sign = "+" if diff > 0 else ""
-                row_dict["전월 대비 증감(MoM)"] = f"{sign}{diff:,}{unit} ({sign}{pct}%)"
-            elif last_val > 0:
-                row_dict["전월 대비 증감(MoM)"] = f"신규 (+{last_val:,}{unit})"
+                row_dict["최근월(20일) 증감"] = f"{sign}{diff:,}{unit} ({sign}{pct}%)"
+            elif last_v > 0:
+                row_dict["최근월(20일) 증감"] = f"신규 (+{last_v:,}{unit})"
             else:
-                row_dict["전월 대비 증감(MoM)"] = "-"
+                row_dict["최근월(20일) 증감"] = "-"
         else:
-            row_dict["전월 대비 증감(MoM)"] = "-"
+            row_dict["최근월(20일) 증감"] = "-"
 
         rows.append(row_dict)
 
@@ -310,28 +584,36 @@ def build_pivot_table(metric_label: str = "결제완료 인원") -> pd.DataFrame
     if df_pivot.empty:
         return df_pivot
 
-    # 최신 월 수치 내림차순 -> 누적 합계 내림차순 정렬
-    sort_cols = [months[-1], "누적 합계"]
+    # 정렬: 최근월 수치 내림차순 -> 누적 합계 내림차순
+    last_col_hdr = format_short_snapshot_header(snapshots[-1])
+    sort_cols = [last_col_hdr, "기간 누적 합계"]
     df_pivot = df_pivot.sort_values(by=sort_cols, ascending=[False, False]).reset_index(drop=True)
     df_pivot.insert(0, "순위", range(1, len(df_pivot) + 1))
 
     return df_pivot
 
 
+# 기존 호환용 alias
+def build_pivot_table(metric_label: str = "결제완료 인원") -> pd.DataFrame:
+    return build_snapshot_pivot_table(metric_label)
+
+
 def get_monthly_summary_table() -> pd.DataFrame:
-    """월별 전체 KPI 요약 테이블을 반환합니다."""
+    """월별/스냅샷 전체 KPI 요약 테이블을 반환합니다."""
     db = load_enrollment_db()
-    months = sorted(list(db.get("months", {}).keys()))
-    if not months:
+    snapshots = sorted(list(db.get("months", {}).keys()))
+    if not snapshots:
         return pd.DataFrame()
 
     rows = []
-    for ym in months:
-        m_data = db["months"][ym]
+    for snap in snapshots:
+        m_data = db["months"][snap]
         s = m_data.get("summary", {})
+        label = m_data.get("snapshot_label") or format_snapshot_label(snap)
         rows.append(
             {
-                "기준연월": ym,
+                "기준일": label,
+                "스냅샷키": snap,
                 "유효 강좌수": s.get("total_courses", 0),
                 "판매중지 제외": s.get("stopped_courses_count", 0),
                 "총 강좌수": s.get("raw_total_courses", s.get("total_courses", 0)),
@@ -347,15 +629,12 @@ def get_monthly_summary_table() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# -------------------------------------------------------------------------
+# 4. 엑셀 백업 및 매월 20일 비교 통계 내보내기
+# -------------------------------------------------------------------------
 def export_enrollment_backup_excel() -> bytes:
     """
     누적 DB의 모든 데이터와 메타데이터를 서식 포함 Excel(.xlsx) 바이트로 내보냅니다.
-    - Sheet 1: 월별_피벗통계_결제완료
-    - Sheet 2: 월별_피벗통계_총수강생
-    - Sheet 3: 월별_피벗통계_유효강좌수
-    - Sheet 4: 월별_KPI_전체요약
-    - Sheet 5: 월별_강사상세_전체내역
-    - Sheet 6: RAW_JSON_BACKUP (완벽한 복원을 위한 순수 JSON 저장)
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -363,7 +642,7 @@ def export_enrollment_backup_excel() -> bytes:
 
     wb = Workbook()
     ws_p1 = wb.active
-    ws_p1.title = "월별_피벗_결제완료"
+    ws_p1.title = "매월20일_피벗_결제완료"
 
     header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
     header_font = Font(name="맑은 고딕", size=10, bold=True, color="FFFFFF")
@@ -400,33 +679,35 @@ def export_enrollment_backup_excel() -> bytes:
             ws.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 5, 12)
 
     # 1. 결제완료 피벗
-    df_paid = build_pivot_table("결제완료 인원")
+    df_paid = build_snapshot_pivot_table("결제완료 인원")
     _append_df_to_ws(ws_p1, df_paid)
 
     # 2. 총수강생 피벗
-    ws_p2 = wb.create_sheet(title="월별_피벗_총수강생")
-    df_tot = build_pivot_table("총 수강생(가등록포함)")
+    ws_p2 = wb.create_sheet(title="매월20일_피벗_총수강생")
+    df_tot = build_snapshot_pivot_table("총 수강생(가등록포함)")
     _append_df_to_ws(ws_p2, df_tot)
 
     # 3. 유효 강좌수 피벗
-    ws_p3 = wb.create_sheet(title="월별_피벗_강좌수")
-    df_crs = build_pivot_table("유효 강좌수")
+    ws_p3 = wb.create_sheet(title="매월20일_피벗_강좌수")
+    df_crs = build_snapshot_pivot_table("유효 강좌수")
     _append_df_to_ws(ws_p3, df_crs)
 
-    # 4. 월별 KPI 전체 요약
-    ws_kpi = wb.create_sheet(title="월별_KPI_전체요약")
+    # 4. KPI 전체 요약
+    ws_kpi = wb.create_sheet(title="스냅샷_KPI_전체요약")
     df_kpi = get_monthly_summary_table()
     _append_df_to_ws(ws_kpi, df_kpi)
 
-    # 5. 전체 강사 상세 내역 (Flat 테이블)
-    ws_detail = wb.create_sheet(title="월별_강사상세_전체내역")
+    # 5. 전체 강사 상세 내역
+    ws_detail = wb.create_sheet(title="스냅샷_강사상세_전체내역")
     db = load_enrollment_db()
     detail_rows = []
-    for ym, m_data in sorted(db.get("months", {}).items()):
+    for snap, m_data in sorted(db.get("months", {}).items()):
+        label = m_data.get("snapshot_label") or format_snapshot_label(snap)
         for inst in m_data.get("instructors", []):
             detail_rows.append(
                 {
-                    "기준연월": ym,
+                    "기준일": label,
+                    "스냅샷키": snap,
                     "과목(영역)": inst.get("과목(영역)", ""),
                     "강사명": inst.get("강사명", ""),
                     "개설강좌수": inst.get("개설강좌수", 0),
@@ -444,7 +725,6 @@ def export_enrollment_backup_excel() -> bytes:
     # 6. RAW_JSON_BACKUP
     ws_json = wb.create_sheet(title="RAW_JSON_BACKUP")
     json_str = json.dumps(db, ensure_ascii=False)
-    # Excel 셀 글자 수 제한(32767자)을 고려하여 청크 단위로 나누어 기록
     chunk_size = 30000
     for chunk_idx, i in enumerate(range(0, len(json_str), chunk_size), start=1):
         ws_json.cell(row=chunk_idx, column=1, value=json_str[i : i + chunk_size])
@@ -457,7 +737,6 @@ def export_enrollment_backup_excel() -> bytes:
 def import_enrollment_backup(file_source: Any) -> Tuple[bool, str, int]:
     """
     백업 파일(Excel .xlsx 또는 JSON .json)을 읽어 누적 DB를 복원합니다.
-    - 반환값: (성공여부, 안내메시지, 복원된월수)
     """
     try:
         raw_bytes = None
@@ -482,9 +761,9 @@ def import_enrollment_backup(file_source: Any) -> Tuple[bool, str, int]:
             if isinstance(data, dict) and "months" in data:
                 save_enrollment_db(data)
                 count = len(data["months"])
-                return True, f"JSON 백업 파일로부터 {count}개 월의 누적 데이터가 복원되었습니다.", count
+                return True, f"JSON 백업 파일로부터 {count}개의 스냅샷 데이터가 복원되었습니다.", count
 
-        # 2) Excel 파일인 경우 (RAW_JSON_BACKUP 시트 또는 월별_강사상세_전체내역 시트 파싱)
+        # 2) Excel 파일인 경우
         if raw_bytes[:4] == b"PK\x03\x04" or filename.lower().endswith((".xlsx", ".xlsm")):
             import openpyxl
 
@@ -501,16 +780,18 @@ def import_enrollment_backup(file_source: Any) -> Tuple[bool, str, int]:
                     if isinstance(data, dict) and "months" in data:
                         save_enrollment_db(data)
                         count = len(data["months"])
-                        return True, f"엑셀 RAW 백업 시트로부터 {count}개 월의 누적 데이터가 완벽 복원되었습니다.", count
+                        return True, f"엑셀 RAW 백업 시트로부터 {count}개의 스냅샷 데이터가 완벽 복원되었습니다.", count
 
-            if "월별_강사상세_전체내역" in wb.sheetnames:
-                df_detail = pd.read_excel(io.BytesIO(raw_bytes), sheet_name="월별_강사상세_전체내역")
-                if not df_detail.empty and "기준연월" in df_detail.columns:
-                    # Flat 테이블로부터 DB 재구성
+            detail_sheet_name = next((s for s in wb.sheetnames if "강사상세" in s), None)
+            if detail_sheet_name:
+                df_detail = pd.read_excel(io.BytesIO(raw_bytes), sheet_name=detail_sheet_name)
+                date_col = next((c for c in ("스냅샷키", "기준일", "기준연월") if c in df_detail.columns), None)
+                if not df_detail.empty and date_col:
                     db = load_enrollment_db()
                     restored_count = 0
-                    for ym, grp in df_detail.groupby("기준연월"):
-                        ym_str = str(ym).strip()
+                    for d_val, grp in df_detail.groupby(date_col):
+                        norm_k = normalize_snapshot_key(str(d_val))
+                        label = format_snapshot_label(norm_k)
                         inst_list = []
                         for _, r in grp.iterrows():
                             inst_list.append(
@@ -532,12 +813,16 @@ def import_enrollment_backup(file_source: Any) -> Tuple[bool, str, int]:
                             )
                         t_stu = sum(i["총수강생"] for i in inst_list)
                         p_stu = sum(i["결제완료"] for i in inst_list)
-                        db["months"][ym_str] = {
-                            "year_month": ym_str,
+                        db["months"][norm_k] = {
+                            "snapshot_key": norm_k,
+                            "snapshot_label": label,
+                            "year_month": norm_k[:7],
                             "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "filter_stopped": True,
                             "summary": {
-                                "year_month": ym_str,
+                                "snapshot_key": norm_k,
+                                "snapshot_label": label,
+                                "year_month": norm_k[:7],
                                 "total_courses": sum(i["개설강좌수"] for i in inst_list),
                                 "total_students": t_stu,
                                 "paid_students": p_stu,
@@ -548,9 +833,8 @@ def import_enrollment_backup(file_source: Any) -> Tuple[bool, str, int]:
                         }
                         restored_count += 1
                     save_enrollment_db(db)
-                    return True, f"엑셀 테이블로부터 {restored_count}개 월의 데이터가 복원되었습니다.", restored_count
+                    return True, f"엑셀 테이블로부터 {restored_count}개의 스냅샷 데이터가 복원되었습니다.", restored_count
 
         return False, "지원되지 않거나 손상된 백업 파일 형식입니다.", 0
     except Exception as e:
         return False, f"백업 파일 복원 실패: {e}", 0
-

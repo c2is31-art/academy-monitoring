@@ -34,6 +34,15 @@ from parsers.rms_parser import (
     strip_course_brackets,
 )
 from core.text_improver import analyze_course_text_content
+from core.cumulative_db import (
+    build_snapshot_pivot_table,
+    compare_two_snapshots,
+    format_short_snapshot_header,
+    format_snapshot_label,
+    get_available_snapshots,
+    load_enrollment_db,
+    normalize_snapshot_key,
+)
 
 DEFAULT_MAPPING_LIST: List[Dict[str, str]] = [
     {
@@ -1148,27 +1157,42 @@ def generate_pdf_fix_request_messages(
     return messages
 
 
-def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str = "2027-01") -> bytes:
+def export_crosscheck_to_excel(
+    crosscheck_result: Dict[str, Any],
+    target_ym: str = "2027-01",
+    snapshot_a_key: Optional[str] = None,
+    snapshot_b_key: Optional[str] = None,
+) -> bytes:
     """
-    openpyxl을 사용하여 아래 4개 시트로 구성된 서식 포함 엑셀(.xlsx) 바이트를 생성합니다:
-    - Sheet 1 (전체검수결과): 전 강좌 RMS vs PDF 비교표 (오류 행은 연한 빨간색 배경 #FADBD8, 불일치 세부 셀은 굵은 빨간 글씨 하이라이트, 열 너비 자동 맞춤)
-    - Sheet 2 (오류및수정필요목록): 오류가 발견된 강좌만 추출 + 우측 [자동 생성된 수정 요청 사항 요약] 컬럼 포함
-    - Sheet 3 (PDF누락강좌): RMS에는 있으나 PDF에서 빠진 강좌 리스트
-    - Sheet 4 (PDF진도표상세검수): PDF 내 1월 진도표 날짜 리스트 및 요일 정합성 상세 내역
+    openpyxl을 사용하여 아래 시트들로 구성된 고품질 서식 포함 엑셀(.xlsx) 바이트를 생성합니다:
+    - Sheet 1 (매월20일_강사별비교): 선택한 두 시점(전월 20일 vs 당월 20일)의 강사별 1:1 비교표
+      * 상단 1행: 비교 요약 배너 (A vs B, 강좌수/결제자수/총수강생 증감, 결제율 변화)
+      * 조건부 서식: 결제자 증감 양수(+) 연한 초록/파랑(#D5F5E3), 음수(-) 연한 빨강(#FADBD8), 변동상태 배지
+    - Sheet 2 (매월20일_연간누적추이): 매월 20일 기준 연간 시계열 누적 피벗 테이블 (월별 결제자수 추이)
+    - Sheet 3 (당월20일_강사별상세): 당월 20일 기준 강사별 상세 순위표 및 강좌수/수강생/결제자/결제율
+    - Sheet 4 (전체검수결과_유효강좌): 전 강좌 RMS vs PDF 비교표 (오류 행 연한 빨강, 불일치 셀 강조)
+    - Sheet 5 (데이터오류_및_판매중지확인): 오류 및 판매중지 강좌 통합 시트
+    - Sheet 6 (맞춤법_및_긴문장축약): 맞춤법 교정 및 긴 문장 축약 제안
+    - Sheet 7 (AI_초단축강의명제안): Gemini 3.8 초단축 강의명 3종 제안
+    - Sheet 8 (판매중지_제외강좌목록): 판매중지 강좌 원본 리스트
+    - Sheet 9 (PDF진도표상세검수): PDF 진도표 날짜 및 요일 정합성 검수 내역
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
 
     wb = Workbook()
-    ws_s1 = wb.active
-    ws_s1.title = "전체검수결과_유효강좌"
 
     header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
     header_font = Font(name="맑은 고딕", size=10, bold=True, color="FFFFFF")
     base_font = Font(name="맑은 고딕", size=9, color="111111")
+    bold_font = Font(name="맑은 고딕", size=9, bold=True, color="111111")
 
-    # 사용자 지정 조건부 하이라이트 서식: 연한 빨간색 배경 #FADBD8, 불일치 세부 셀 굵은 빨간 글씨
+    # 배너 스타일
+    banner_fill = PatternFill(start_color="EBF5FB", end_color="EBF5FB", fill_type="solid")
+    banner_font = Font(name="맑은 고딕", size=10, bold=True, color="1B4F72")
+
+    # 사용자 지정 조건부 서식
     fill_error_row = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
     font_error_row = Font(name="맑은 고딕", size=9, bold=False, color="5B1A18")
     font_error_cell = Font(name="맑은 고딕", size=9, bold=True, color="C00000")
@@ -1180,9 +1204,24 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
     fill_missing_row = PatternFill(start_color="F4F6F7", end_color="F4F6F7", fill_type="solid")
     font_missing_row = Font(name="맑은 고딕", size=9, color="5D6D7E")
 
+    # 증감 전용 하이라이트 서식
+    fill_inc_cell = PatternFill(start_color="D5F5E3", end_color="D5F5E3", fill_type="solid")
+    font_inc_cell = Font(name="맑은 고딕", size=9, bold=True, color="145A32")
+    fill_dec_cell = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+    font_dec_cell = Font(name="맑은 고딕", size=9, bold=True, color="78281F")
+
+    # 변동상태 전용 배지 서식
+    fill_badge_new = PatternFill(start_color="D1F2EB", end_color="D1F2EB", fill_type="solid")
+    font_badge_new = Font(name="맑은 고딕", size=9, bold=True, color="0E6251")
+    fill_badge_end = PatternFill(start_color="F2F4F4", end_color="F2F4F4", fill_type="solid")
+    font_badge_end = Font(name="맑은 고딕", size=9, color="5D6D7E")
+
     thin_side = Side(border_style="thin", color="D5D8DC")
     cell_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
 
+    # -------------------------------------------------------------------------
+    # 헬퍼 함수: 표준 서식 시트 작성기
+    # -------------------------------------------------------------------------
     def _write_styled_sheet(
         ws: Any,
         df: pd.DataFrame,
@@ -1246,7 +1285,6 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
                     c.fill = row_fill
                 c.font = row_font
 
-                # 불일치 세부 셀 굵은 빨간 글씨 하이라이트
                 if is_err_row and (
                     col_name in err_cols_for_row
                     or col_name in ("검수상태", "오류 상세 내역", "자동 생성된 수정 요청 사항 요약")
@@ -1264,7 +1302,6 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         ws.freeze_panes = "A2"
         ws.auto_filter.ref = f"A1:{get_column_letter(len(cols))}{len(sub_df) + 1}"
 
-        # 열 너비 자동 맞춤
         for col_idx, col_name in enumerate(cols, start=1):
             col_letter = get_column_letter(col_idx)
             max_len = sum(1.8 if ord(ch) > 127 else 1.0 for ch in str(col_name)) + 2
@@ -1274,7 +1311,245 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
                     max_len = val_len
             ws.column_dimensions[col_letter].width = min(max(int(max_len) + 3, 10), 55)
 
+    # =========================================================================
+    # Sheet 1: 매월20일_강사별비교
+    # =========================================================================
+    ws_s1 = wb.active
+    ws_s1.title = "매월20일_강사별비교"
+
+    avail_snaps = get_available_snapshots()
+    norm_target = normalize_snapshot_key(target_ym)
+
+    # 기준 스냅샷 A, B 자동 결정
+    snap_b = snapshot_b_key or (norm_target if norm_target in avail_snaps else (avail_snaps[-1] if avail_snaps else norm_target))
+    snap_a = snapshot_a_key
+    if not snap_a:
+        if snap_b in avail_snaps:
+            b_idx = avail_snaps.index(snap_b)
+            snap_a = avail_snaps[b_idx - 1] if b_idx > 0 else snap_b
+        elif len(avail_snaps) >= 2:
+            snap_a = avail_snaps[-2]
+        else:
+            snap_a = snap_b
+
+    comp_res = compare_two_snapshots(snap_a, snap_b)
+    kpi = comp_res.get("kpi", {})
+    comp_df = comp_res.get("comparison_df", pd.DataFrame())
+    short_a = comp_res.get("short_a", "전월")
+    short_b = comp_res.get("short_b", "당월")
+
+    # 1행 비교 요약 배너
+    crs_diff = kpi.get("courses_diff", 0)
+    crs_sign = "+" if crs_diff > 0 else ""
+    paid_diff = kpi.get("paid_diff", 0)
+    paid_sign = "+" if paid_diff > 0 else ""
+    paid_pct = kpi.get("paid_pct", 0.0)
+    paid_pct_sign = "+" if paid_pct > 0 else ""
+    stu_diff = kpi.get("students_diff", 0)
+    stu_sign = "+" if stu_diff > 0 else ""
+    rate_diff = kpi.get("rate_diff", 0.0)
+    rate_sign = "+" if rate_diff > 0 else ""
+
+    banner_str = (
+        f"[비교 기준: A({kpi.get('label_a', snap_a)}) vs B({kpi.get('label_b', snap_b)}) | "
+        f"유효 강좌수: {kpi.get('courses_a', 0)}건 ➔ {kpi.get('courses_b', 0)}건 ({crs_sign}{crs_diff}건) | "
+        f"결제완료 증감: {paid_sign}{paid_diff:,}명 ({paid_pct_sign}{paid_pct}%) | "
+        f"총수강생 증감: {stu_sign}{stu_diff:,}명 | "
+        f"평균 결제율 변화: {rate_sign}{rate_diff}%p]"
+    )
+    ws_s1.append([banner_str])
+    ws_s1.row_dimensions[1].height = 26
+    c_b1 = ws_s1.cell(row=1, column=1)
+    c_b1.font = banner_font
+
+    ws_s1.append([])  # 2행: 빈 행
+    ws_s1.row_dimensions[2].height = 8
+
     sheet1_cols = [
+        "순위",
+        "과목(영역)",
+        "강사명",
+        f"[A] {short_a} 강좌수",
+        f"[B] {short_b} 강좌수",
+        "강좌수 증감",
+        f"[A] {short_a} 결제자수",
+        f"[B] {short_b} 결제자수",
+        "결제자 증감(명)",
+        "결제자 증감률(%)",
+        f"[A] {short_a} 총수강생",
+        f"[B] {short_b} 총수강생",
+        "총수강생 증감(명)",
+        "[A] 결제율(%)",
+        "[B] 결제율(%)",
+        "결제율 증감(%p)",
+        "변동 상태",
+    ]
+
+    if not comp_df.empty:
+        valid_cols = [c for c in sheet1_cols if c in comp_df.columns]
+        ws_s1.append(valid_cols)
+        h_row = 3
+        ws_s1.row_dimensions[h_row].height = 26
+        for c_idx in range(1, len(valid_cols) + 1):
+            cell = ws_s1.cell(row=h_row, column=c_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = cell_border
+
+        for r_offset, (_, r_data) in enumerate(comp_df.iterrows(), start=h_row + 1):
+            row_vals = [r_data.get(c, "") for c in valid_cols]
+            ws_s1.append(row_vals)
+            ws_s1.row_dimensions[r_offset].height = 21
+
+            p_diff_val = int(r_data.get("결제자_증감_정수", 0))
+            status_val = str(r_data.get("변동 상태", ""))
+
+            for c_idx, c_name in enumerate(valid_cols, start=1):
+                c_cell = ws_s1.cell(row=r_offset, column=c_idx)
+                c_cell.border = cell_border
+                c_cell.font = base_font
+                c_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                # 결제자 증감 서식 (양수 연한 초록, 음수 연한 빨강)
+                if c_name in ("결제자 증감(명)", "결제자 증감률(%)"):
+                    if p_diff_val > 0:
+                        c_cell.fill = fill_inc_cell
+                        c_cell.font = font_inc_cell
+                    elif p_diff_val < 0:
+                        c_cell.fill = fill_dec_cell
+                        c_cell.font = font_dec_cell
+                elif c_name == "변동 상태":
+                    if "신규개설" in status_val:
+                        c_cell.fill = fill_badge_new
+                        c_cell.font = font_badge_new
+                    elif "미개설" in status_val or "종강" in status_val:
+                        c_cell.fill = fill_badge_end
+                        c_cell.font = font_badge_end
+                    elif "증가" in status_val:
+                        c_cell.fill = fill_inc_cell
+                        c_cell.font = font_inc_cell
+                    elif "감소" in status_val:
+                        c_cell.fill = fill_dec_cell
+                        c_cell.font = font_dec_cell
+
+        ws_s1.freeze_panes = "A4"
+        ws_s1.auto_filter.ref = f"A3:{get_column_letter(len(valid_cols))}{len(comp_df) + 3}"
+        for col_idx, col_name in enumerate(valid_cols, start=1):
+            col_letter = get_column_letter(col_idx)
+            ws_s1.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 3, 11)
+    else:
+        ws_s1.append(["비교할 스냅샷 데이터가 아직 등록되지 않았습니다."])
+
+    # =========================================================================
+    # Sheet 2: 매월20일_연간누적추이
+    # =========================================================================
+    ws_s2 = wb.create_sheet(title="매월20일_연간누적추이")
+    pivot_df = build_snapshot_pivot_table("결제완료 인원")
+    ws_s2.append(["[매월 20일 기준 강사별 결제완료 인원 연간 누적 추이 및 월평균 통계]"])
+    ws_s2.cell(row=1, column=1).font = banner_font
+    ws_s2.row_dimensions[1].height = 24
+    ws_s2.append([])
+
+    if not pivot_df.empty:
+        p_cols = list(pivot_df.columns)
+        ws_s2.append(p_cols)
+        h_row = 3
+        ws_s2.row_dimensions[h_row].height = 26
+        for c_idx in range(1, len(p_cols) + 1):
+            cell = ws_s2.cell(row=h_row, column=c_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = cell_border
+
+        for r_offset, (_, r_data) in enumerate(pivot_df.iterrows(), start=h_row + 1):
+            row_vals = [r_data.get(c, "") for c in p_cols]
+            ws_s2.append(row_vals)
+            ws_s2.row_dimensions[r_offset].height = 21
+
+            for c_idx, c_name in enumerate(p_cols, start=1):
+                c_cell = ws_s2.cell(row=r_offset, column=c_idx)
+                c_cell.border = cell_border
+                c_cell.font = base_font
+                c_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                if c_name == "최근월(20일) 증감":
+                    val_str = str(c_cell.value)
+                    if "+" in val_str:
+                        c_cell.font = font_inc_cell
+                    elif "-" in val_str and val_str != "-":
+                        c_cell.font = font_dec_cell
+
+        ws_s2.freeze_panes = "A4"
+        ws_s2.auto_filter.ref = f"A3:{get_column_letter(len(p_cols))}{len(pivot_df) + 3}"
+        for col_idx, col_name in enumerate(p_cols, start=1):
+            col_letter = get_column_letter(col_idx)
+            ws_s2.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 3, 11)
+    else:
+        ws_s2.append(["누적 시계열 데이터가 아직 등록되지 않았습니다."])
+
+    # =========================================================================
+    # Sheet 3: 당월20일_강사별상세
+    # =========================================================================
+    ws_s3 = wb.create_sheet(title="당월20일_강사별상세")
+    rms_sum = crosscheck_result.get("rms_summary", {}) or {}
+    banner_detail = rms_sum.get(
+        "headline_banner",
+        f"총 강좌수 : {rms_sum.get('total_courses', 0)}건 | 총 수강생 : {rms_sum.get('total_students', 0)}명 (결제완료 : {rms_sum.get('paid_students', 0)}명)"
+    )
+    ws_s3.append([banner_detail])
+    ws_s3.cell(row=1, column=1).font = banner_font
+    ws_s3.row_dimensions[1].height = 24
+    ws_s3.append([])
+
+    inst_summary_df = crosscheck_result.get("instructor_summary_df", pd.DataFrame())
+    sheet3_cols = [
+        "순위",
+        "과목(영역)",
+        "강사명",
+        "개설 강좌수",
+        "총 수강생수(가등록포함)",
+        "결제완료 인원",
+        "완납&분납 인원",
+        "가등록(미결제) 인원",
+        "결제율(%)",
+        "강좌당 평균 수강생",
+    ]
+    if not inst_summary_df.empty:
+        cols = [c for c in sheet3_cols if c in inst_summary_df.columns]
+        ws_s3.append(cols)
+        h_row = 3
+        ws_s3.row_dimensions[h_row].height = 26
+        for c_idx in range(1, len(cols) + 1):
+            cell = ws_s3.cell(row=h_row, column=c_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = cell_border
+
+        for r_offset, (_, r_data) in enumerate(inst_summary_df.iterrows(), start=h_row + 1):
+            row_vals = [r_data[c] for c in cols]
+            ws_s3.append(row_vals)
+            ws_s3.row_dimensions[r_offset].height = 20
+            for c_idx in range(1, len(cols) + 1):
+                c_cell = ws_s3.cell(row=r_offset, column=c_idx)
+                c_cell.border = cell_border
+                c_cell.font = base_font
+                c_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        ws_s3.auto_filter.ref = f"A3:{get_column_letter(len(cols))}{len(inst_summary_df) + 3}"
+        for col_idx, col_name in enumerate(cols, start=1):
+            col_letter = get_column_letter(col_idx)
+            ws_s3.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 4, 12)
+    else:
+        ws_s3.append(["강사별 상세 데이터가 없습니다."])
+
+    # =========================================================================
+    # Sheet 4: 전체검수결과_유효강좌
+    # =========================================================================
+    ws_s4 = wb.create_sheet(title="전체검수결과_유효강좌")
+    sheet4_cols = [
         "검수상태",
         "No",
         "강좌코드",
@@ -1300,68 +1575,17 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "AI추천강좌명",
     ]
     _write_styled_sheet(
-        ws_s1,
+        ws_s4,
         crosscheck_result.get("comparison_df", pd.DataFrame()),
-        columns_to_export=sheet1_cols,
+        columns_to_export=sheet4_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
     )
 
-    # Sheet 2: 강사별_당월및누적수강생통계 (상단 요약 배너 포함)
-    ws_s2 = wb.create_sheet(title="강사별_당월및누적수강생통계")
-    rms_sum = crosscheck_result.get("rms_summary", {}) or {}
-    banner_str = rms_sum.get(
-        "headline_banner",
-        f"총 강좌수 : {rms_sum.get('total_courses', 0)}건 | 총 수강생 : {rms_sum.get('total_students', 0)}명 (결제완료 : {rms_sum.get('paid_students', 0)}명)"
-    )
-    # 1행에 요약 헤더 삽입
-    ws_s2.append([banner_str])
-    ws_s2.cell(row=1, column=1).font = Font(name="맑은 고딕", size=11, bold=True, color="1E3A8A")
-    ws_s2.row_dimensions[1].height = 24
-    ws_s2.append([])  # 빈 행
-
-    inst_summary_df = crosscheck_result.get("instructor_summary_df", pd.DataFrame())
-    sheet2_cols = [
-        "순위",
-        "과목(영역)",
-        "강사명",
-        "개설 강좌수",
-        "총 수강생수(가등록포함)",
-        "결제완료 인원",
-        "완납&분납 인원",
-        "가등록(미결제) 인원",
-        "결제율(%)",
-        "강좌당 평균 수강생",
-    ]
-    if not inst_summary_df.empty:
-        cols = [c for c in sheet2_cols if c in inst_summary_df.columns]
-        ws_s2.append(cols)
-        h_row = 3
-        ws_s2.row_dimensions[h_row].height = 26
-        for c_idx in range(1, len(cols) + 1):
-            cell = ws_s2.cell(row=h_row, column=c_idx)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = cell_border
-
-        for r_offset, (_, r_data) in enumerate(inst_summary_df.iterrows(), start=h_row + 1):
-            row_vals = [r_data[c] for c in cols]
-            ws_s2.append(row_vals)
-            ws_s2.row_dimensions[r_offset].height = 20
-            for c_idx in range(1, len(cols) + 1):
-                c_cell = ws_s2.cell(row=r_offset, column=c_idx)
-                c_cell.border = cell_border
-                c_cell.font = base_font
-                c_cell.alignment = Alignment(horizontal="center", vertical="center")
-
-        ws_s2.auto_filter.ref = f"A3:{get_column_letter(len(cols))}{len(inst_summary_df) + 3}"
-        for col_idx, col_name in enumerate(cols, start=1):
-            col_letter = get_column_letter(col_idx)
-            ws_s2.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 4, 12)
-
-    # Sheet 3: 데이터오류_및_판매중지확인
-    ws_s3 = wb.create_sheet(title="데이터오류_및_판매중지확인")
+    # =========================================================================
+    # Sheet 5: 데이터오류_및_판매중지확인
+    # =========================================================================
+    ws_s5 = wb.create_sheet(title="데이터오류_및_판매중지확인")
     error_df = crosscheck_result.get("error_df", pd.DataFrame())
     pdf_stopped_df = crosscheck_result.get("pdf_stopped_courses_df", pd.DataFrame())
 
@@ -1392,7 +1616,7 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
             )
 
     combined_err_df = pd.DataFrame(combined_err_list)
-    sheet3_cols = [
+    sheet5_cols = [
         "검수상태",
         "No",
         "강좌코드",
@@ -1413,16 +1637,18 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "자동 생성된 수정 요청 사항 요약",
     ]
     _write_styled_sheet(
-        ws_s3,
+        ws_s5,
         combined_err_df,
-        columns_to_export=sheet3_cols,
+        columns_to_export=sheet5_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
     )
 
-    # Sheet 4: 맞춤법_및_긴문장축약
-    ws_s4 = wb.create_sheet(title="맞춤법_및_긴문장축약")
-    sheet4_cols = [
+    # =========================================================================
+    # Sheet 6: 맞춤법_및_긴문장축약
+    # =========================================================================
+    ws_s6 = wb.create_sheet(title="맞춤법_및_긴문장축약")
+    sheet6_cols = [
         "강좌명",
         "강사명",
         "섹션",
@@ -1434,17 +1660,19 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "최종문장",
     ]
     _write_styled_sheet(
-        ws_s4,
+        ws_s6,
         crosscheck_result.get("long_sentence_df", pd.DataFrame()),
-        columns_to_export=sheet4_cols,
+        columns_to_export=sheet6_cols,
         status_col_name="생성엔진",
         highlight_error_cells=False,
     )
 
-    # Sheet 5: AI_초단축강의명제안
-    ws_s5 = wb.create_sheet(title="AI_초단축강의명제안")
+    # =========================================================================
+    # Sheet 7: AI_초단축강의명제안
+    # =========================================================================
+    ws_s7 = wb.create_sheet(title="AI_초단축강의명제안")
     ai_df = crosscheck_result.get("ai_titles_df", pd.DataFrame())
-    sheet5_cols = [
+    sheet7_cols = [
         "순번",
         "과목",
         "학년",
@@ -1459,17 +1687,19 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "최종선택강좌명",
     ]
     _write_styled_sheet(
-        ws_s5,
+        ws_s7,
         ai_df,
-        columns_to_export=sheet5_cols,
+        columns_to_export=sheet7_cols,
         status_col_name="생성엔진",
         highlight_error_cells=False,
     )
 
-    # Sheet 6: 판매중지_제외강좌목록
-    ws_s6 = wb.create_sheet(title="판매중지_제외강좌목록")
+    # =========================================================================
+    # Sheet 8: 판매중지_제외강좌목록
+    # =========================================================================
+    ws_s8 = wb.create_sheet(title="판매중지_제외강좌목록")
     stopped_df = crosscheck_result.get("stopped_rms_df", pd.DataFrame())
-    sheet6_cols = [
+    sheet8_cols = [
         "No",
         "강좌코드",
         "영역",
@@ -1484,16 +1714,18 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "판매",
     ]
     _write_styled_sheet(
-        ws_s6,
+        ws_s8,
         stopped_df,
-        columns_to_export=sheet6_cols,
+        columns_to_export=sheet8_cols,
         status_col_name="판매",
         highlight_error_cells=False,
     )
 
-    # Sheet 7: PDF진도표상세검수
-    ws_s7 = wb.create_sheet(title="PDF진도표상세검수")
-    sheet7_cols = [
+    # =========================================================================
+    # Sheet 9: PDF진도표상세검수
+    # =========================================================================
+    ws_s9 = wb.create_sheet(title="PDF진도표상세검수")
+    sheet9_cols = [
         "PDF_순번",
         "PDF_페이지",
         "검수상태",
@@ -1517,9 +1749,9 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "자동 생성된 수정 요청 사항 요약",
     ]
     _write_styled_sheet(
-        ws_s7,
+        ws_s9,
         crosscheck_result.get("pdf_schedule_df", pd.DataFrame()),
-        columns_to_export=sheet7_cols,
+        columns_to_export=sheet9_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
     )
