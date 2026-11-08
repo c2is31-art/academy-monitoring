@@ -1070,6 +1070,8 @@ with tab1:
             if selected_drill_inst:
                 drill_df = active_rms_df[active_rms_df["강사"] == selected_drill_inst].copy()
                 show_cols = [
+                    "No",
+                    "강의상태",
                     "강좌코드",
                     "과목",
                     "학년",
@@ -1117,6 +1119,8 @@ with tab2:
                     pdf_stopped_df[
                         [
                             "PDF_페이지",
+                            "검수상태",
+                            "강의상태",
                             "과목",
                             "학년",
                             "강사명",
@@ -1161,6 +1165,7 @@ with tab2:
             view_cols = [
                 "검수상태",
                 "No",
+                "강의상태",
                 "강좌코드",
                 "과목",
                 "학년",
@@ -1423,8 +1428,12 @@ with tab3:
                     disp_ai_df = ai_df.copy()
                     st.caption(f"💡 기존 유지(스마트 패스) 강좌를 포함한 **전체 {len(disp_ai_df)}건의 강좌**를 표시 중입니다.")
 
+                if "강의상태" not in disp_ai_df.columns:
+                    disp_ai_df["강의상태"] = "판매 중"
+
                 table_cols = [
                     "판정",
+                    "강의상태",
                     "과목",
                     "학년",
                     "강사명",
@@ -1516,6 +1525,7 @@ with tab4:
             stopped_rms_df[
                 [
                     "No",
+                    "강의상태",
                     "강좌코드",
                     "영역",
                     "과목",

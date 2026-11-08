@@ -148,10 +148,20 @@ def build_all_in_one_master_df(
 
             status_val = str(row.get("검수상태", ""))
 
+            # 강의상태 결정
+            raw_sale = str(row.get("강의상태", "") or row.get("판매", "")).strip()
+            if not raw_sale or ("판매" in raw_sale and "중지" not in raw_sale):
+                sale_status_str = "판매 중"
+            elif "중지" in raw_sale:
+                sale_status_str = "판매중지"
+            else:
+                sale_status_str = raw_sale
+
             master_rows.append({
                 # 1. 기본/수강생 정보
                 "No": row.get("No", len(master_rows) + 1),
-                "판매상태": "판매" if "판매중지" not in status_val else "판매중지",
+                "강의상태": sale_status_str,
+                "판매상태": sale_status_str,
                 "과목": row.get("과목", ""),
                 "학년": row.get("학년", ""),
                 "강사명": inst,
@@ -191,7 +201,8 @@ def build_all_in_one_master_df(
         for _, s_row in stopped_df.iterrows():
             master_rows.append({
                 "No": s_row.get("No", len(master_rows) + 1),
-                "판매상태": "🚫 판매중지 (폐강/제외)",
+                "강의상태": "판매중지",
+                "판매상태": "판매중지",
                 "과목": s_row.get("과목", ""),
                 "학년": s_row.get("학년", ""),
                 "강사명": s_row.get("강사", ""),

@@ -752,6 +752,12 @@ def run_rms_pdf_crosscheck(
         r_unpaid_stu = int(r_row.get("가등록(미결제)", 0) or max(0, r_total_stu - r_paid_stu))
         r_pay_rate = float(r_row.get("결제율(%)", 0.0) or (round(r_paid_stu / r_total_stu * 100.0, 1) if r_total_stu > 0 else 0.0))
 
+        r_sale_status = str(r_row.get("강의상태", "") or r_row.get("판매", "")).strip()
+        if not r_sale_status or ("판매" in r_sale_status and "중지" not in r_sale_status):
+            r_sale_status = "판매 중"
+        elif "중지" in r_sale_status:
+            r_sale_status = "판매중지"
+
         rms_period_short_disp = f"{r_open_short}~{r_close_short} ({r_sessions}회)"
         rms_fee_disp = (
             f"{r_fee:,}원 (회차당 {r_unit_fee:,}원)"
@@ -829,6 +835,7 @@ def run_rms_pdf_crosscheck(
             {
                 "검수상태": status_badge,
                 "No": r_no,
+                "강의상태": r_sale_status,
                 "강좌코드": r_code,
                 "영역": r_area,
                 "과목": r_subj,
@@ -954,6 +961,8 @@ def run_rms_pdf_crosscheck(
                         {
                             "PDF_순번": p_seq,
                             "PDF_페이지": p_page,
+                            "검수상태": status_badge,
+                            "강의상태": "판매중지",
                             "과목": p_subj,
                             "학년": p_grade,
                             "강사명": p_inst,
@@ -993,6 +1002,7 @@ def run_rms_pdf_crosscheck(
                     "PDF_페이지": p_page,
                     "검수상태": status_badge,
                     "RMS_No": r_no,
+                    "강의상태": "판매중지" if "판매중지" in status_badge else ("미개설" if "미개설" in status_badge else "판매 중"),
                     "강좌코드": r_code,
                     "과목": p_subj,
                     "학년": p_grade,
@@ -1567,6 +1577,7 @@ def export_crosscheck_to_excel(
     sheet4_cols = [
         "검수상태",
         "No",
+        "강의상태",
         "강좌코드",
         "과목",
         "학년",
@@ -1608,6 +1619,8 @@ def export_crosscheck_to_excel(
     if not error_df.empty:
         for _, r in error_df.iterrows():
             d = dict(r)
+            if "강의상태" not in d or not d["강의상태"]:
+                d["강의상태"] = "판매 중"
             combined_err_list.append(d)
 
     if not pdf_stopped_df.empty:
@@ -1616,6 +1629,7 @@ def export_crosscheck_to_excel(
                 {
                     "검수상태": "⚠️ RMS 판매중지 (폐강 의심)",
                     "No": r.get("RMS_No", 0),
+                    "강의상태": "판매중지",
                     "강좌코드": r.get("강좌코드", ""),
                     "과목": r.get("과목", ""),
                     "학년": r.get("학년", ""),
@@ -1634,6 +1648,7 @@ def export_crosscheck_to_excel(
     sheet5_cols = [
         "검수상태",
         "No",
+        "강의상태",
         "강좌코드",
         "과목",
         "학년",
@@ -1741,6 +1756,7 @@ def export_crosscheck_to_excel(
     stopped_df = crosscheck_result.get("stopped_rms_df", pd.DataFrame())
     sheet8_cols = [
         "No",
+        "강의상태",
         "강좌코드",
         "영역",
         "과목",
@@ -1770,6 +1786,7 @@ def export_crosscheck_to_excel(
         "PDF_페이지",
         "검수상태",
         "RMS_No",
+        "강의상태",
         "강좌코드",
         "과목",
         "학년",

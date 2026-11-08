@@ -503,6 +503,25 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
     else:
         target_df["바자관시수"] = "-"
 
+    # 강의상태 ("판매 중" / "판매중지") 표준화 컬럼 생성
+    def _standardize_sale_status(val: Any) -> str:
+        if pd.isna(val) or val is None:
+            return "판매 중"
+        s = str(val).strip()
+        if not s or s == "-" or s.lower() == "nan":
+            return "판매 중"
+        if "중지" in s:
+            return "판매중지"
+        if "판매" in s:
+            return "판매 중"
+        return s
+
+    if "판매" in target_df.columns:
+        target_df["판매"] = target_df["판매"].fillna("판매").astype(str).str.strip()
+        target_df["강의상태"] = target_df["판매"].apply(_standardize_sale_status)
+    else:
+        target_df["강의상태"] = "판매 중"
+
     # 개강일 / 종강일 YYYY-MM-DD 표준화 및 실제 달력 요일 계산
     target_df["개강일_원본"] = target_df["개강일"]
     target_df["종강일_원본"] = target_df["종강일"]
@@ -632,18 +651,21 @@ def filter_rms_active_courses(
     df: Optional[pd.DataFrame], exclude_stopped: bool = True
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    RMS DataFrame에서 '판매' 컬럼(값: '판매', '판매중지')을 기준으로
+    RMS DataFrame에서 '강의상태' 또는 '판매' 컬럼(값: '판매 중', '판매중지')을 기준으로
     판매중지된 강좌를 분리하여 (유효_강좌_df, 판매중지_강좌_df)를 반환합니다.
-    - exclude_stopped=True: '판매' 컬럼이 '판매중지'인 강좌를 제외하고 유효 강좌만 active_df에 보존
-    - (주의: '온라인판매' 컬럼은 현장 단과 특성상 일괄 '판매중지'인 경우가 많으므로 반드시 '판매' 컬럼을 기준으로 필터링)
+    - exclude_stopped=True: '판매중지' 상태인 강좌를 제외하고 유효 강좌만 active_df에 보존
+    - (주의: '온라인판매' 컬럼은 현장 단과 특성상 일괄 '판매중지'인 경우가 많으므로 반드시 '판매'/'강의상태' 컬럼을 기준으로 필터링)
     """
     if df is None or not isinstance(df, pd.DataFrame) or df.empty:
         return pd.DataFrame(), pd.DataFrame()
 
-    if "판매" not in df.columns:
+    if "강의상태" in df.columns:
+        is_stopped = df["강의상태"].astype(str).str.strip() == "판매중지"
+    elif "판매" in df.columns:
+        is_stopped = df["판매"].astype(str).str.strip().str.contains("중지", na=False)
+    else:
         return df.copy(), pd.DataFrame()
 
-    is_stopped = df["판매"].astype(str).str.strip() == "판매중지"
     stopped_df = df[is_stopped].copy().reset_index(drop=True)
 
     if exclude_stopped:
