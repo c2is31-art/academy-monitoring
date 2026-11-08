@@ -32,6 +32,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import core.cumulative_db as _cum_db_mod
+import core.exporter as _exporter_mod
 import core.matcher as _matcher_mod
 import core.text_improver as _text_improver_mod
 import core.title_suggester as _title_suggester_mod
@@ -45,6 +46,7 @@ importlib.reload(_text_improver_mod)
 importlib.reload(_title_suggester_mod)
 importlib.reload(_cum_db_mod)
 importlib.reload(_matcher_mod)
+importlib.reload(_exporter_mod)
 
 from core.cumulative_db import (
     build_pivot_table,
@@ -64,6 +66,15 @@ from core.cumulative_db import (
     normalize_snapshot_key,
     upsert_month_data,
     upsert_snapshot_data,
+)
+from core.exporter import (
+    APPS_SCRIPT_SAMPLE_CODE,
+    build_all_in_one_master_df,
+    build_multi_section_report_tsv,
+    export_all_in_one_csv_bytes,
+    export_all_sheets_zip_bytes,
+    render_google_sheets_copy_button,
+    send_all_tabs_to_apps_script,
 )
 from core.matcher import (
     EXPORT_DISPLAY_COLUMNS,
@@ -324,9 +335,9 @@ with col_upload_pdf:
     )
 
 # -------------------------------------------------------------------------
-# 상단 컨트롤 바: [📅 스냅샷 기준일 설정] & [☑️ 판매중지 강좌 제외] & [다운로드/복사 버튼]
+# 상단 컨트롤 바: [📅 스냅샷 기준일 설정] & [☑️ 판매중지 강좌 제외]
 # -------------------------------------------------------------------------
-col_snap_cfg, col_toggle, col_dn_excel, col_btn_copy = st.columns([1.5, 1.8, 1.35, 1.35])
+col_snap_cfg, col_toggle = st.columns([1.5, 2.0])
 
 # RMS 엑셀 파일명에서 기준 스냅샷 날짜 선감지
 detected_default_snap = "2027-01-20"
@@ -505,11 +516,55 @@ if active_rms_df is not None:
         crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
     st.session_state["crosscheck_result"] = crosscheck_result
 
-# 상단 컨트롤 바의 [다운로드 버튼] 및 [복사 버튼] 활성화
+# =========================================================================
+# 상단 통합 결과지 다운로드 & 구글 시트(Google Sheets) 원스톱 내보내기 액션 바
+# =========================================================================
 if crosscheck_result is not None:
-    with col_dn_excel:
-        snap_a = st.session_state.get("selected_snapshot_a", None)
-        snap_b = st.session_state.get("selected_snapshot_b", None)
+    st.markdown("#### 📥 2. 통합 결과지 다운로드 & 🌐 구글 시트(Google Sheets) 원스톱 내보내기")
+    st.caption("기존 엑셀(.xlsx) 파일 다운로드뿐만 아니라, 모든 통계·검수·맞춤법·강의명 정보를 구글 시트로 즉시 전송하거나 복사할 수 있습니다.")
+
+    snap_a = st.session_state.get("selected_snapshot_a", None)
+    snap_b = st.session_state.get("selected_snapshot_b", None)
+
+    # 1. 올인원 마스터 DataFrame 및 전체 TSV 준비
+    all_in_one_master_df = build_all_in_one_master_df(crosscheck_result, target_ym=selected_rms_ym)
+    multi_sec_tsv = build_multi_section_report_tsv(
+        crosscheck_result,
+        target_ym=selected_rms_ym,
+        snapshot_a_key=snap_a,
+        snapshot_b_key=snap_b,
+    )
+
+    # 복사 대상 선택 라디오 (버튼 2와 연동)
+    copy_target_opt = st.radio(
+        "구글 시트 복사 대상 선택:",
+        options=[
+            "📋 전체 리포트 한 번에 복사 (Multi-Section TSV)",
+            "📊 올인원 마스터 표만 복사 (강좌별 가로 완전 병합)",
+            "📈 강사별 20일 비교 통계만 복사",
+            "✍️ 맞춤법·문장축약 상세내역만 복사",
+        ],
+        horizontal=True,
+        key="radio_copy_target_opt",
+    )
+
+    # 선택된 복사 텍스트 결정
+    if copy_target_opt.startswith("📊"):
+        selected_copy_tsv = all_in_one_master_df.to_csv(index=False, sep="\t")
+    elif copy_target_opt.startswith("📈"):
+        comp_snap_res = compare_two_snapshots(snap_a, snap_b)
+        selected_copy_tsv = comp_snap_res.get("comparison_df", pd.DataFrame()).to_csv(index=False, sep="\t")
+    elif copy_target_opt.startswith("✍️"):
+        sp_df = crosscheck_result.get("spelling_df", pd.DataFrame())
+        selected_copy_tsv = sp_df.to_csv(index=False, sep="\t")
+    else:
+        selected_copy_tsv = multi_sec_tsv
+
+    # 4열 액션 바
+    col_btn_excel, col_btn_js_copy, col_btn_csv, col_btn_tsv = st.columns([1.35, 1.85, 1.35, 1.05])
+
+    # 버튼 1: 기존 엑셀 다운로드 (Sheet 0 올인원 포함, 100% 기능 유지)
+    with col_btn_excel:
         excel_bytes = export_crosscheck_to_excel(
             crosscheck_result,
             target_ym=selected_rms_ym,
@@ -517,18 +572,103 @@ if crosscheck_result is not None:
             snapshot_b_key=snap_b,
         )
         st.download_button(
-            label="📥 **통합 결과지 엑셀(.xlsx)**",
+            label="📥 **통합 결과지 엑셀 (.xlsx)**",
             data=excel_bytes,
             file_name=f"러셀대치_강의계획서_정밀검수결과지_{selected_rms_ym}_{datetime.now().strftime('%m%d_%H%M')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
+            help="Sheet 0(올인원)부터 Sheet 9까지 모든 서식이 포함된 엑셀입니다. 구글 시트에 그대로 업로드해도 완벽 호환됩니다.",
         )
-    with col_btn_copy:
-        tsv_str = export_crosscheck_to_tsv_string(crosscheck_result.get("comparison_df", pd.DataFrame()))
-        with st.popover("📋 **구글시트 복사**", use_container_width=True):
-            st.caption("아래 텍스트를 복사(Ctrl+C)하여 구글 스프레드시트에 붙여넣기(Ctrl+V)하세요:")
-            st.text_area("TSV 데이터", value=tsv_str, height=140)
+
+    # 버튼 2: JavaScript 브라우저 클립보드 복사 & sheets.new 자동 오픈
+    with col_btn_js_copy:
+        render_google_sheets_copy_button(
+            tsv_text=selected_copy_tsv,
+            button_label="🚀 모든 정보 복사 & 새 구글 시트 열기",
+            height=52,
+        )
+
+    # 버튼 3: 구글 시트용 CSV / ZIP 패키지 다운로드
+    with col_btn_csv:
+        with st.popover("📊 **구글시트 CSV/ZIP 다운로드**", use_container_width=True):
+            st.markdown("##### 📊 구글 시트 전용 CSV 다운로드 (UTF-8-SIG)")
+            st.caption("구글 시트 '파일 ➔ 가져오기'에서 한글 깨짐 없이 바로 열립니다.")
+
+            csv_master_bytes = export_all_in_one_csv_bytes(all_in_one_master_df)
+            st.download_button(
+                label="📄 **올인원 마스터 CSV (.csv)**",
+                data=csv_master_bytes,
+                file_name=f"러셀대치_올인원_전체통합마스터_{selected_rms_ym}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+
+            zip_all_bytes = export_all_sheets_zip_bytes(
+                crosscheck_result,
+                target_ym=selected_rms_ym,
+                snapshot_a_key=snap_a,
+                snapshot_b_key=snap_b,
+            )
+            st.download_button(
+                label="🗂️ **전체 시트 CSV 압축파일 (.zip)**",
+                data=zip_all_bytes,
+                file_name=f"러셀대치_전체시트_CSV_패키지_{selected_rms_ym}.zip",
+                mime="application/zip",
+                use_container_width=True,
+            )
+
+    # 버튼 4: 기존 TSV 수동 복사 팝오버 (호환성 유지)
+    with col_btn_tsv:
+        with st.popover("📋 **TSV 텍스트**", use_container_width=True):
+            st.caption("텍스트를 직접 복사할 수 있습니다:")
+            st.text_area("Multi-Section TSV", value=selected_copy_tsv, height=180)
             st.link_button("🌐 sheets.new (새 시트 열기)", "https://sheets.new")
+
+    # 웹앱 연동: 내 구글 시트 URL에 모든 탭 직접 꽂아넣기 (Apps Script 웹앱 연동)
+    with st.expander("☁️ 내 구글 시트 URL에 모든 탭 직접 꽂아넣기 (JSON 키 불필요)", expanded=False):
+        st.markdown(
+            """
+            **💡 구글 시트 웹앱(Apps Script) 연동 안내:**
+            1. 데이터를 전송받을 구글 스프레드시트를 엽니다.
+            2. 상단 메뉴 **[확장 프로그램] ➔ [Apps Script]**를 클릭합니다.
+            3. 아래 코드를 붙여넣고 상단 **[배포] ➔ [새 배포] ➔ 유형: [웹 앱]**을 선택합니다.
+               - *액세스 권한이 있는 사용자:* **모든 사용자(Anyone)**로 설정 후 배포합니다.
+            4. 생성된 **웹 앱 URL**을 아래 입력란에 넣고 **[🚀 내 구글 시트에 전송]**을 누르면 끝!
+            """
+        )
+        st.code(APPS_SCRIPT_SAMPLE_CODE, language="javascript")
+
+        col_gs_url, col_gs_btn = st.columns([3.5, 1.5])
+        with col_gs_url:
+            user_webhook_url = st.text_input(
+                "구글 Apps Script 웹앱 URL (https://script.google.com/macros/s/...):",
+                value=user_settings.get("export_sheet_url", ""),
+                placeholder="https://script.google.com/macros/s/AKfycb.../exec",
+                key="input_gs_webhook_url",
+            )
+        with col_gs_btn:
+            st.write("")
+            st.write("")
+            btn_push_gs = st.button("🚀 **내 구글 시트에 전송**", type="primary", use_container_width=True)
+
+        if btn_push_gs:
+            if not user_webhook_url.strip():
+                st.warning("⚠️ 구글 Apps Script 웹앱 URL을 먼저 입력해 주세요.")
+            else:
+                user_settings["export_sheet_url"] = user_webhook_url.strip()
+                save_user_settings(user_settings)
+                with st.spinner("☁️ 구글 시트로 올인원 마스터 및 전 탭 데이터를 전송 중입니다..."):
+                    ok_push, msg_push = send_all_tabs_to_apps_script(
+                        webhook_url=user_webhook_url.strip(),
+                        crosscheck_result=crosscheck_result,
+                        target_ym=selected_rms_ym,
+                        snapshot_a_key=snap_a,
+                        snapshot_b_key=snap_b,
+                    )
+                    if ok_push:
+                        st.success(f"🎉 {msg_push}")
+                    else:
+                        st.error(f"❌ {msg_push}")
 
 st.markdown("---")
 

@@ -43,6 +43,7 @@ from core.cumulative_db import (
     load_enrollment_db,
     normalize_snapshot_key,
 )
+from core.exporter import build_all_in_one_master_df
 
 DEFAULT_MAPPING_LIST: List[Dict[str, str]] = [
     {
@@ -1165,6 +1166,7 @@ def export_crosscheck_to_excel(
 ) -> bytes:
     """
     openpyxl을 사용하여 아래 시트들로 구성된 고품질 서식 포함 엑셀(.xlsx) 바이트를 생성합니다:
+    - Sheet 0 (올인원_전체통합정보): 강좌별 기본/수강생/PDF검수/맞춤법/문장축약/AI강의명 가로 완전 병합 마스터 시트
     - Sheet 1 (매월20일_강사별비교): 선택한 두 시점(전월 20일 vs 당월 20일)의 강사별 1:1 비교표
       * 상단 1행: 비교 요약 배너 (A vs B, 강좌수/결제자수/총수강생 증감, 결제율 변화)
       * 조건부 서식: 결제자 증감 양수(+) 연한 초록/파랑(#D5F5E3), 음수(-) 연한 빨강(#FADBD8), 변동상태 배지
@@ -1312,10 +1314,23 @@ def export_crosscheck_to_excel(
             ws.column_dimensions[col_letter].width = min(max(int(max_len) + 3, 10), 55)
 
     # =========================================================================
+    # Sheet 0: 올인원_전체통합정보 (구글 시트 / 엑셀 통합 마스터 뷰)
+    # =========================================================================
+    ws_s0 = wb.active
+    ws_s0.title = "올인원_전체통합정보"
+    all_in_one_master_df = build_all_in_one_master_df(crosscheck_result, target_ym=target_ym)
+    _write_styled_sheet(
+        ws_s0,
+        all_in_one_master_df,
+        columns_to_export=list(all_in_one_master_df.columns),
+        status_col_name="최종검수상태",
+        highlight_error_cells=True,
+    )
+
+    # =========================================================================
     # Sheet 1: 매월20일_강사별비교
     # =========================================================================
-    ws_s1 = wb.active
-    ws_s1.title = "매월20일_강사별비교"
+    ws_s1 = wb.create_sheet(title="매월20일_강사별비교")
 
     avail_snaps = get_available_snapshots()
     norm_target = normalize_snapshot_key(target_ym)
