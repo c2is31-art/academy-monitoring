@@ -21,6 +21,7 @@ __pycache__/
 
 # 3. 임시 및 테스트 파일
 scratch/
+scratch_*.py
 test_*.py
 
 # 4. OS 및 IDE 설정

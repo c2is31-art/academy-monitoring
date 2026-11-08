@@ -9,7 +9,7 @@
 3. 직관적인 4대 핵심 탭 구성:
    - Tab 1: 📈 강사별 수강생 & 월별 누적 통계 (당월 순위 + 월별 누적 피벗 테이블 + 전월 대비 증감 MoM + 드릴다운)
    - Tab 2: 🔍 엑셀 vs PDF 강의계획서 정밀 검수 (7대 항목 정밀 대조 + RMS 판매중지/폐강 의심 경고)
-   - Tab 3: ✍️ 맞춤법 교정 & ⚡ 초단축 문장·강의명 제안 (15자 이내 초단축 3종 스타일 + 슬로건 + 긴문장 축약)
+   - Tab 3: ✍️ 맞춤법 교정 & ⚡ 초단축 문장·강의명 제안 (Gemini 3.8 초단축 3종 스타일 + 긴문장 축약)
    - Tab 4: 💾 누적 DB 백업/관리 & 제외 강좌 확인 (판매중지 강좌 리스트 + 누적 DB 백업/복원 + 강사 매핑)
 """
 
@@ -231,17 +231,17 @@ with st.sidebar:
     # Gemini API 키 설정
     existing_key = user_settings.get("gemini_api_key", "") or get_gemini_api_key() or ""
     gemini_key_input = st.text_input(
-        "🔑 Gemini API Key (초단축 AI 카피라이팅)",
+        "🔑 Gemini API Key (Gemini 3.8 초단축 AI 카피라이팅)",
         value=existing_key,
         type="password",
-        help="Google AI Studio에서 발급받은 Gemini API 키를 입력하면 실시간 AI 초단축 리브랜딩이 활성화됩니다.",
+        help="Google AI Studio에서 발급받은 Gemini API 키를 입력하면 최신 Gemini 3.8 초단축 리브랜딩이 활성화됩니다.",
     )
     if gemini_key_input != user_settings.get("gemini_api_key", ""):
         user_settings["gemini_api_key"] = gemini_key_input
         save_user_settings(user_settings)
 
     if gemini_key_input:
-        st.caption("🟢 **Gemini 2.5 Flash 연결 준비 완료**")
+        st.caption("🟢 **Gemini 3.8 (High-Impact Copywriting Engine) 연결 준비 완료**")
     else:
         st.caption("🟡 **내장 대치동 초단축 규칙 엔진(Fallback) 가동 중**")
 
@@ -306,59 +306,75 @@ with col_toggle:
     )
 
 # -------------------------------------------------------------------------
-# RMS 파일 파싱 및 처리
+# RMS 파일 파싱 및 처리 (세션 캐싱 적용)
 # -------------------------------------------------------------------------
 raw_rms_df = None
 selected_rms_ym = user_settings.get("target_ym", "2027-01")
 
 if uploaded_rms_files:
-    # 파일이 1개 또는 여러 개인 경우 처리
-    if len(uploaded_rms_files) == 1:
-        f = uploaded_rms_files[0]
-        try:
-            raw_rms_df = parse_rms_xls(f)
-            detected_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
-            selected_rms_ym = detected_ym
-            st.session_state["rms_df_raw"] = raw_rms_df
-        except Exception as e:
-            st.error(f"❌ RMS 엑셀 파싱 중 오류가 발생했습니다: {e}")
+    rms_sig = tuple((getattr(f, "name", ""), getattr(f, "size", 0)) for f in uploaded_rms_files)
+    if st.session_state.get("cached_rms_sig") == rms_sig and st.session_state.get("rms_df_raw") is not None:
+        raw_rms_df = st.session_state["rms_df_raw"]
+        selected_rms_ym = st.session_state.get("selected_rms_ym", selected_rms_ym)
     else:
-        # 여러 개 파일이 업로드된 경우
-        file_map: Dict[str, pd.DataFrame] = {}
-        for f in uploaded_rms_files:
+        # 파일이 1개 또는 여러 개인 경우 처리
+        if len(uploaded_rms_files) == 1:
+            f = uploaded_rms_files[0]
             try:
-                parsed = parse_rms_xls(f)
-                ym_found = detect_dominant_year_month(parsed, default_ym="2027-01")
-                file_map[f"{f.name} ({ym_found})"] = parsed
-                # 누적 DB 자동 Upsert
-                upsert_month_data(parsed, ym_found, filter_stopped=exclude_stopped)
+                raw_rms_df = parse_rms_xls(f)
+                detected_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
+                selected_rms_ym = detected_ym
+                st.session_state["rms_df_raw"] = raw_rms_df
+                st.session_state["selected_rms_ym"] = selected_rms_ym
+                st.session_state["cached_rms_sig"] = rms_sig
             except Exception as e:
-                st.warning(f"⚠️ '{f.name}' 파싱 실패: {e}")
+                st.error(f"❌ RMS 엑셀 파싱 중 오류가 발생했습니다: {e}")
+        else:
+            # 여러 개 파일이 업로드된 경우
+            file_map: Dict[str, pd.DataFrame] = {}
+            for f in uploaded_rms_files:
+                try:
+                    parsed = parse_rms_xls(f)
+                    ym_found = detect_dominant_year_month(parsed, default_ym="2027-01")
+                    file_map[f"{f.name} ({ym_found})"] = parsed
+                    # 누적 DB 자동 Upsert
+                    upsert_month_data(parsed, ym_found, filter_stopped=exclude_stopped)
+                except Exception as e:
+                    st.warning(f"⚠️ '{f.name}' 파싱 실패: {e}")
 
-        if file_map:
-            st.success(f"🎉 **총 {len(file_map)}개 월의 RMS 파일이 파싱되어 누적 DB에 자동 반영되었습니다.**")
-            selected_name = st.selectbox(
-                "현재 검수 및 대시보드 기준으로 볼 RMS 파일을 선택하세요:",
-                options=list(file_map.keys()),
-                index=0,
-            )
-            raw_rms_df = file_map[selected_name]
-            st.session_state["rms_df_raw"] = raw_rms_df
-            selected_rms_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
+            if file_map:
+                st.success(f"🎉 **총 {len(file_map)}개 월의 RMS 파일이 파싱되어 누적 DB에 자동 반영되었습니다.**")
+                selected_name = st.selectbox(
+                    "현재 검수 및 대시보드 기준으로 볼 RMS 파일을 선택하세요:",
+                    options=list(file_map.keys()),
+                    index=0,
+                )
+                raw_rms_df = file_map[selected_name]
+                st.session_state["rms_df_raw"] = raw_rms_df
+                selected_rms_ym = detect_dominant_year_month(raw_rms_df, default_ym=selected_rms_ym)
+                st.session_state["selected_rms_ym"] = selected_rms_ym
+                st.session_state["cached_rms_sig"] = rms_sig
 elif st.session_state.get("rms_df_raw") is not None:
     raw_rms_df = st.session_state["rms_df_raw"]
+    selected_rms_ym = st.session_state.get("selected_rms_ym", selected_rms_ym)
 
 # -------------------------------------------------------------------------
-# PDF 파일 파싱 및 처리
+# PDF 파일 파싱 및 처리 (세션 캐싱으로 0.00초 즉시 반환)
 # -------------------------------------------------------------------------
 syllabus_pdf_df = None
 if uploaded_pdf_files:
-    pdf_source = uploaded_pdf_files[0] if len(uploaded_pdf_files) == 1 else uploaded_pdf_files
-    try:
-        syllabus_pdf_df = parse_syllabus_pdf(pdf_source)
-        st.session_state["syllabus_pdf_df"] = syllabus_pdf_df
-    except Exception as e:
-        st.error(f"❌ PDF 파싱 중 오류가 발생했습니다: {e}")
+    pdf_sig = tuple((getattr(f, "name", ""), getattr(f, "size", 0)) for f in uploaded_pdf_files)
+    if st.session_state.get("cached_pdf_sig") == pdf_sig and st.session_state.get("syllabus_pdf_df") is not None:
+        syllabus_pdf_df = st.session_state["syllabus_pdf_df"]
+    else:
+        pdf_source = uploaded_pdf_files[0] if len(uploaded_pdf_files) == 1 else uploaded_pdf_files
+        try:
+            with st.spinner("📄 PDF 강의계획서 초고속 정밀 파싱 중..."):
+                syllabus_pdf_df = parse_syllabus_pdf(pdf_source)
+                st.session_state["syllabus_pdf_df"] = syllabus_pdf_df
+                st.session_state["cached_pdf_sig"] = pdf_sig
+        except Exception as e:
+            st.error(f"❌ PDF 파싱 중 오류가 발생했습니다: {e}")
 elif st.session_state.get("syllabus_pdf_df") is not None:
     syllabus_pdf_df = st.session_state["syllabus_pdf_df"]
 
@@ -736,7 +752,7 @@ with tab3:
     # 서브탭 B: 15자 이내 초단축 임팩트 강의명 제안
     # -------------------------------------------------------------
     with subtab_ai:
-        st.markdown("### ⚡ 15자 이내 초단축·임팩트형 AI 강의명 & 슬로건 리브랜딩")
+        st.markdown("### ⚡ 15자 이내 초단축·임팩트형 AI 강의명 리브랜딩 (Gemini 3.8 Engine)")
         st.markdown(
             "시간표 한 칸과 브로슈어에 0.5초 만에 각인될 수 있도록, "
             "서술형 수식어를 배제하고 **공백 포함 10~15자 내외의 명사형 초단축 강의명**을 제안합니다."
@@ -780,7 +796,7 @@ with tab3:
                 st.session_state["ai_titles_df"] = pd.DataFrame(ai_results)
                 if crosscheck_result is not None:
                     crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
-                st.success(f"🎉 **총 {len(ai_results)}개 강좌의 15자 이내 초단축 강의명 및 슬로건 생성이 완료되었습니다.**")
+                st.success(f"🎉 **총 {len(ai_results)}개 강좌의 15자 이내 초단축 강의명 생성이 완료되었습니다.**")
 
             # 결과 데이터프레임 표시
             ai_df = st.session_state.get("ai_titles_df")
@@ -793,7 +809,6 @@ with tab3:
                             "학년",
                             "강사명",
                             "현재강좌명",
-                            "추천슬로건",
                             "제안1_초단축직관형",
                             "제안2_초단축시그니처",
                             "제안3_초단축킬러형",
@@ -852,7 +867,7 @@ with tab3:
                         unsafe_allow_html=True,
                     )
 
-                st.info(f"📢 **추천 슬로건:** {c_data.get('추천슬로건', '')} | **진단 비평:** {c_data.get('진단비평', '')}")
+                st.info(f"💡 **진단 비평:** {c_data.get('진단비평', '')}")
 
                 if st.button(f"🔄 [{c_data['강사명']}T {c_data['현재강좌명']}] 이 강좌만 다시 추천받기"):
                     with st.spinner("AI가 새로운 초단축 카피를 생성 중입니다..."):
@@ -864,9 +879,9 @@ with tab3:
                         ai_df.at[sel_c_idx, "제안1_초단축직관형"] = new_sug["style_1_short"]
                         ai_df.at[sel_c_idx, "제안2_초단축시그니처"] = new_sug["style_2_brand"]
                         ai_df.at[sel_c_idx, "제안3_초단축킬러형"] = new_sug["style_3_punch"]
-                        ai_df.at[sel_c_idx, "추천슬로건"] = new_sug["slogan_suggestion"]
                         ai_df.at[sel_c_idx, "진단비평"] = new_sug["critique"]
                         st.session_state["ai_titles_df"] = ai_df
+                        st.rerun()
                         st.rerun()
 
 # =========================================================================

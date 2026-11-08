@@ -1297,7 +1297,6 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "오류 상세 내역",
         "자동 생성된 수정 요청 사항 요약",
         "AI추천강좌명",
-        "추천슬로건",
     ]
     _write_styled_sheet(
         ws_s1,
@@ -1450,10 +1449,8 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "학년",
         "강사명",
         "현재강좌명",
-        "현재슬로건",
         "임팩트점수",
         "진단비평",
-        "추천슬로건",
         "제안1_초단축직관형",
         "제안2_초단축시그니처",
         "제안3_초단축킬러형",
