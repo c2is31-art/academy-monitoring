@@ -363,7 +363,7 @@ st.markdown(
     """
     <div class="main-header">
         <h2>메가스터디 러셀 대치학원 — RMS ↔ 강의계획서 PDF 종합 검수 시스템</h2>
-        <p>RMS 강좌목록 엑셀(.xls/.xlsx)과 강의계획서 PDF(.pdf) 7대 항목 정밀 검수 · 수강생/결제자수 누적 통계 · 15자 이내 초단축 AI 강의명 제안</p>
+        <p>RMS 강좌목록 엑셀(.xls/.xlsx)과 강의계획서 PDF(.pdf) 7대 항목 정밀 검수 · 수강생/결제자수 누적 통계 · 15자 이내 초단축 AI 강의명 제안 <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; margin-left: 6px;">v2.2 최신배포본</span></p>
     </div>
     """,
     unsafe_allow_html=True,
