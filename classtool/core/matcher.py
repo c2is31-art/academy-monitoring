@@ -53,10 +53,28 @@ DEFAULT_MAPPING_LIST: List[Dict[str, str]] = [
         "memo": "박소현(리아) ↔ 리아 (영어)",
     },
     {
+        "rms_name": "박소현(리아)",
+        "sheet_name": "리아",
+        "canonical": "리아",
+        "memo": "박소현(리아) ↔ 리아 (영어)",
+    },
+    {
+        "rms_name": "박소현(리아)",
+        "sheet_name": "박소현(리아)",
+        "canonical": "리아",
+        "memo": "박소현(리아) ↔ 리아 (영어)",
+    },
+    {
         "rms_name": "박소현(셀리나)",
-        "sheet_name": "박소현",
+        "sheet_name": "박소현(셀리나)",
         "canonical": "박소현(셀리나)",
-        "memo": "박소현 ↔ 박소현(셀리나) (영어)",
+        "memo": "박소현(셀리나) ↔ 박소현(셀리나) (영어)",
+    },
+    {
+        "rms_name": "박소현(셀리나)",
+        "sheet_name": "셀리나",
+        "canonical": "박소현(셀리나)",
+        "memo": "셀리나 ↔ 박소현(셀리나) (영어)",
     },
     {
         "rms_name": "민정",
@@ -198,23 +216,62 @@ class InstructorMapper:
         if re.match(r"^[가-힣()]+T$", s_clean, flags=re.IGNORECASE):
             s_clean = s_clean[:-1].strip()
 
+        # 리아 강사 별칭 정규화 ('박소현(리아)', '리아(박소현)', '리아T', '리아') -> '리아'
+        s_ns = re.sub(r"\s+", "", s_clean)
+        if any(k in s_ns for k in ["박소현(리아)", "리아(박소현)", "리아T"]) or s_ns == "리아":
+            return "리아"
+        # 셀리나 강사 별칭 정규화 ('박소현(셀리나)', '셀리나(박소현)', '셀리나', 'Selina') -> '박소현(셀리나)'
+        if any(k in s_ns for k in ["박소현(셀리나)", "셀리나(박소현)", "셀리나", "Selina"]):
+            return "박소현(셀리나)"
+
         if s_clean in self.lookup:
             return self.lookup[s_clean]
-        s_nospace = re.sub(r"\s+", "", s_clean)
-        if s_nospace in self.lookup:
-            return self.lookup[s_nospace]
+        if s_ns in self.lookup:
+            return self.lookup[s_ns]
 
         # 2~4글자 순수 한글 이름 내부 공백 자동 제거 ('민 정' -> '민정', '차 현 호' -> '차현호')
-        if re.match(r"^[가-힣]{2,4}$", s_nospace):
-            return s_nospace
+        if re.match(r"^[가-힣]{2,4}$", s_ns):
+            return s_ns
 
         return s_clean
 
-    def match_instructors(self, name_a: Any, name_b: Any) -> bool:
+    def match_instructors(self, name_a: Any, name_b: Any, text_a: str = "", text_b: str = "") -> bool:
         norm_a = self.normalize(name_a)
         norm_b = self.normalize(name_b)
         if not norm_a or not norm_b:
             return False
+
+        # --- [박소현(리아) vs 박소현(셀리나) 동명이인 교차 키워드 판별] ---
+        combo_a = f"{name_a} {norm_a} {text_a}".upper()
+        combo_b = f"{name_b} {norm_b} {text_b}".upper()
+
+        is_lia_a = ("리아" in norm_a) or ("박소현(리아)" in str(name_a)) or any(k in combo_a for k in ["MASTER", "한대부고 영어", "한대부고영어"])
+        is_lia_b = ("리아" in norm_b) or ("박소현(리아)" in str(name_b)) or any(k in combo_b for k in ["MASTER", "한대부고 영어", "한대부고영어"])
+
+        is_selina_a = ("셀리나" in norm_a) or ("박소현(셀리나)" in str(name_a)) or any(k in combo_a for k in ["셀리나", "SELINA", "명작과 필연", "명작과필연", "이제 시작이야", "이제시작이야", "명작", "필연"])
+        is_selina_b = ("셀리나" in norm_b) or ("박소현(셀리나)" in str(name_b)) or any(k in combo_b for k in ["셀리나", "SELINA", "명작과 필연", "명작과필연", "이제 시작이야", "이제시작이야", "명작", "필연"])
+
+        if is_lia_a or is_lia_b or is_selina_a or is_selina_b:
+            # 리아 vs 셀리나 상호 충돌은 무조건 False
+            if is_lia_a and is_selina_b:
+                return False
+            if is_selina_a and is_lia_b:
+                return False
+            if is_lia_a and is_lia_b:
+                return True
+            if is_selina_a and is_selina_b:
+                return True
+            # 한쪽만 키워드가 판별된 경우: 상대방 이름이 '박소현' 또는 해당 별칭이면 일치 허용
+            if is_lia_a and not is_selina_b and ("박소현" in str(name_b) or norm_b == "리아"):
+                return True
+            if is_lia_b and not is_selina_a and ("박소현" in str(name_a) or norm_a == "리아"):
+                return True
+            if is_selina_a and not is_lia_b and ("박소현" in str(name_b) or norm_b == "박소현(셀리나)"):
+                return True
+            if is_selina_b and not is_lia_a and ("박소현" in str(name_a) or norm_a == "박소현(셀리나)"):
+                return True
+            return False
+
         if norm_a == norm_b:
             return True
         if re.sub(r"\s+", "", norm_a) == re.sub(r"\s+", "", norm_b):
@@ -225,9 +282,6 @@ class InstructorMapper:
         if len(parts_a) > 1 or len(parts_b) > 1:
             if set(parts_a) & set(parts_b):
                 return True
-
-        if "박소현" in str(name_a) or "박소현" in str(name_b) or "리아" in (norm_a, norm_b):
-            return False
 
         def _extract_tokens(n_str: str) -> Set[str]:
             tokens = {n_str.strip()}
@@ -353,10 +407,12 @@ def calculate_inquiry_match_score(
     r_inst = str(r_row.get("강사", "")).strip()
     p_inst_orig = str(p_row.get("강사명_원본", "")).strip()
     p_inst_clean = str(p_row.get("강사명", "")).strip()
+    r_title = str(r_row.get("강좌명", "")).strip()
+    p_title = f"{p_row.get('강좌명', '')} {p_row.get('슬로건', '')} {p_row.get('원문전체텍스트', '')[:300]}"
 
     if not (
-        mapper.match_instructors(r_inst, p_inst_orig)
-        or mapper.match_instructors(r_inst, p_inst_clean)
+        mapper.match_instructors(r_inst, p_inst_orig, r_title, p_title)
+        or mapper.match_instructors(r_inst, p_inst_clean, r_title, p_title)
     ):
         return 0.0
 
@@ -865,7 +921,9 @@ def run_rms_pdf_crosscheck(
                 if r_idx in rms_to_pdf_idx:
                     continue
                 r_inst = str(r_row["강사"]).strip()
-                if mapper.match_instructors(r_inst, p_inst_orig) or mapper.match_instructors(r_inst, p_inst_clean):
+                r_title = str(r_row.get("강좌명", "")).strip()
+                p_title = f"{p_row.get('강좌명', '')} {p_row.get('슬로건', '')}"
+                if mapper.match_instructors(r_inst, p_inst_orig, r_title, p_title) or mapper.match_instructors(r_inst, p_inst_clean, r_title, p_title):
                     candidate_r_indices.append(r_idx)
 
             if len(candidate_r_indices) == 1:
@@ -1143,7 +1201,9 @@ def run_rms_pdf_crosscheck(
                 if stopped_rms_df is not None and not stopped_rms_df.empty:
                     for s_idx, s_row in stopped_rms_df.iterrows():
                         s_inst = str(s_row.get("강사", "")).strip()
-                        if mapper.match_instructors(s_inst, p_inst):
+                        s_title = str(s_row.get("강좌명", "")).strip()
+                        p_title = str(p_row.get("강좌명", "")).strip()
+                        if mapper.match_instructors(s_inst, p_inst, s_title, p_title):
                             s_days = str(s_row.get("수업요일", "")).strip()
                             s_start = str(s_row.get("전체시작시간", "") or s_row.get("시작시간", "")).strip()
                             p_days = str(p_row.get("수업요일", "")).strip()

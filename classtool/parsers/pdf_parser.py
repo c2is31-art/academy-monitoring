@@ -169,14 +169,17 @@ TARGET_INSTRUCTOR_MAP: Dict[str, List[str]] = {
     "정가현": ["정가현", "DOPAMINE", "도파민"],
     "현자의 돌": ["현자의 돌", "현자의돌", "임상욱", "현돌"],
     "한종철": ["한종철", "생물의 유전", "철두철미"],
+    "리아": ["리아", "박소현(리아)", "리아(박소현)", "Master", "Master반", "Master실력반"],
+    "박소현(셀리나)": ["박소현(셀리나)", "셀리나", "Selina", "명작과 필연", "이제 시작이야"],
 }
 
 MAJOR_INSTRUCTOR_KEYWORDS: Dict[str, List[str]] = {
     "심수현": ["심수현", "진심국어"],
     "김수현": ["김수현", "PRIDE"],
     "지인해": ["지인해"],
-    "리아": ["리아"],
-    "박소현": ["박소현", "셀리나"],
+    "리아": ["리아", "박소현(리아)", "리아(박소현)", "Lia", "Master", "Master반", "Master실력반"],
+    "박소현(셀리나)": ["박소현(셀리나)", "셀리나", "Selina", "명작과 필연", "이제 시작이야"],
+    "박소현": ["박소현"],
     "박성민": ["박성민", "Big Bang"],
     "이현수": ["이현수", "FinalCUT"],
     "이진리": ["이진리", "풀이학"],
@@ -219,6 +222,10 @@ INQUIRY_SUBJECTS: List[str] = [
 
 TARGET_INSTRUCTORS: List[str] = list(TARGET_INSTRUCTOR_MAP.keys()) + list(MAJOR_INSTRUCTOR_KEYWORDS.keys()) + [
     # RMS 및 강의계획서 수록 탐구/국영수 전체 강사
+    "박소현(리아)",
+    "리아(박소현)",
+    "박소현(셀리나)",
+    "셀리나(박소현)",
     "박지향",
     "강민웅",
     "김휘영",
@@ -229,7 +236,6 @@ TARGET_INSTRUCTORS: List[str] = list(TARGET_INSTRUCTOR_MAP.keys()) + list(MAJOR_
     "김영훈",
     "최적",
     "리아",
-    "박소현",
     "김연호",
     "신용선",
     "류현준",
@@ -272,13 +278,25 @@ TARGET_INSTRUCTORS: List[str] = list(TARGET_INSTRUCTOR_MAP.keys()) + list(MAJOR_
     "차현",
 ]
 
-INSTRUCTOR_ALIAS: Dict[str, str] = {
+INSTRUCTOR_ALIAS: Dict[str, Any] = {
+    # 1. 리아 선생님 (Master반)
+    "리아": ["박소현(리아)", "리아(박소현)", "리아", "리아T", "Lia", "박소현"],
+    "박소현(리아)": "리아",
+    "리아(박소현)": "리아",
+    "리아T": "리아",
+    "Lia": "리아",
+
+    # 2. 박소현(셀리나) 선생님 (명작과 필연)
+    "박소현(셀리나)": ["박소현(셀리나)", "셀리나", "Selina", "박소현"],
+    "박소현": ["박소현(셀리나)", "셀리나", "Selina"],
+    "셀리나": "박소현(셀리나)",
+    "Selina": "박소현(셀리나)",
+    "셀리나(박소현)": "박소현(셀리나)",
+
+    # 기타 강사
     "현자의돌": "현자의 돌",
     "임상욱": "현자의 돌",
     "현돌": "현자의 돌",
-    "셀리나": "박소현",
-    "박소현(셀리나)": "박소현",
-    "박소현(리아)": "리아",
     "차쌤": "차현호",
     "미친국어": "이현호",
     "이현호(미친국어)": "이현호",
@@ -369,25 +387,44 @@ def extract_printed_weekday(raw_date_token: str) -> Tuple[str, bool]:
 
 def clean_instructor_name(raw_inst: str) -> str:
     """
-    '박소현(셀리나)', '심수현T', '차 현 호', '민 정' 등에서
-    공백, 괄호 별칭, 접두/접미사('T', '선생님', '강사' 등)를 제거한 코어 강사명을 반환합니다.
+    강사명 문자열을 정규화합니다.
+    - 리아 강사 별칭('박소현(리아)', '리아(박소현)', '리아T', 'Lia' 등) -> '리아'
+    - 셀리나 강사 별칭('박소현(셀리나)', '셀리나', 'Selina' 등) -> '박소현(셀리나)'
+    - 공백, 존칭('선생님', '강사', 'T', '쌤' 등)을 제거한 코어 강사명을 반환합니다.
     """
     if not raw_inst:
         return ""
     s = str(raw_inst).strip()
-    if s in INSTRUCTOR_ALIAS:
-        return INSTRUCTOR_ALIAS[s]
     s_ns = re.sub(r"\s+", "", s)
-    if s_ns in INSTRUCTOR_ALIAS:
-        return INSTRUCTOR_ALIAS[s_ns]
 
-    # 괄호 별칭 분리: '박소현(셀리나)' -> '박소현'
+    # 1) 리아 별칭 우선 판별
+    if any(k in s_ns for k in ["박소현(리아)", "리아(박소현)", "리아T", "Lia"]) or s_ns == "리아":
+        return "리아"
+
+    # 2) 셀리나 별칭 우선 판별
+    if any(k in s_ns for k in ["박소현(셀리나)", "셀리나(박소현)", "셀리나", "Selina"]):
+        return "박소현(셀리나)"
+
+    # 3) 사전 매핑
+    if s in INSTRUCTOR_ALIAS:
+        val = INSTRUCTOR_ALIAS[s]
+        return val if isinstance(val, str) else val[0]
+    if s_ns in INSTRUCTOR_ALIAS:
+        val = INSTRUCTOR_ALIAS[s_ns]
+        return val if isinstance(val, str) else val[0]
+
+    # 4) 괄호 별칭 분리
     m_paren = re.match(r"^([^\(]+)\((.+?)\)$", s)
     if m_paren:
         base_n = m_paren.group(1).strip()
         alias_n = m_paren.group(2).strip()
+        if "리아" in alias_n:
+            return "리아"
+        if "셀리나" in alias_n:
+            return "박소현(셀리나)"
         if alias_n in INSTRUCTOR_ALIAS:
-            return INSTRUCTOR_ALIAS[alias_n]
+            val = INSTRUCTOR_ALIAS[alias_n]
+            return val if isinstance(val, str) else val[0]
         if base_n:
             s = base_n
 
@@ -429,6 +466,29 @@ def _parse_header_lines(page_text: str) -> Dict[str, str]:
     m_baza_any = re.search(r"바자관\s*시수\s*(\d+\s*T)", page_text, flags=re.IGNORECASE)
     if m_baza_any:
         info["바자관시수"] = normalize_baza_hours(m_baza_any.group(1))
+
+    # [리아 vs 박소현(셀리나) 동명이인 페이지 우선 판별]
+    txt_ns = re.sub(r"\s+", "", page_text)
+    is_lia_page = (
+        "박소현(리아)" in txt_ns
+        or "리아(박소현)" in txt_ns
+        or (("박소현" in txt_ns or "리아" in txt_ns) and any(k in txt_ns for k in ["Master", "Master반", "Master실력반", "한대부고"]))
+    )
+    is_selina_page = (
+        "박소현(셀리나)" in txt_ns
+        or "셀리나(박소현)" in txt_ns
+        or "셀리나" in txt_ns
+        or ("박소현" in txt_ns and any(k in txt_ns for k in ["명작과필연", "이제시작이야", "명작", "필연", "다르다", "어법과어휘"]))
+    )
+
+    if is_lia_page and not is_selina_page:
+        info["강사명"] = "리아"
+        info["강사명_원본"] = "영어 박소현(리아)"
+        info["과목"] = "영어"
+    elif is_selina_page and not is_lia_page:
+        info["강사명"] = "박소현(셀리나)"
+        info["강사명_원본"] = "영어 박소현(셀리나)"
+        info["과목"] = "영어"
 
     # 강의개요/강좌개요/수업안내/강좌소개 등 유연한 앵커 분할
     parts = re.split(
@@ -1065,12 +1125,14 @@ def parse_syllabus_pdf(
                         "종료페이지": grp["end_page"],
                         "과목": hdr["과목"],
                         "강사명": hdr["강사명"],
+                        "instructor": hdr["강사명"],
                         "강사명_원본": hdr["강사명_원본"],
                         "대상학년": hdr["대상학년"],
                         "과정구분": hdr["과정구분"],
                         "바자관시수": hdr["바자관시수"],
                         "슬로건": hdr["슬로건"],
                         "강좌명": hdr["강좌명"],
+                        "title": hdr["강좌명"],
                         "순수강좌명": pure_title,
                         "말머리태그": bracket_tags,
                         "개강일": ov["개강일"],
@@ -1097,6 +1159,7 @@ def parse_syllabus_pdf(
                         "표준수업시간": parsed_sched["formatted_schedule"],
                         "간결수업시간": parsed_sched["compact_schedule"],
                         "수강료": ov["수강료"],
+                        "fee": ov["수강료"],
                         "회차당수강료": ov["회차당수강료"],
                         "수강료_표시": ov["수강료_표시"],
                         "교재내역": ov["교재내역"],
@@ -1142,5 +1205,13 @@ def parse_syllabus_pdf(
         if inst not in detected and clean_instructor_name(inst).replace(" ", "") not in detected_normalized
     ]
     print("[디버그] 아직 인식되지 않은 타깃 강사:", missing)
+
+    print("\n[디버그] 리아/박소현(리아) 강좌 매칭 성공 여부:")
+    for c in records:
+        inst = c.get('instructor', c.get('강사명', ''))
+        title = c.get('title', c.get('강좌명', ''))
+        fee = c.get('fee', c.get('수강료', ''))
+        if "리아" in str(inst) or "Master" in str(title):
+            print(f"-> [인식 성공] 강사: {inst} | 강좌명: {title} | 수강료: {fee}")
 
     return result_df
