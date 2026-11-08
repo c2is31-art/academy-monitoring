@@ -192,7 +192,7 @@ DEFAULT_USER_SETTINGS: Dict[str, Any] = {
     "max_char_threshold": 55,
     "gemini_api_key": "",
     "export_sheet_url": "",
-    "exclude_stopped": True,
+    "exclude_stopped": False,
 }
 
 
@@ -487,8 +487,8 @@ with col_snap_cfg:
 
 with col_toggle:
     exclude_stopped = st.checkbox(
-        "☑️ **판매중지 강좌 제외** (판매중인 강좌만 집계·검수)",
-        value=True,
+        "판매중지 강좌 제외 (체크 시 '판매 중' 강좌만 검수 / 체크 해제 시 '판매중지' 포함 전체 강좌 검수)",
+        value=False,
         help="체크 시 RMS 엑셀의 '판매' 컬럼이 '판매'인 유효 강좌만 집계하고, '판매중지' 강좌는 제외합니다. (사전 검수 시에는 체크를 해제하세요)",
         key="exclude_stopped_checkbox",
     )
@@ -589,7 +589,7 @@ if raw_rms_df is not None:
         <div class="rms-headline-banner">
             <span class="rms-headline-title">{rms_summary["headline_banner"]}</span>
             <span style="font-size: 0.85rem; color: #166534; font-weight: 600;">
-                기준 연월: {selected_rms_ym} | 필터: {'판매중지 강좌 제외' if exclude_stopped else '전체 강좌 포함'}
+                기준 연월: {selected_rms_ym} | 필터: {'판매중지 강좌 제외 (판매 중 강좌만)' if exclude_stopped else '전체 강좌 포함 (판매중지 강좌 포함 검수)'}
             </span>
         </div>
         """,
@@ -599,12 +599,20 @@ if raw_rms_df is not None:
     # 5대 핵심 KPI 메트릭 카드
     kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
     with kpi_col1:
-        st.metric(
-            label="유효 강좌수",
-            value=f"{rms_summary['total_courses']}건",
-            delta=f"판매중지 {len(stopped_rms_df)}건 제외" if (exclude_stopped and len(stopped_rms_df) > 0) else None,
-            delta_color="inverse" if (exclude_stopped and len(stopped_rms_df) > 0) else "normal",
-        )
+        if exclude_stopped:
+            st.metric(
+                label="유효 강좌수",
+                value=f"{rms_summary['total_courses']}건",
+                delta=f"판매중지 {len(stopped_rms_df)}건 제외" if len(stopped_rms_df) > 0 else None,
+                delta_color="inverse",
+            )
+        else:
+            st.metric(
+                label="전체 강좌수",
+                value=f"{rms_summary['total_courses']}건",
+                delta=f"판매중지 {len(stopped_rms_df)}건 포함" if len(stopped_rms_df) > 0 else "전체 포함",
+                delta_color="normal",
+            )
     with kpi_col2:
         st.metric(
             label="총 수강생수",
@@ -643,7 +651,7 @@ if active_rms_df is not None:
         _rms_df=active_rms_df,
         _syllabus_pdf_df=syllabus_pdf_df,
         _mapper=mapper,
-        _stopped_rms_df=stopped_rms_df,
+        _stopped_rms_df=stopped_rms_df if exclude_stopped else pd.DataFrame(),
         rms_hash=rms_hash_key,
         pdf_hash=pdf_hash_key,
         target_ym=selected_rms_ym,
@@ -651,6 +659,7 @@ if active_rms_df is not None:
         max_char_threshold=int(max_char_threshold),
     )
     crosscheck_result = dict(raw_cross)
+    crosscheck_result["stopped_rms_df"] = stopped_rms_df
     # AI 강의명 추천 데이터프레임이 세션에 있으면 병합
     if st.session_state.get("ai_titles_df") is not None:
         crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
@@ -1108,10 +1117,10 @@ with tab2:
     else:
         # 1. 사전 검수 알림 및 폐강 경고
         pdf_stopped_df = crosscheck_result.get("pdf_stopped_courses_df", pd.DataFrame())
-        if not pdf_stopped_df.empty:
+        if exclude_stopped and not pdf_stopped_df.empty:
             st.warning(
                 f"⚠️ **현재 PDF에 수록된 강좌 중 {len(pdf_stopped_df)}건이 RMS상 '판매중지' 상태입니다.**\n\n"
-                f"• **접수 오픈 전 사전 검수**를 진행하시는 경우라면 상단의 **`[☑️ 판매중지 강좌 제외]`** 체크를 해제하세요.\n"
+                f"• **접수 오픈 전 사전 검수**를 진행하시는 경우라면 상단의 **`[ ] 판매중지 강좌 제외`** 체크를 해제하세요.\n"
                 f"• 만약 **실제 폐강된 강좌**라면 배포용 강의계획서 PDF에서 해당 강좌의 삭제가 필요합니다."
             )
             with st.expander(f"📋 RMS 판매중지(폐강 의심) 강좌 리스트 ({len(pdf_stopped_df)}건 보기)", expanded=True):
@@ -1139,28 +1148,47 @@ with tab2:
         st.markdown("### 🔍 7대 항목 정밀 대조 검수표")
         kpi = crosscheck_result.get("kpi", {})
         k_col1, k_col2, k_col3, k_col4 = st.columns(4)
-        k_col1.metric("총 RMS 유효 강좌", f"{kpi.get('total_rms', 0)}건")
+        if exclude_stopped:
+            k_col1.metric("총 RMS 유효 강좌", f"{kpi.get('total_rms', 0)}건", delta=f"판매중지 {len(stopped_rms_df)}건 제외" if len(stopped_rms_df) > 0 else None, delta_color="inverse")
+        else:
+            k_col1.metric("총 RMS 검수 강좌", f"{kpi.get('total_rms', 0)}건", delta=f"판매중지 {len(stopped_rms_df)}건 포함" if len(stopped_rms_df) > 0 else "전체 포함", delta_color="normal")
         k_col2.metric("정상 일치 강좌", f"{kpi.get('normal_count', 0)}건")
         k_col3.metric("오류·확인필요 강좌", f"{kpi.get('error_count', 0)}건", delta_color="inverse")
         k_col4.metric("PDF 미수록 강좌", f"{kpi.get('missing_pdf_count', 0)}건", delta_color="inverse")
 
         # 필터링 라디오
+        filter_options = [
+            "전체 강좌 보기 (판매중지 포함)",
+            "판매 중 강좌만 보기",
+            "판매중지 강좌만 보기",
+            "🔴 오류 발생 강좌만 보기",
+            "⚪ PDF 미수록 강좌만 보기",
+        ]
         filter_status = st.radio(
             "표시할 강좌 필터:",
-            options=["전체 강좌", "🔴 오류·확인필요 강좌만", "✅ 정상 일치 강좌만", "⚪ PDF 미수록 강좌만"],
+            options=filter_options,
+            index=0,
             horizontal=True,
         )
 
         comp_df = crosscheck_result.get("comparison_df", pd.DataFrame())
         if not comp_df.empty:
-            if filter_status == "🔴 오류·확인필요 강좌만":
-                disp_df = comp_df[comp_df["검수상태"].str.startswith(("🔴", "🟡", "⚠️"))].copy()
-            elif filter_status == "✅ 정상 일치 강좌만":
-                disp_df = comp_df[comp_df["검수상태"].str.startswith("✅")].copy()
-            elif filter_status == "⚪ PDF 미수록 강좌만":
-                disp_df = comp_df[comp_df["검수상태"].str.startswith("⚪")].copy()
+            if filter_status == "판매 중 강좌만 보기":
+                disp_df = comp_df[comp_df["강의상태"].astype(str).str.contains("판매 중|판매중") & ~comp_df["강의상태"].astype(str).str.contains("중지")].copy()
+            elif filter_status == "판매중지 강좌만 보기":
+                disp_df = comp_df[comp_df["강의상태"].astype(str).str.contains("중지")].copy()
+            elif filter_status == "🔴 오류 발생 강좌만 보기":
+                disp_df = comp_df[comp_df["검수상태"].astype(str).str.contains("🔴|🟡|⚠️|불일치|오류|오타|모순")].copy()
+            elif filter_status == "⚪ PDF 미수록 강좌만 보기":
+                disp_df = comp_df[comp_df["검수상태"].astype(str).str.contains("⚪|미수록")].copy()
             else:
                 disp_df = comp_df.copy()
+
+            # 시각적 구분: 강의상태 배지 표기
+            if "강의상태" in disp_df.columns:
+                disp_df["강의상태"] = disp_df["강의상태"].apply(
+                    lambda x: "🟠 [판매중지]" if "중지" in str(x) else "🟢 판매 중"
+                )
 
             view_cols = [
                 "검수상태",
@@ -1578,11 +1606,14 @@ with tab4:
     # -------------------------------------------------------------
     # 섹션 1: 판매중지로 제외된 강좌 전체 목록
     # -------------------------------------------------------------
-    st.markdown(f"### 🚫 1. 판매중지로 제외된 강좌 목록 ({len(stopped_rms_df)}건)")
+    st.markdown(f"### 🚫 1. RMS '판매중지' 강좌 목록 ({len(stopped_rms_df)}건)")
     if stopped_rms_df.empty:
         st.success("✅ 현재 RMS 엑셀 파일에 '판매중지'로 등록된 강좌가 없습니다.")
     else:
-        st.caption("아래 강좌들은 RMS 상에서 '판매중지' 상태여서 검수 및 통계 집계에서 제외되었습니다:")
+        if exclude_stopped:
+            st.caption("아래 강좌들은 RMS 상에서 '판매중지' 상태여서 검수 및 통계 집계에서 제외되었습니다 (상단 토글 체크 해제 시 전체 검수 가능):")
+        else:
+            st.caption("아래 강좌들은 RMS 상에서 '판매중지' 상태이나, 현재 상단 토글 설정에 따라 전체 검수 및 대조가 함께 진행되었습니다:")
         st.dataframe(
             stopped_rms_df[
                 [

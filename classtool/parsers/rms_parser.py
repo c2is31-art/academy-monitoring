@@ -511,7 +511,7 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
         if not s or s == "-" or s.lower() == "nan":
             return "판매 중"
         if "중지" in s:
-            return "판매중지"
+            return "[판매중지]"
         if "판매" in s:
             return "판매 중"
         return s
@@ -660,7 +660,7 @@ def filter_rms_active_courses(
         return pd.DataFrame(), pd.DataFrame()
 
     if "강의상태" in df.columns:
-        is_stopped = df["강의상태"].astype(str).str.strip() == "판매중지"
+        is_stopped = df["강의상태"].astype(str).str.contains("중지", na=False)
     elif "판매" in df.columns:
         is_stopped = df["판매"].astype(str).str.strip().str.contains("중지", na=False)
     else:

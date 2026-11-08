@@ -161,7 +161,7 @@ def build_all_in_one_master_df(
             if not raw_sale or ("판매" in raw_sale and "중지" not in raw_sale):
                 sale_status_str = "판매 중"
             elif "중지" in raw_sale:
-                sale_status_str = "판매중지"
+                sale_status_str = "[판매중지]"
             else:
                 sale_status_str = raw_sale
 
@@ -203,26 +203,36 @@ def build_all_in_one_master_df(
                 "AI추천강의명2(킬러·임팩트)": ai_info.get("추천2", "-"),
             })
 
-    # 판매중지 강좌도 포함
+    # 판매중지 강좌 중 comparison_df에 이미 포함되지 않은 강좌만 추가 (토글로 제외된 경우)
+    existing_nos = {r.get("No") for r in master_rows if r.get("No") is not None}
+    existing_titles = {(str(r.get("강사명")).strip(), str(r.get("RMS 강좌명")).strip()) for r in master_rows}
+
     if not stopped_df.empty:
         for _, s_row in stopped_df.iterrows():
+            s_no = s_row.get("No")
+            s_inst = str(s_row.get("강사", "")).strip()
+            s_title = str(s_row.get("강좌명", "")).strip()
+            # 이미 comparison_df에 포함되어 검수된 강좌라면 중복 추가 방지 (정밀 대조 결과 보존)
+            if (s_no is not None and s_no in existing_nos) or (s_inst, s_title) in existing_titles:
+                continue
+
             master_rows.append({
-                "No": s_row.get("No", len(master_rows) + 1),
-                "강의상태": "판매중지",
+                "No": s_no or (len(master_rows) + 1),
+                "강의상태": "[판매중지]",
                 "과목": s_row.get("과목", ""),
                 "학년": s_row.get("학년", ""),
-                "강사명": s_row.get("강사", ""),
-                "RMS 강좌명": s_row.get("강좌명", ""),
+                "강사명": s_inst,
+                "RMS 강좌명": s_title,
                 "PDF 강좌명": "-",
                 "최종검수상태": "⚪ RMS 판매중지 (검수 제외 강좌)",
-                "오류상세내역": "RMS 상에서 판매중지로 등록된 강좌입니다.",
-                "자동생성_수정요청요약": "사전 검수 시 필터 해제 / 폐강 시 PDF 삭제 필요",
+                "오류상세내역": "RMS 상에서 판매중지로 등록되어 검수에서 제외되었습니다.",
+                "자동생성_수정요청요약": "사전 검수 시 상단 필터 해제 필요",
                 "PDF 페이지": "-",
                 "총수강생(가등록포함)": s_row.get("가등록포함수강생수", 0),
                 "결제완료인원": s_row.get("결제인원", 0),
                 "미결제(가등록)": s_row.get("가등록(미결제)", 0),
                 "결제율(%)": s_row.get("결제율(%)", 0.0),
-                "판매상태": "판매중지",
+                "판매상태": "[판매중지]",
                 "RMS 개강~종강(회차)": f"{s_row.get('개강일_짧은표시', '')}~{s_row.get('종강일_짧은표시', '')} ({s_row.get('회차', 0)}회)",
                 "PDF 개요 개강~종강(회차)": "-",
                 "PDF 1월진도표(첫날~끝날/실제회차)": "-",

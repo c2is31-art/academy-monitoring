@@ -937,7 +937,7 @@ def run_rms_pdf_crosscheck(
         if not r_sale_status or ("판매" in r_sale_status and "중지" not in r_sale_status):
             r_sale_status = "판매 중"
         elif "중지" in r_sale_status:
-            r_sale_status = "판매중지"
+            r_sale_status = "[판매중지]"
 
         rms_period_short_disp = f"{r_open_short}~{r_close_short} ({r_sessions}회)"
         rms_fee_disp = (
@@ -1171,7 +1171,7 @@ def run_rms_pdf_crosscheck(
                             "PDF_순번": p_seq,
                             "PDF_페이지": p_page,
                             "검수상태": status_badge,
-                            "강의상태": "판매중지",
+                            "강의상태": "[판매중지]",
                             "과목": p_subj,
                             "학년": p_grade,
                             "강사명": p_inst,
@@ -1179,7 +1179,7 @@ def run_rms_pdf_crosscheck(
                             "RMS 강좌명": r_title,
                             "강좌코드": r_code,
                             "RMS_No": r_no,
-                            "RMS 판매상태": "판매중지",
+                            "RMS 판매상태": "[판매중지]",
                             "수업시간": p_sched,
                             "수강료": p_fee_disp,
                             "오류 상세 내역": detail_str,
@@ -1211,7 +1211,7 @@ def run_rms_pdf_crosscheck(
                     "PDF_페이지": p_page,
                     "검수상태": status_badge,
                     "RMS_No": r_no,
-                    "강의상태": "판매중지" if "판매중지" in status_badge else ("미개설" if "미개설" in status_badge else "판매 중"),
+                    "강의상태": "[판매중지]" if "판매중지" in status_badge else ("미개설" if "미개설" in status_badge else "판매 중"),
                     "강좌코드": r_code,
                     "과목": p_subj,
                     "학년": p_grade,
@@ -1838,7 +1838,7 @@ def export_crosscheck_to_excel(
                 {
                     "검수상태": "⚠️ RMS 판매중지 (폐강 의심)",
                     "No": r.get("RMS_No", 0),
-                    "강의상태": "판매중지",
+                    "강의상태": "[판매중지]",
                     "강좌코드": r.get("강좌코드", ""),
                     "과목": r.get("과목", ""),
                     "학년": r.get("학년", ""),
