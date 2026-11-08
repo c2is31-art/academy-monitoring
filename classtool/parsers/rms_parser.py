@@ -776,3 +776,8 @@ def generate_instructor_student_summary(df: Optional[pd.DataFrame]) -> pd.DataFr
     summary_df.insert(0, "순위", range(1, len(summary_df) + 1))
 
     return summary_df
+
+
+# 하위 호환 및 명시적 함수 별칭
+parse_rms_excel = parse_rms_xls
+
