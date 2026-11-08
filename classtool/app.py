@@ -97,6 +97,7 @@ from core.text_improver import (
 from core.title_suggester import (
     DIRECTION_PROMPTS,
     batch_suggest_course_titles,
+    extract_bracket_prefix_and_body,
     get_gemini_api_key,
     suggest_course_titles_with_gemini,
 )
@@ -1273,10 +1274,10 @@ with tab3:
     # 서브탭 B: 15자 이내 초단축 임팩트 강의명 제안
     # -------------------------------------------------------------
     with subtab_ai:
-        st.markdown("### ⚡ 15자 이내 초단축·임팩트형 AI 강의명 리브랜딩 (Gemini 3.8 Engine)")
+        st.markdown("### ⚡ 대괄호 태그 보존 및 임팩트 강의명 AI 리브랜딩 (Gemini 3.8 Engine)")
         st.markdown(
-            "시간표 한 칸과 브로슈어에 0.5초 만에 각인될 수 있도록, "
-            "서술형 수식어를 배제하고 **공백 포함 10~15자 내외의 명사형 초단축 강의명**을 제안합니다."
+            "원문의 `[고1 특강][실력반]` 등 **대괄호 태그는 100% 원형 그대로 보존**하고, "
+            "대괄호를 제외한 **본문 강의명을 12~20자 내외의 임팩트 있는 세련된 어휘**로 리브랜딩합니다. (지나친 축약 방지)"
         )
 
         direction_choice = st.radio(
@@ -1295,7 +1296,7 @@ with tab3:
             courses_for_ai = active_rms_df.to_dict(orient="records")
             col_ai_btn, col_ai_cnt = st.columns([2, 3])
             with col_ai_btn:
-                btn_run_ai = st.button("⚡ **15자 이내 초단축 강의명 일괄 생성**", type="primary", use_container_width=True)
+                btn_run_ai = st.button("⚡ **대괄호 태그 보존 및 임팩트 강의명 일괄 생성**", type="primary", use_container_width=True)
 
             if btn_run_ai:
                 progress_bar = st.progress(0.0)
@@ -1303,7 +1304,7 @@ with tab3:
 
                 def _ai_progress(cur: int, tot: int, name: str) -> None:
                     progress_bar.progress(cur / tot)
-                    status_text.caption(f"🤖 AI 초단축 카피 생성 중 ({cur}/{tot}): **{name}**")
+                    status_text.caption(f"🤖 AI 임팩트 카피 생성 중 ({cur}/{tot}): **{name}**")
 
                 ai_results = batch_suggest_course_titles(
                     course_list=courses_for_ai,
@@ -1435,13 +1436,18 @@ with tab3:
                     r1_title = c_data.get("⚡ 추천 강의명 1 (직관·시그니처형)") or c_data.get("제안1_초단축직관형", "")
                     r2_title = c_data.get("🔥 추천 강의명 2 (킬러·임팩트형)") or c_data.get("제안2_초단축시그니처", "")
 
+                    _, r1_body = extract_bracket_prefix_and_body(r1_title)
+                    r1_body_len = len(r1_body) if r1_body else len(r1_title)
+                    _, r2_body = extract_bracket_prefix_and_body(r2_title)
+                    r2_body_len = len(r2_body) if r2_body else len(r2_title)
+
                     with col_c1:
                         st.markdown(
                             f"""
                             <div class="proposal-card">
-                                <div class="proposal-title">⚡ 추천 1: 직관·시그니처형 (12자 내외)</div>
+                                <div class="proposal-title">⚡ 추천 1: 직관·시그니처형 (본문 12~20자)</div>
                                 <h4 style="color: #1e3a8a; margin: 0.4rem 0;">{r1_title}</h4>
-                                <p style="font-size: 0.85rem; color: #475569;">글자수: {len(r1_title)}자 | 목표와 시그니처 0.5초 직관 각인</p>
+                                <p style="font-size: 0.85rem; color: #475569;">글자수: 본문 {r1_body_len}자 (전체 {len(r1_title)}자) | 목표와 시그니처 0.5초 직관 각인</p>
                             </div>
                             """,
                             unsafe_allow_html=True,
@@ -1450,9 +1456,9 @@ with tab3:
                         st.markdown(
                             f"""
                             <div class="proposal-card">
-                                <div class="proposal-title">🔥 추천 2: 킬러·임팩트형 (12자 내외)</div>
+                                <div class="proposal-title">🔥 추천 2: 킬러·임팩트형 (본문 12~20자)</div>
                                 <h4 style="color: #991b1b; margin: 0.4rem 0;">{r2_title}</h4>
-                                <p style="font-size: 0.85rem; color: #475569;">글자수: {len(r2_title)}자 | 1등급 킬러 정복·실전 무기 공략</p>
+                                <p style="font-size: 0.85rem; color: #475569;">글자수: 본문 {r2_body_len}자 (전체 {len(r2_title)}자) | 1등급 킬러 정복·실전 무기 공략</p>
                             </div>
                             """,
                             unsafe_allow_html=True,
