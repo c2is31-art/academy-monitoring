@@ -1175,7 +1175,7 @@ def export_crosscheck_to_excel(
     - Sheet 4 (전체검수결과_유효강좌): 전 강좌 RMS vs PDF 비교표 (오류 행 연한 빨강, 불일치 셀 강조)
     - Sheet 5 (데이터오류_및_판매중지확인): 오류 및 판매중지 강좌 통합 시트
     - Sheet 6 (맞춤법_및_긴문장축약): 맞춤법 교정 및 긴 문장 축약 제안
-    - Sheet 7 (AI_강의명제안): 우수 강좌명 유지 판정 및 15자 이내 초단축 강의명 2종 제안
+    - Sheet 7 (AI_강의명제안): PDF 계획서 기반 스마트 패스 및 15자 이내 핵심 강의명 제안
     - Sheet 8 (판매중지_제외강좌목록): 판매중지 강좌 원본 리스트
     - Sheet 9 (PDF진도표상세검수): PDF 진도표 날짜 및 요일 정합성 검수 내역
     """
@@ -1688,7 +1688,6 @@ def export_crosscheck_to_excel(
     ws_s7 = wb.create_sheet(title="AI_강의명제안")
     ai_df = crosscheck_result.get("ai_titles_df")
     if ai_df is None or (isinstance(ai_df, pd.DataFrame) and ai_df.empty):
-        # 세션에서 아직 일괄 생성을 실행하지 않았더라도, 엑셀 출력 시에는 기본 내장 규칙 엔진으로 자동 생성하여 수록
         comparison_df_for_ai = crosscheck_result.get("comparison_df", pd.DataFrame())
         if comparison_df_for_ai is not None and not comparison_df_for_ai.empty:
             from core.title_suggester import batch_suggest_course_titles
@@ -1696,7 +1695,7 @@ def export_crosscheck_to_excel(
             ai_results = batch_suggest_course_titles(
                 course_list=courses_list,
                 api_key=None,
-                direction="대치동 트렌드 종합",
+                direction="스마트 분석",
             )
             ai_df = pd.DataFrame(ai_results)
             crosscheck_result["ai_titles_df"] = ai_df
@@ -1705,34 +1704,33 @@ def export_crosscheck_to_excel(
 
     if ai_df is not None and not ai_df.empty:
         ai_df = ai_df.copy()
-        if "현재강의명" not in ai_df.columns and "현재강좌명" in ai_df.columns:
-            ai_df["현재강의명"] = ai_df["현재강좌명"]
-        if "판정사유" not in ai_df.columns and "진단비평" in ai_df.columns:
-            ai_df["판정사유"] = ai_df["진단비평"]
-        if "⚡ 추천 강의명 1 (직관·시그니처형)" not in ai_df.columns and "제안1_초단축직관형" in ai_df.columns:
-            ai_df["⚡ 추천 강의명 1 (직관·시그니처형)"] = ai_df["제안1_초단축직관형"]
-        if "🔥 추천 강의명 2 (킬러·임팩트형)" not in ai_df.columns and "제안2_초단축시그니처" in ai_df.columns:
-            ai_df["🔥 추천 강의명 2 (킬러·임팩트형)"] = ai_df["제안2_초단축시그니처"]
+        if "판정" not in ai_df.columns and "판정결과" in ai_df.columns:
+            ai_df["판정"] = ai_df["판정결과"]
+        if "현재 강좌명" not in ai_df.columns:
+            ai_df["현재 강좌명"] = ai_df.get("현재강의명", ai_df.get("현재강좌명", ""))
+        if "임팩트 점수" not in ai_df.columns and "임팩트점수" in ai_df.columns:
+            ai_df["임팩트 점수"] = ai_df["임팩트점수"]
+        if "판정 사유 및 피드백" not in ai_df.columns:
+            ai_df["판정 사유 및 피드백"] = ai_df.get("판정사유", ai_df.get("진단비평", ""))
+        if "⚡ 추천 강의명" not in ai_df.columns:
+            ai_df["⚡ 추천 강의명"] = ai_df.get("⚡ 추천 강의명 1 (직관·시그니처형)", ai_df.get("제안1_초단축직관형", "-"))
 
     sheet7_cols = [
         "순번",
-        "판정결과",
+        "판정",
         "과목",
         "학년",
         "강사명",
-        "현재강의명",
-        "임팩트점수",
-        "판정사유",
-        "⚡ 추천 강의명 1 (직관·시그니처형)",
-        "🔥 추천 강의명 2 (킬러·임팩트형)",
-        "생성엔진",
-        "최종선택강좌명",
+        "현재 강좌명",
+        "임팩트 점수",
+        "판정 사유 및 피드백",
+        "⚡ 추천 강의명",
     ]
     _write_styled_sheet(
         ws_s7,
         ai_df,
         columns_to_export=sheet7_cols,
-        status_col_name="판정결과",
+        status_col_name="판정",
         highlight_error_cells=False,
     )
 
@@ -1978,31 +1976,30 @@ def export_ai_titles_only_excel(ai_df: pd.DataFrame) -> bytes:
 
     sheet_cols = [
         "순번",
-        "판정결과",
+        "판정",
         "과목",
         "학년",
         "강사명",
-        "현재강의명",
-        "임팩트점수",
-        "판정사유",
-        "⚡ 추천 강의명 1 (직관·시그니처형)",
-        "🔥 추천 강의명 2 (킬러·임팩트형)",
-        "생성엔진",
-        "최종선택강좌명",
+        "현재 강좌명",
+        "임팩트 점수",
+        "판정 사유 및 피드백",
+        "⚡ 추천 강의명",
     ]
 
     if ai_df is None or ai_df.empty:
         ws.append(["데이터가 없습니다."])
     else:
         df_copy = ai_df.copy()
-        if "현재강의명" not in df_copy.columns and "현재강좌명" in df_copy.columns:
-            df_copy["현재강의명"] = df_copy["현재강좌명"]
-        if "판정사유" not in df_copy.columns and "진단비평" in df_copy.columns:
-            df_copy["판정사유"] = df_copy["진단비평"]
-        if "⚡ 추천 강의명 1 (직관·시그니처형)" not in df_copy.columns and "제안1_초단축직관형" in df_copy.columns:
-            df_copy["⚡ 추천 강의명 1 (직관·시그니처형)"] = df_copy["제안1_초단축직관형"]
-        if "🔥 추천 강의명 2 (킬러·임팩트형)" not in df_copy.columns and "제안2_초단축시그니처" in df_copy.columns:
-            df_copy["🔥 추천 강의명 2 (킬러·임팩트형)"] = df_copy["제안2_초단축시그니처"]
+        if "판정" not in df_copy.columns and "판정결과" in df_copy.columns:
+            df_copy["판정"] = df_copy["판정결과"]
+        if "현재 강좌명" not in df_copy.columns:
+            df_copy["현재 강좌명"] = df_copy.get("현재강의명", df_copy.get("현재강좌명", ""))
+        if "임팩트 점수" not in df_copy.columns and "임팩트점수" in df_copy.columns:
+            df_copy["임팩트 점수"] = df_copy["임팩트점수"]
+        if "판정 사유 및 피드백" not in df_copy.columns:
+            df_copy["판정 사유 및 피드백"] = df_copy.get("판정사유", df_copy.get("진단비평", ""))
+        if "⚡ 추천 강의명" not in df_copy.columns:
+            df_copy["⚡ 추천 강의명"] = df_copy.get("⚡ 추천 강의명 1 (직관·시그니처형)", df_copy.get("제안1_초단축직관형", "-"))
 
         cols = [c for c in sheet_cols if c in df_copy.columns]
         ws.append(cols)
@@ -2015,7 +2012,7 @@ def export_ai_titles_only_excel(ai_df: pd.DataFrame) -> bytes:
         ws.row_dimensions[1].height = 26
 
         for r_idx, (_, r_data) in enumerate(df_copy.iterrows(), start=2):
-            status_val = str(r_data.get("판정결과", ""))
+            status_val = str(r_data.get("판정", r_data.get("판정결과", "")))
             row_vals = [r_data.get(c, "") for c in cols]
             ws.append(row_vals)
             ws.row_dimensions[r_idx].height = 20
@@ -2025,14 +2022,14 @@ def export_ai_titles_only_excel(ai_df: pd.DataFrame) -> bytes:
                 cell.font = base_font
                 cell.border = thin_border
                 cell.alignment = Alignment(
-                    horizontal="center" if col_name in ("순번", "판정결과", "과목", "학년", "강사명", "임팩트점수", "생성엔진") else "left",
+                    horizontal="center" if col_name in ("순번", "판정", "판정결과", "과목", "학년", "강사명", "임팩트 점수", "임팩트점수", "생성엔진") else "left",
                     vertical="center",
                 )
-                if col_name == "판정결과":
+                if col_name in ("판정", "판정결과"):
                     if "수정" in status_val:
                         cell.fill = fill_rev
                         cell.font = font_rev
-                    elif "유지" in status_val:
+                    elif "유지" in status_val or "패스" in status_val:
                         cell.fill = fill_keep
                         cell.font = font_keep
                 elif "추천 강의명" in col_name and cell.value and cell.value != "-":

@@ -98,6 +98,7 @@ from core.title_suggester import (
     DIRECTION_PROMPTS,
     batch_suggest_course_titles,
     extract_bracket_prefix_and_body,
+    extract_course_details_from_pdf_text,
     get_gemini_api_key,
     suggest_course_titles_with_gemini,
 )
@@ -1271,32 +1272,56 @@ with tab3:
                 st.success(f"✅ {max_char_threshold}자를 초과하는 긴 문장이 없습니다.")
 
     # -------------------------------------------------------------
-    # 서브탭 B: 15자 이내 초단축 임팩트 강의명 제안
+    # 서브탭 B: PDF 계획서 기반 스마트 패스 & 수정 추천
     # -------------------------------------------------------------
     with subtab_ai:
-        st.markdown("### ⚡ 대괄호 태그 보존 및 임팩트 강의명 AI 리브랜딩 (Gemini 3.8 Engine)")
+        st.markdown("### ⚡ PDF 계획서 기반 스마트 패스 & 수정 추천 AI 리브랜딩 (Gemini 3.8)")
         st.markdown(
-            "원문의 `[고1 특강][실력반]` 등 **대괄호 태그는 100% 원형 그대로 보존**하고, "
-            "대괄호를 제외한 **본문 강의명을 12~20자 내외의 임팩트 있는 세련된 어휘**로 리브랜딩합니다. (지나친 축약 방지)"
-        )
-
-        direction_choice = st.radio(
-            "카피라이팅 방향성 선택:",
-            options=[
-                "대치동 트렌드 종합",
-                "내신 1등급/학교별 기출 강조",
-                "수능 평가원/실전 킬러 강조",
-                "개념 완성/중위권 도약 강조",
-            ],
-            horizontal=True,
-            key="ai_direction_radio",
+            "강의계획서(PDF)의 **추천대상·강의특징·관리프로그램**을 AI가 스스로 종합 검토하여, "
+            "시그니처 브랜드가 확립된 강좌는 **기존 유지(패스)**하고, 평이한 강좌명만 골라 **대괄호 태그 유지 + 15자 이내 핵심 임팩트 강의명**으로 추천합니다."
         )
 
         if active_rms_df is not None:
-            courses_for_ai = active_rms_df.to_dict(orient="records")
+            # PDF 강좌 매핑 사전 구축 (강사명 및 강좌명 기준)
+            pdf_map = {}
+            if syllabus_pdf_df is not None and not syllabus_pdf_df.empty:
+                for _, p_row in syllabus_pdf_df.iterrows():
+                    p_inst = str(p_row.get("강사명", "") or p_row.get("강사명_원본", "")).strip()
+                    pdf_map.setdefault(p_inst, []).append(p_row)
+
+            courses_for_ai = []
+            for idx, r_row in active_rms_df.iterrows():
+                c_item = r_row.to_dict()
+                r_inst = str(r_row.get("강사", "") or r_row.get("강사명", "")).strip()
+                r_title = str(r_row.get("강좌명", "")).strip()
+
+                matched_p = None
+                if r_inst in pdf_map:
+                    candidates = pdf_map[r_inst]
+                    for cand in candidates:
+                        cand_title = str(cand.get("강좌명", "") or cand.get("순수강좌명", "")).strip()
+                        if cand_title == r_title or r_title in cand_title or cand_title in r_title:
+                            matched_p = cand
+                            break
+                    if not matched_p and candidates:
+                        matched_p = candidates[0]
+
+                if matched_p is not None:
+                    c_item["PDF 강좌명"] = matched_p.get("강좌명", r_title)
+                    p_full_text = str(matched_p.get("원문전체텍스트", "") or "\n".join(matched_p.get("강좌_텍스트리스트", [])))
+                    p_ctx = extract_course_details_from_pdf_text(p_full_text)
+                    c_item["추천대상"] = matched_p.get("추천대상") or p_ctx["추천대상"]
+                    c_item["강의특징_요약"] = p_ctx["강의특징"]
+                    c_item["관리프로그램_요약"] = p_ctx["관리프로그램"]
+                    c_item["주차별진도계획_요약"] = matched_p.get("주차별진도계획_요약", "")
+                else:
+                    c_item["PDF 강좌명"] = r_title
+
+                courses_for_ai.append(c_item)
+
             col_ai_btn, col_ai_cnt = st.columns([2, 3])
             with col_ai_btn:
-                btn_run_ai = st.button("⚡ **대괄호 태그 보존 및 임팩트 강의명 일괄 생성**", type="primary", use_container_width=True)
+                btn_run_ai = st.button("✨ **임팩트 강의명 스마트 분석 실행**", type="primary", use_container_width=True)
 
             if btn_run_ai:
                 progress_bar = st.progress(0.0)
@@ -1304,12 +1329,12 @@ with tab3:
 
                 def _ai_progress(cur: int, tot: int, name: str) -> None:
                     progress_bar.progress(cur / tot)
-                    status_text.caption(f"🤖 AI 임팩트 카피 생성 중 ({cur}/{tot}): **{name}**")
+                    status_text.caption(f"🤖 PDF 계획서 기반 스마트 분석 중 ({cur}/{tot}): **{name}**")
 
                 ai_results = batch_suggest_course_titles(
                     course_list=courses_for_ai,
                     api_key=gemini_key_input or None,
-                    direction=direction_choice,
+                    direction="스마트 분석",
                     progress_callback=_ai_progress,
                 )
                 progress_bar.empty()
@@ -1318,25 +1343,25 @@ with tab3:
                 st.session_state["ai_titles_df"] = pd.DataFrame(ai_results)
                 if crosscheck_result is not None:
                     crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
-                st.success(f"🎉 **총 {len(ai_results)}개 강좌의 임팩트 분석 및 초단축 강의명 생성이 완료되었습니다.**")
+                st.success(f"🎉 **총 {len(ai_results)}개 강좌의 스마트 패스 및 임팩트 강의명 분석이 완료되었습니다.**")
                 st.rerun()
 
             # 결과 데이터프레임 표시
             ai_df = st.session_state.get("ai_titles_df")
             if ai_df is not None and not ai_df.empty:
-                # 1. 상단 요약 배지 및 필터 제공
-                rev_mask = ai_df["needs_revision"] == True if "needs_revision" in ai_df.columns else ai_df["판정결과"].str.contains("수정")
+                # 1. 상단 요약 배지
+                rev_mask = ai_df["needs_revision"] == True if "needs_revision" in ai_df.columns else ai_df.get("판정", ai_df.get("판정결과", pd.Series())).str.contains("수정")
                 rev_cnt = int(rev_mask.sum())
                 keep_cnt = len(ai_df) - rev_cnt
 
                 st.markdown(
                     f"""
-                    <div style="background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 8px; padding: 0.75rem 1.25rem; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 8px; padding: 0.85rem 1.25rem; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
                         <span style="font-size: 1.05rem; font-weight: 700; color: #15803d;">
-                            📊 전체 {len(ai_df)}개 강좌 분석 완료 — 🔧 수정 추천 : {rev_cnt}건 &nbsp;|&nbsp; ✅ 기존 유지 권장 : {keep_cnt}건
+                            📊 전체 {len(ai_df)}개 강좌 분석 완료 — &nbsp;🔧 수정 추천 : {rev_cnt}건 &nbsp;|&nbsp; ✅ 기존 유지(패스) : {keep_cnt}건
                         </span>
                         <span style="font-size: 0.88rem; color: #166534; font-weight: 600;">
-                            Gemini 3.8 고유 시그니처 자동 보존 로직 가동
+                            Gemini 3.8 PDF 컨텍스트 기반 스마트 패스 엔진 가동
                         </span>
                     </div>
                     """,
@@ -1355,7 +1380,7 @@ with tab3:
                         type="primary",
                         use_container_width=True,
                         key="btn_down_ai_only_excel",
-                        help="임팩트 평가 및 15자 이내 초단축 강의명 제안 결과만 깔끔하게 서식화된 전용 엑셀입니다.",
+                        help="스마트 패스 및 15자 이내 핵심 강의명 제안 결과만 깔끔하게 서식화된 전용 엑셀입니다.",
                     )
                 with col_ai_down2:
                     st.download_button(
@@ -1375,33 +1400,30 @@ with tab3:
                         height=38,
                     )
 
-                # 라디오 필터: [🔧 수정 추천 강좌만 보기 (기본값)] vs [전체 강좌 보기 (기존 유지 포함)]
+                # 라디오 필터: [🔧 수정 추천이 필요한 강좌만 모아보기 (기본값)] vs [전체 강좌 보기 (기존 유지 포함)]
                 filter_ai_view = st.radio(
                     "표시 필터:",
-                    options=["🔧 수정 추천 강좌만 보기 (기본값)", "전체 강좌 보기 (기존 유지 포함)"],
+                    options=["🔧 수정 추천이 필요한 강좌만 모아보기", "📋 전체 강좌 보기 (기존 유지 포함)"],
                     horizontal=True,
                     key="radio_filter_ai_view",
                 )
 
                 if filter_ai_view.startswith("🔧"):
                     disp_ai_df = ai_df[rev_mask].copy()
-                    st.caption(f"💡 평이하거나 서술적이어서 15자 이내 초단축 리브랜딩이 권장되는 **{len(disp_ai_df)}건의 강좌**만 표시 중입니다.")
+                    st.caption(f"💡 평이하여 15자 이내 핵심 리브랜딩이 추천된 **{len(disp_ai_df)}건의 강좌**만 표시 중입니다.")
                 else:
                     disp_ai_df = ai_df.copy()
-                    st.caption(f"💡 기존 유지 권장 강좌를 포함한 **전체 {len(disp_ai_df)}건의 강좌**를 표시 중입니다.")
+                    st.caption(f"💡 기존 유지(스마트 패스) 강좌를 포함한 **전체 {len(disp_ai_df)}건의 강좌**를 표시 중입니다.")
 
                 table_cols = [
-                    "순번",
-                    "판정결과",
+                    "판정",
                     "과목",
                     "학년",
                     "강사명",
-                    "현재강의명",
-                    "임팩트점수",
-                    "판정사유",
-                    "⚡ 추천 강의명 1 (직관·시그니처형)",
-                    "🔥 추천 강의명 2 (킬러·임팩트형)",
-                    "생성엔진",
+                    "현재 강좌명",
+                    "임팩트 점수",
+                    "판정 사유 및 피드백",
+                    "⚡ 추천 강의명",
                 ]
                 valid_tbl_cols = [c for c in table_cols if c in disp_ai_df.columns]
 
@@ -1409,8 +1431,7 @@ with tab3:
                     disp_ai_df[valid_tbl_cols],
                     use_container_width=True,
                     column_config={
-                        "임팩트점수": st.column_config.NumberColumn("임팩트점수", format="%d점"),
-                        "순번": st.column_config.NumberColumn("순번", format="%d"),
+                        "임팩트 점수": st.column_config.NumberColumn("임팩트 점수", format="%d점"),
                     },
                     hide_index=True,
                 )
@@ -1420,68 +1441,54 @@ with tab3:
                 sel_c_idx = st.selectbox(
                     "상세 카드 및 재추천을 확인할 강좌를 선택하세요:",
                     options=range(len(ai_df)),
-                    format_func=lambda i: f"[{ai_df.iloc[i].get('판정결과', '')}] [{ai_df.iloc[i]['과목']} {ai_df.iloc[i]['강사명']}T] {ai_df.iloc[i].get('현재강의명', ai_df.iloc[i].get('현재강좌명', ''))}",
+                    format_func=lambda i: f"[{ai_df.iloc[i].get('판정', ai_df.iloc[i].get('판정결과', ''))}] [{ai_df.iloc[i]['과목']} {ai_df.iloc[i]['강사명']}T] {ai_df.iloc[i].get('현재 강좌명', ai_df.iloc[i].get('현재강의명', ''))}",
                 )
                 c_data = ai_df.iloc[sel_c_idx].to_dict()
-                is_keep = not bool(c_data.get("needs_revision", False)) or ("기존 유지" in str(c_data.get("판정결과", "")))
+                is_keep = not bool(c_data.get("needs_revision", False)) or ("기존 유지" in str(c_data.get("판정", c_data.get("판정결과", ""))))
 
                 if is_keep:
                     st.success(
-                        f"✅ **[기존 강의명 유지 권장]** 현재 강의명이 충분히 임팩트 있거나 고유 시그니처 브랜드가 확립되어 있어 수정을 추천하지 않습니다.\n\n"
-                        f"• **현재 강의명:** `{c_data.get('현재강의명', c_data.get('현재강좌명', ''))}`\n"
-                        f"• **판정 사유:** {c_data.get('판정사유', c_data.get('진단비평', ''))}"
+                        f"✅ **[기존 강의명 유지 (스마트 패스)]** 강사 고유의 시그니처 브랜드가 확립되어 있거나 특장점이 직관적이어서 새 이름을 추천하지 않습니다.\n\n"
+                        f"• **현재 강의명:** `{c_data.get('현재 강좌명', c_data.get('현재강의명', ''))}`\n"
+                        f"• **판정 점수:** {c_data.get('임팩트 점수', c_data.get('임팩트점수', 85))}점\n"
+                        f"• **판정 사유 및 피드백:** {c_data.get('판정 사유 및 피드백', c_data.get('판정사유', ''))}"
                     )
                 else:
-                    col_c1, col_c2 = st.columns(2)
-                    r1_title = c_data.get("⚡ 추천 강의명 1 (직관·시그니처형)") or c_data.get("제안1_초단축직관형", "")
-                    r2_title = c_data.get("🔥 추천 강의명 2 (킬러·임팩트형)") or c_data.get("제안2_초단축시그니처", "")
+                    rec_title = c_data.get("⚡ 추천 강의명") or c_data.get("⚡ 추천 강의명 1 (직관·시그니처형)", "")
+                    _, rec_body = extract_bracket_prefix_and_body(rec_title)
+                    rec_body_len = len(rec_body) if rec_body else len(rec_title)
 
-                    _, r1_body = extract_bracket_prefix_and_body(r1_title)
-                    r1_body_len = len(r1_body) if r1_body else len(r1_title)
-                    _, r2_body = extract_bracket_prefix_and_body(r2_title)
-                    r2_body_len = len(r2_body) if r2_body else len(r2_title)
+                    st.markdown(
+                        f"""
+                        <div class="proposal-card" style="border: 1.5px solid #3b82f6; background: #f8fafc; border-radius: 8px; padding: 1.1rem 1.25rem;">
+                            <div class="proposal-title" style="font-weight: 700; color: #1d4ed8; font-size: 0.95rem;">⚡ AI 추천 강의명 (대괄호 태그 보존 + 15자 이내 핵심 임팩트)</div>
+                            <h3 style="color: #1e3a8a; margin: 0.5rem 0;">{rec_title}</h3>
+                            <p style="font-size: 0.85rem; color: #475569; margin: 0;">글자수: 본문 {rec_body_len}자 (전체 {len(rec_title)}자) | PDF 특징·대상 반영 리브랜딩</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    st.info(f"💡 **판정 사유 및 피드백:** {c_data.get('판정 사유 및 피드백', c_data.get('판정사유', ''))}")
 
-                    with col_c1:
-                        st.markdown(
-                            f"""
-                            <div class="proposal-card">
-                                <div class="proposal-title">⚡ 추천 1: 직관·시그니처형 (본문 12~20자)</div>
-                                <h4 style="color: #1e3a8a; margin: 0.4rem 0;">{r1_title}</h4>
-                                <p style="font-size: 0.85rem; color: #475569;">글자수: 본문 {r1_body_len}자 (전체 {len(r1_title)}자) | 목표와 시그니처 0.5초 직관 각인</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-                    with col_c2:
-                        st.markdown(
-                            f"""
-                            <div class="proposal-card">
-                                <div class="proposal-title">🔥 추천 2: 킬러·임팩트형 (본문 12~20자)</div>
-                                <h4 style="color: #991b1b; margin: 0.4rem 0;">{r2_title}</h4>
-                                <p style="font-size: 0.85rem; color: #475569;">글자수: 본문 {r2_body_len}자 (전체 {len(r2_title)}자) | 1등급 킬러 정복·실전 무기 공략</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-
-                    st.info(f"💡 **판정 사유:** {c_data.get('판정사유', c_data.get('진단비평', ''))}")
-
-                if st.button(f"🔄 [{c_data['강사명']}T {c_data.get('현재강의명', c_data.get('현재강좌명', ''))}] 이 강좌만 다시 분석/추천받기"):
-                    with st.spinner("AI가 강좌명을 다시 분석 중입니다..."):
+                if st.button(f"🔄 [{c_data['강사명']}T {c_data.get('현재 강좌명', c_data.get('현재강의명', ''))}] 이 강좌만 다시 분석/추천받기"):
+                    with st.spinner("AI가 강의계획서 내용을 바탕으로 강좌명을 다시 분석 중입니다..."):
                         new_sug = suggest_course_titles_with_gemini(
                             course_info=courses_for_ai[sel_c_idx],
                             api_key=gemini_key_input or None,
-                            direction=direction_choice,
                         )
+                        ai_df.at[sel_c_idx, "판정"] = new_sug["status_badge"]
                         ai_df.at[sel_c_idx, "판정결과"] = new_sug["status_badge"]
                         ai_df.at[sel_c_idx, "needs_revision"] = new_sug["needs_revision"]
+                        ai_df.at[sel_c_idx, "임팩트 점수"] = new_sug["impact_score"]
                         ai_df.at[sel_c_idx, "임팩트점수"] = new_sug["impact_score"]
+                        ai_df.at[sel_c_idx, "판정 사유 및 피드백"] = new_sug["evaluation_reason"]
                         ai_df.at[sel_c_idx, "판정사유"] = new_sug["evaluation_reason"]
                         ai_df.at[sel_c_idx, "진단비평"] = new_sug["evaluation_reason"]
-                        ai_df.at[sel_c_idx, "⚡ 추천 강의명 1 (직관·시그니처형)"] = new_sug["recommended_title_1"]
-                        ai_df.at[sel_c_idx, "🔥 추천 강의명 2 (킬러·임팩트형)"] = new_sug["recommended_title_2"]
-                        ai_df.at[sel_c_idx, "제안1_초단축직관형"] = new_sug["recommended_title_1"]
-                        ai_df.at[sel_c_idx, "제안2_초단축시그니처"] = new_sug["recommended_title_2"]
+                        ai_df.at[sel_c_idx, "⚡ 추천 강의명"] = new_sug["recommended_title"]
+                        ai_df.at[sel_c_idx, "⚡ 추천 강의명 1 (직관·시그니처형)"] = new_sug["recommended_title"]
+                        ai_df.at[sel_c_idx, "🔥 추천 강의명 2 (킬러·임팩트형)"] = new_sug["recommended_title"]
+                        ai_df.at[sel_c_idx, "제안1_초단축직관형"] = new_sug["recommended_title"]
+                        ai_df.at[sel_c_idx, "제안2_초단축시그니처"] = new_sug["recommended_title"]
                         st.session_state["ai_titles_df"] = ai_df
                         st.rerun()
 
