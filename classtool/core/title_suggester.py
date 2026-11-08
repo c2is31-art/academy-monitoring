@@ -33,6 +33,9 @@ MODEL_CANDIDATES = [
     "gemini-3.0-flash",
     "gemini-2.5-pro",
     "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
 ]
 
 # 성공한 모델 캐싱 (호출 성공 시 해당 세션에서 우선 사용)

@@ -439,13 +439,20 @@ def simplify_sentence_rule_based(sentence: str) -> Tuple[str, str]:
 # -------------------------------------------------------------------------
 # 6. Gemini API를 활용한 고급 카피라이팅 간략화 (선택적)
 # -------------------------------------------------------------------------
+IMPROVER_MODEL_CANDIDATES = [
+    "gemini-3.8-flash",
+    "gemini-3.8-pro",
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+]
+
 def simplify_sentence_with_gemini(
     sentence: str,
     api_key: str,
-    model_name: str = "gemini-2.5-flash",
+    model_name: Optional[str] = None,
 ) -> Optional[Tuple[str, str]]:
     """
-    Gemini API를 호출하여 대치동 브로슈어 스타일 카피라이팅 축약안을 생성합니다.
+    Gemini 3.8 최우선 API를 호출하여 대치동 브로슈어 스타일 카피라이팅 축약안을 생성합니다.
     - 제안 1: 군더더기 없는 간결한 서술형 문장 (~합니다, ~완성)
     - 제안 2: 학원 브로슈어 개조식 명사 종결 요약 (• 키워드 중심)
     실패 시 None을 반환하여 내장 규칙 기반으로 안전하게 fallback합니다.
@@ -469,7 +476,8 @@ def simplify_sentence_with_gemini(
 {{"proposal_1": "제안 1 서술형 문장", "proposal_2": "• 제안 2 개조식 요약"}}
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    models_to_try = [model_name] if model_name else IMPROVER_MODEL_CANDIDATES
+
     payload = {
         "contents": [
             {
@@ -482,35 +490,36 @@ def simplify_sentence_with_gemini(
         }
     }
 
-    try:
-        req_data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=req_data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=8) as response:
-            res_body = response.read().decode("utf-8")
-            res_json = json.loads(res_body)
+    req_data = json.dumps(payload).encode("utf-8")
 
-        candidates = res_json.get("candidates", [])
-        if candidates:
-            cand = candidates[0]
-            parts = cand.get("content", {}).get("parts", [])
-            if parts:
-                text_out = parts[0].get("text", "").strip()
-                # JSON 파싱 시 마크다운 백틱 제거
-                text_clean = re.sub(r"^```(?:json)?\s*", "", text_out)
-                text_clean = re.sub(r"\s*```$", "", text_clean).strip()
-                data = json.loads(text_clean)
-                p1 = data.get("proposal_1", "").strip()
-                p2 = data.get("proposal_2", "").strip()
-                if p1 and p2:
-                    return p1, p2
-    except Exception:
-        # API 오류 또는 타임아웃 발생 시 fallback 허용
-        pass
+    for cand_model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{cand_model}:generateContent?key={api_key}"
+        try:
+            req = urllib.request.Request(
+                url,
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=8) as response:
+                res_body = response.read().decode("utf-8")
+                res_json = json.loads(res_body)
+
+            candidates = res_json.get("candidates", [])
+            if candidates:
+                cand = candidates[0]
+                parts = cand.get("content", {}).get("parts", [])
+                if parts:
+                    text_out = parts[0].get("text", "").strip()
+                    text_clean = re.sub(r"^```(?:json)?\s*", "", text_out)
+                    text_clean = re.sub(r"\s*```$", "", text_clean).strip()
+                    data = json.loads(text_clean)
+                    p1 = data.get("proposal_1", "").strip()
+                    p2 = data.get("proposal_2", "").strip()
+                    if p1 and p2:
+                        return p1, p2
+        except Exception:
+            continue
 
     return None
 
