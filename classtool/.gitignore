@@ -1,24 +1,29 @@
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# =========================================================================
+# 러셀대치 강의계획서 검수 시스템 Git 무시 규칙 (classtool/.gitignore)
+# =========================================================================
 
-# Environments
+# 1. 학원 원본 데이터 파일 업로드 차단
+*.xls
+*.xlsx
+*.xlsm
+*.pdf
+
+# 2. 가상환경 및 시크릿 보호
 .venv/
 venv/
 ENV/
 env/
-
-# Streamlit secrets & logs
+__pycache__/
+*.py[cod]
+*.so
 .streamlit/secrets.toml
 *.log
 
-# Scratch and test files
+# 3. 임시 및 테스트 파일
 scratch/
 test_*.py
 
-# OS / Editor
+# 4. OS 및 IDE 설정
 .DS_Store
 Thumbs.db
 .vscode/

@@ -1,0 +1,42 @@
+# =========================================================================
+# 러셀대치 강의계획서 검수 시스템 Git 무시 규칙 (.gitignore)
+# =========================================================================
+
+# 1. 학원 원본 데이터 및 민감 파일 차단 (보안 필수)
+*.xls
+*.xlsx
+*.xlsm
+*.pdf
+classtool/*.xls
+classtool/*.xlsx
+classtool/*.pdf
+
+# 2. 가상환경 및 시크릿 보호
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*.so
+.streamlit/secrets.toml
+*.log
+
+# 3. 타 프로젝트 및 크롤링 데이터 폴더 격리
+analysis/
+inven program/
+mock test/
+money/
+공사계획/
+도면 투시도 프로그램/
+러셀대치 자산관리 프로그램/
+academy_crawler/
+class/
+
+# 4. OS 및 IDE 임시 파일
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+scratch/
+test_*.py
