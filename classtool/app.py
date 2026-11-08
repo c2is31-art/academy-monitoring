@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import io
 import json
@@ -214,6 +215,26 @@ def save_user_settings(settings: Dict[str, Any]) -> None:
         )
     except Exception:
         pass
+
+
+def safe_get_hash(data_obj: Any) -> str:
+    """
+    데이터프레임 또는 객체의 상태를 기반으로 안전하게 8자리 해시를 생성합니다.
+    (hashlib 미정의 오류 방지 및 예외 방어)
+    """
+    try:
+        if data_obj is None:
+            return "none"
+        if isinstance(data_obj, pd.DataFrame):
+            if data_obj.empty:
+                return "empty"
+            first_row_str = str(data_obj.iloc[0].to_dict()) if len(data_obj) > 0 else ""
+            s = f"{len(data_obj)}_{data_obj.columns.tolist()}_{first_row_str}"
+        else:
+            s = str(data_obj)
+        return hashlib.md5(s.encode("utf-8", errors="ignore")).hexdigest()[:8]
+    except Exception:
+        return "fallback_hash"
 
 
 @st.cache_resource
@@ -646,16 +667,10 @@ if crosscheck_result is not None:
     snap_a = st.session_state.get("selected_snapshot_a", None)
     snap_b = st.session_state.get("selected_snapshot_b", None)
     ai_df_state = st.session_state.get("ai_titles_df")
-    if ai_df_state is not None and not ai_df_state.empty:
-        ai_hash = hashlib.md5(f"{len(ai_df_state)}_{ai_df_state.iloc[0].to_json()}".encode()).hexdigest()[:8]
-    else:
-        ai_hash = "none"
+    ai_hash = safe_get_hash(ai_df_state)
 
     sp_df_state = st.session_state.get("custom_spelling_df")
-    if sp_df_state is not None and not sp_df_state.empty:
-        sp_hash = hashlib.md5(f"{len(sp_df_state)}_{sp_df_state.iloc[0].to_json()}".encode()).hexdigest()[:8]
-    else:
-        sp_hash = "none"
+    sp_hash = safe_get_hash(sp_df_state)
 
     export_cache_key = f"{rms_hash_key}_{pdf_hash_key}_{selected_rms_ym}_{snap_a}_{snap_b}_{ai_hash}_{sp_hash}"
 
