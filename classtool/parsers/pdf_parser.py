@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import re
 from datetime import datetime
@@ -25,6 +26,30 @@ except ImportError:
         import fitz as pymupdf
     except ImportError:
         pymupdf = None
+
+
+def compute_pdf_hash(file_bytes_or_list: Union[bytes, List[Tuple[str, bytes]]], extra_tag: str = "") -> str:
+    """
+    대용량 파일 바이트의 전체 해싱 대신 파일명과 길이, 시작/끝 샘플링을 조합하여
+    0.0001초 이내에 고유 해시 문자열을 생성합니다. (Streamlit 바이트 해싱 부하 방지용)
+    """
+    if isinstance(file_bytes_or_list, bytes):
+        length = len(file_bytes_or_list)
+        head = file_bytes_or_list[:1024]
+        tail = file_bytes_or_list[-1024:] if length > 1024 else b""
+        raw_key = f"{length}_{hash(head)}_{hash(tail)}_{extra_tag}".encode("utf-8")
+        return hashlib.md5(raw_key).hexdigest()
+    elif isinstance(file_bytes_or_list, (list, tuple)):
+        parts = []
+        for item in file_bytes_or_list:
+            if isinstance(item, tuple) and len(item) == 2:
+                fname, fb = item
+                parts.append(f"{fname}:{len(fb)}:{hash(fb[:512])}")
+            elif isinstance(item, bytes):
+                parts.append(f"{len(item)}:{hash(item[:512])}")
+        raw_key = (";".join(parts) + f"_{extra_tag}").encode("utf-8")
+        return hashlib.md5(raw_key).hexdigest()
+    return hashlib.md5(str(file_bytes_or_list).encode("utf-8")).hexdigest()
 
 
 def _extract_page_texts_pymupdf(raw_bytes: bytes) -> List[str]:

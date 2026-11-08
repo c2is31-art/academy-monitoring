@@ -532,3 +532,4 @@ def send_all_tabs_to_apps_script(
         return False, f"HTTP 응답 오류 (상태 코드: {resp.status_code})"
     except Exception as e:
         return False, f"구글 시트 전송 중 오류 발생: {e}"
+
