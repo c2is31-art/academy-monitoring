@@ -574,9 +574,11 @@ def run_rms_pdf_crosscheck(
     title_similarity_threshold: float = 55.0,
     max_char_threshold: int = 55,
     gemini_api_key: Optional[str] = None,
+    stopped_rms_df: Optional[pd.DataFrame] = None,
 ) -> Dict[str, Any]:
     """
     [1. RMS 수업목록(.xls/.xlsx)] ↔ [2. 강의계획서 PDF] 양방향 정밀 검수를 수행합니다.
+    - stopped_rms_df: '판매중지'로 분리된 RMS 강좌 목록 (PDF 수록 여부 대조 및 폐강 의심 강좌 감지)
     """
     if rms_df is None or rms_df.empty:
         return {
@@ -584,6 +586,8 @@ def run_rms_pdf_crosscheck(
             "error_df": pd.DataFrame(),
             "missing_pdf_df": pd.DataFrame(),
             "unmatched_pdf_df": pd.DataFrame(),
+            "pdf_stopped_courses_df": pd.DataFrame(),
+            "stopped_rms_df": stopped_rms_df if stopped_rms_df is not None else pd.DataFrame(),
             "pdf_schedule_df": pd.DataFrame(),
             "spelling_df": pd.DataFrame(),
             "long_sentence_df": pd.DataFrame(),
@@ -597,6 +601,7 @@ def run_rms_pdf_crosscheck(
                 "error_count": 0,
                 "missing_pdf_count": 0,
                 "unmatched_pdf_count": 0,
+                "pdf_stopped_count": 0,
                 "fee_error_count": 0,
                 "session_error_count": 0,
                 "date_error_count": 0,
@@ -869,6 +874,7 @@ def run_rms_pdf_crosscheck(
     # PDF 진도표 상세 검수 테이블 (Tab 3 & Sheet 4 전용)
     pdf_sched_rows: List[Dict[str, Any]] = []
     unmatched_pdf_rows: List[Dict[str, Any]] = []
+    pdf_stopped_matches: List[Dict[str, Any]] = []
 
     if not pdf_df.empty:
         for p_idx, p_row in pdf_df.iterrows():
@@ -906,15 +912,62 @@ def run_rms_pdf_crosscheck(
                 detail_str = ver["detail_str"]
                 fix_str = ver["fix_summary_str"]
             else:
-                r_no = 0
-                r_code = "미매칭"
-                r_title = "-"
-                r_period = "-"
-                r_fee_str = "-"
-                status_badge = "⚠️ RMS 미개설"
-                detail_str = "RMS 수업목록에서 일치하는 강좌를 찾지 못함"
-                fix_str = "RMS 개설 여부 확인 필요"
-                unmatched_pdf_rows.append(p_dict)
+                # 판매중지된 강좌와의 매칭 여부 정밀 확인
+                stopped_matched_row = None
+                if stopped_rms_df is not None and not stopped_rms_df.empty:
+                    for s_idx, s_row in stopped_rms_df.iterrows():
+                        s_inst = str(s_row.get("강사", "")).strip()
+                        if mapper.match_instructors(s_inst, p_inst):
+                            s_days = str(s_row.get("수업요일", "")).strip()
+                            s_start = str(s_row.get("전체시작시간", "") or s_row.get("시작시간", "")).strip()
+                            p_days = str(p_row.get("수업요일", "")).strip()
+                            p_start = str(p_row.get("전체시작시간", "") or p_row.get("시작시간", "")).strip()
+                            sim = compute_title_similarity(str(s_row.get("순수강좌명", "")), str(p_row.get("순수강좌명", "")))
+                            if (s_days and p_days and s_days == p_days and s_start and p_start and s_start == p_start) or sim >= 45.0:
+                                stopped_matched_row = s_row
+                                break
+
+                if stopped_matched_row is not None:
+                    r_no = int(stopped_matched_row.get("No", 0) or 0)
+                    r_code = str(stopped_matched_row.get("강좌코드", "")).strip()
+                    r_title = str(stopped_matched_row.get("강좌명", "")).strip()
+                    r_open_short = str(stopped_matched_row.get("개강일_짧은표시", "")).strip()
+                    r_close_short = str(stopped_matched_row.get("종강일_짧은표시", "")).strip()
+                    r_sess = int(stopped_matched_row.get("회차", 0) or 0)
+                    r_period = f"{r_open_short}~{r_close_short} ({r_sess}회)"
+                    r_fee = int(stopped_matched_row.get("수강료", 0) or 0)
+                    r_fee_str = f"{r_fee:,}원" if r_fee > 0 else "-"
+                    status_badge = "⚠️ RMS 판매중지 (폐강 의심)"
+                    detail_str = f"RMS에서 '판매중지' 상태인 강좌입니다. (강좌코드: {r_code})"
+                    fix_str = "사전 검수 시 상단 필터 해제 / 실제 폐강 강좌라면 PDF에서 삭제 필요"
+                    pdf_stopped_matches.append(
+                        {
+                            "PDF_순번": p_seq,
+                            "PDF_페이지": p_page,
+                            "과목": p_subj,
+                            "학년": p_grade,
+                            "강사명": p_inst,
+                            "PDF 강좌명": p_title,
+                            "RMS 강좌명": r_title,
+                            "강좌코드": r_code,
+                            "RMS_No": r_no,
+                            "RMS 판매상태": "판매중지",
+                            "수업시간": p_sched,
+                            "수강료": p_fee_disp,
+                            "오류 상세 내역": detail_str,
+                            "확인 및 조치사항": "접수 전 사전 검수 시 상단 필터 해제 / 폐강 시 PDF 삭제 필요",
+                        }
+                    )
+                else:
+                    r_no = 0
+                    r_code = "미매칭"
+                    r_title = "-"
+                    r_period = "-"
+                    r_fee_str = "-"
+                    status_badge = "⚠️ RMS 미개설"
+                    detail_str = "RMS 수업목록에서 일치하는 강좌를 찾지 못함"
+                    fix_str = "RMS 개설 여부 확인 필요"
+                    unmatched_pdf_rows.append(p_dict)
 
             # 진도표 요일 정합성 판정 요약
             if p_wk_err:
@@ -984,17 +1037,22 @@ def run_rms_pdf_crosscheck(
 
     spelling_df = pd.DataFrame(all_spelling_issues)
     long_sentence_df = pd.DataFrame(all_long_proposals)
+    pdf_stopped_df = pd.DataFrame(pdf_stopped_matches)
+
+    stopped_cnt = len(stopped_rms_df) if (stopped_rms_df is not None and not stopped_rms_df.empty) else 0
 
     return {
         "comparison_df": comparison_df,
         "error_df": error_df,
         "missing_pdf_df": missing_pdf_df,
         "unmatched_pdf_df": unmatched_pdf_df,
+        "pdf_stopped_courses_df": pdf_stopped_df,
+        "stopped_rms_df": stopped_rms_df if stopped_rms_df is not None else pd.DataFrame(),
         "pdf_schedule_df": pdf_schedule_df,
         "spelling_df": spelling_df,
         "long_sentence_df": long_sentence_df,
         "instructor_summary_df": generate_instructor_student_summary(rms),
-        "rms_summary": extract_rms_summary(rms),
+        "rms_summary": extract_rms_summary(rms, stopped_count=stopped_cnt),
         "kpi": {
             "total_rms": len(rms),
             "total_pdf": len(pdf_df),
@@ -1003,6 +1061,7 @@ def run_rms_pdf_crosscheck(
             "error_count": kpi_error,
             "missing_pdf_count": kpi_missing_pdf,
             "unmatched_pdf_count": len(unmatched_pdf_df),
+            "pdf_stopped_count": len(pdf_stopped_matches),
             "fee_error_count": kpi_fee_err,
             "session_error_count": kpi_session_err,
             "date_error_count": kpi_date_err,
@@ -1102,7 +1161,7 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
 
     wb = Workbook()
     ws_s1 = wb.active
-    ws_s1.title = "전체검수결과"
+    ws_s1.title = "전체검수결과_유효강좌"
 
     header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
     header_font = Font(name="맑은 고딕", size=10, bold=True, color="FFFFFF")
@@ -1248,8 +1307,8 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         highlight_error_cells=True,
     )
 
-    # Sheet 2: 강사별_수강생현황 (상단 요약 배너 포함)
-    ws_s2 = wb.create_sheet(title="강사별_수강생현황")
+    # Sheet 2: 강사별_당월및누적수강생통계 (상단 요약 배너 포함)
+    ws_s2 = wb.create_sheet(title="강사별_당월및누적수강생통계")
     rms_sum = crosscheck_result.get("rms_summary", {}) or {}
     banner_str = rms_sum.get(
         "headline_banner",
@@ -1301,8 +1360,38 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
             col_letter = get_column_letter(col_idx)
             ws_s2.column_dimensions[col_letter].width = max(len(str(col_name)) * 2 + 4, 12)
 
-    # Sheet 3: 데이터오류_수정요청
-    ws_s3 = wb.create_sheet(title="데이터오류_수정요청")
+    # Sheet 3: 데이터오류_및_판매중지확인
+    ws_s3 = wb.create_sheet(title="데이터오류_및_판매중지확인")
+    error_df = crosscheck_result.get("error_df", pd.DataFrame())
+    pdf_stopped_df = crosscheck_result.get("pdf_stopped_courses_df", pd.DataFrame())
+
+    combined_err_list: List[Dict[str, Any]] = []
+    if not error_df.empty:
+        for _, r in error_df.iterrows():
+            d = dict(r)
+            combined_err_list.append(d)
+
+    if not pdf_stopped_df.empty:
+        for _, r in pdf_stopped_df.iterrows():
+            combined_err_list.append(
+                {
+                    "검수상태": "⚠️ RMS 판매중지 (폐강 의심)",
+                    "No": r.get("RMS_No", 0),
+                    "강좌코드": r.get("강좌코드", ""),
+                    "과목": r.get("과목", ""),
+                    "학년": r.get("학년", ""),
+                    "강사명": r.get("강사명", ""),
+                    "RMS 강좌명": r.get("RMS 강좌명", ""),
+                    "PDF 강좌명": r.get("PDF 강좌명", ""),
+                    "PDF 페이지": r.get("PDF_페이지", ""),
+                    "수업시간 비교": f"PDF: {r.get('수업시간', '')}",
+                    "바자관시수 비교": "-",
+                    "오류 상세 내역": r.get("오류 상세 내역", "RMS에서 '판매중지' 상태로 등록된 강좌입니다."),
+                    "자동 생성된 수정 요청 사항 요약": r.get("확인 및 조치사항", "사전 검수 시 필터 해제 / 폐강 시 PDF 삭제 필요"),
+                }
+            )
+
+    combined_err_df = pd.DataFrame(combined_err_list)
     sheet3_cols = [
         "검수상태",
         "No",
@@ -1325,7 +1414,7 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
     ]
     _write_styled_sheet(
         ws_s3,
-        crosscheck_result.get("error_df", pd.DataFrame()),
+        combined_err_df,
         columns_to_export=sheet3_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
@@ -1352,8 +1441,8 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         highlight_error_cells=False,
     )
 
-    # Sheet 5: AI_강의명_수정제안
-    ws_s5 = wb.create_sheet(title="AI_강의명_수정제안")
+    # Sheet 5: AI_초단축강의명제안
+    ws_s5 = wb.create_sheet(title="AI_초단축강의명제안")
     ai_df = crosscheck_result.get("ai_titles_df", pd.DataFrame())
     sheet5_cols = [
         "순번",
@@ -1365,9 +1454,9 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         "임팩트점수",
         "진단비평",
         "추천슬로건",
-        "제안1_직관형",
-        "제안2_시그니처형",
-        "제안3_킬러임팩트형",
+        "제안1_초단축직관형",
+        "제안2_초단축시그니처",
+        "제안3_초단축킬러형",
         "생성엔진",
         "최종선택강좌명",
     ]
@@ -1379,30 +1468,28 @@ def export_crosscheck_to_excel(crosscheck_result: Dict[str, Any], target_ym: str
         highlight_error_cells=False,
     )
 
-    # Sheet 6: PDF누락강좌
-    ws_s6 = wb.create_sheet(title="PDF누락강좌")
+    # Sheet 6: 판매중지_제외강좌목록
+    ws_s6 = wb.create_sheet(title="판매중지_제외강좌목록")
+    stopped_df = crosscheck_result.get("stopped_rms_df", pd.DataFrame())
     sheet6_cols = [
-        "검수상태",
         "No",
         "강좌코드",
         "영역",
         "과목",
         "학년",
-        "강사명",
-        "RMS 강좌명",
-        "RMS 개강~종강(회차)",
-        "RMS 수강료",
-        "총수강생(가등록포함)",
-        "결제완료인원",
-        "수업시간 비교",
-        "바자관시수 비교",
-        "오류 상세 내역",
+        "강사",
+        "강좌명",
+        "수업시간",
+        "개강일",
+        "종강일",
+        "수강료",
+        "판매",
     ]
     _write_styled_sheet(
         ws_s6,
-        crosscheck_result.get("missing_pdf_df", pd.DataFrame()),
+        stopped_df,
         columns_to_export=sheet6_cols,
-        status_col_name="검수상태",
+        status_col_name="판매",
         highlight_error_cells=False,
     )
 

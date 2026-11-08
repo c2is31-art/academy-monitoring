@@ -628,10 +628,41 @@ def detect_dominant_year_month(df: Optional[pd.DataFrame], default_ym: str = "20
         return default_ym
 
 
-def extract_rms_summary(df: Optional[pd.DataFrame]) -> Dict[str, Any]:
+def filter_rms_active_courses(
+    df: Optional[pd.DataFrame], exclude_stopped: bool = True
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    RMS DataFrame에서 '판매' 컬럼(값: '판매', '판매중지')을 기준으로
+    판매중지된 강좌를 분리하여 (유효_강좌_df, 판매중지_강좌_df)를 반환합니다.
+    - exclude_stopped=True: '판매' 컬럼이 '판매중지'인 강좌를 제외하고 유효 강좌만 active_df에 보존
+    - (주의: '온라인판매' 컬럼은 현장 단과 특성상 일괄 '판매중지'인 경우가 많으므로 반드시 '판매' 컬럼을 기준으로 필터링)
+    """
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        return pd.DataFrame(), pd.DataFrame()
+
+    if "판매" not in df.columns:
+        return df.copy(), pd.DataFrame()
+
+    is_stopped = df["판매"].astype(str).str.strip() == "판매중지"
+    stopped_df = df[is_stopped].copy().reset_index(drop=True)
+
+    if exclude_stopped:
+        active_df = df[~is_stopped].copy().reset_index(drop=True)
+    else:
+        active_df = df.copy().reset_index(drop=True)
+
+    return active_df, stopped_df
+
+
+def extract_rms_summary(
+    df: Optional[pd.DataFrame],
+    total_raw_count: Optional[int] = None,
+    stopped_count: Optional[int] = None,
+) -> Dict[str, Any]:
     """
     RMS DataFrame에서 요약 통계 딕셔너리를 추출합니다.
-    df.attrs['summary']가 없으면 본 데이터 합계로 자동 계산합니다.
+    df.attrs['summary']가 없으면 본 데이터 합계로 자동 계산하며,
+    판매중지 강좌가 제외된 경우 제외 건수를 포함한 배너를 생성합니다.
     """
     if df is None or not isinstance(df, pd.DataFrame) or df.empty:
         return {
@@ -641,12 +672,11 @@ def extract_rms_summary(df: Optional[pd.DataFrame]) -> Dict[str, Any]:
             "unpaid_students": 0,
             "installment_students": 0,
             "payment_rate": 0.0,
+            "stopped_courses_count": stopped_count or 0,
+            "raw_total_courses": total_raw_count or 0,
             "raw_summary_text": "데이터 없음",
             "headline_banner": "📢 RMS 강의정보 — 등록된 강좌 데이터가 없습니다.",
         }
-
-    if "summary" in df.attrs and isinstance(df.attrs["summary"], dict):
-        return df.attrs["summary"]
 
     total_courses = len(df)
     tot_stu = int(df["가등록포함수강생수"].sum()) if "가등록포함수강생수" in df.columns else 0
@@ -655,18 +685,31 @@ def extract_rms_summary(df: Optional[pd.DataFrame]) -> Dict[str, Any]:
     unpaid_stu = max(0, tot_stu - paid_stu)
     rate = round((paid_stu / tot_stu * 100.0), 1) if tot_stu > 0 else 0.0
 
+    s_count = stopped_count if stopped_count is not None else 0
+    raw_tot = total_raw_count or (total_courses + s_count)
+
+    if s_count > 0:
+        headline = (
+            f"📢 RMS 강의정보 요약 — 유효 강좌수 : {total_courses}건 (판매중지 {s_count}건 제외됨 / 전체 {raw_tot}건) | "
+            f"총 수강생 : {tot_stu:,}명 (결제완료 : {paid_stu:,}명 / 미결제 가등록 : {unpaid_stu:,}명)"
+        )
+    else:
+        headline = (
+            f"📢 RMS 강의정보 요약 — 총 강좌수 : {total_courses}건 | "
+            f"총 수강생 : {tot_stu:,}명 (결제완료 : {paid_stu:,}명 / 미결제 가등록 : {unpaid_stu:,}명)"
+        )
+
     return {
         "total_courses": total_courses,
+        "stopped_courses_count": s_count,
+        "raw_total_courses": raw_tot,
         "total_students": tot_stu,
         "paid_students": paid_stu,
         "unpaid_students": unpaid_stu,
         "installment_students": inst_stu,
         "payment_rate": rate,
         "raw_summary_text": f"총 강좌 수 : {total_courses} 건 , 총 수강생 : {tot_stu} 명 ( 결제완료 : {paid_stu} 명 )",
-        "headline_banner": (
-            f"📢 RMS 강의정보 요약 — 총 강좌수 : {total_courses}건 | "
-            f"총 수강생 : {tot_stu:,}명 (결제완료 : {paid_stu:,}명 / 미결제 가등록 : {unpaid_stu:,}명)"
-        ),
+        "headline_banner": headline,
     }
 
 
