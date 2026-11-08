@@ -118,6 +118,22 @@ KNOWN_SUBJECT_PREFIXES = (
     "통합과학",
     "사회탐구",
     "과학탐구",
+    "사회와문화",
+    "현대사회와윤리",
+    "윤리와사상",
+    "세계시민과지리",
+    "화학반응의세계",
+    "생활과윤리",
+    "정치와법",
+    "한국지리",
+    "세계지리",
+    "동아시아사",
+    "세계사",
+    "물리학",
+    "생명과학",
+    "지구과학",
+    "경제",
+    "화학",
     "인문논술",
     "수리논술",
     "과학논술",
@@ -132,7 +148,94 @@ KNOWN_SUBJECT_PREFIXES = (
     "논술",
     "과학",
     "사회",
+    "미적분",
+    "확률과통계",
+    "공통수학",
+    "기하",
 )
+
+TARGET_INSTRUCTORS: List[str] = [
+    # 사용자 지정 탐구 및 주요 강사
+    "김영진",
+    "차현호",
+    "우영호",
+    "민정",
+    "김종웅",
+    "장선근",
+    "정우정",
+    "정가현",
+    "임재관",
+    "최우택",
+    "심수현",
+    "지인해",
+    "박성민",
+    "이현수",
+    "이진리",
+    "고병훈",
+    # RMS 및 강의계획서 수록 탐구/국영수 전체 강사
+    "박지향",
+    "강민웅",
+    "김휘영",
+    "정소진",
+    "김태현",
+    "박은주",
+    "이예린",
+    "김영훈",
+    "최적",
+    "리아",
+    "박소현",
+    "김연호",
+    "신용선",
+    "류현준",
+    "박석준",
+    "김동관",
+    "이준호",
+    "최인호",
+    "유진",
+    "윤성훈",
+    "이기상",
+    "한종철",
+    "강민기",
+    "강영찬",
+    "고수현",
+    "곽민석",
+    "김가람",
+    "김강민",
+    "김기철",
+    "김기현",
+    "김선덕",
+    "김성은",
+    "김수현",
+    "김태형",
+    "또선생",
+    "민동휘",
+    "민준식",
+    "박찬결",
+    "신성규",
+    "양승진",
+    "엄정애",
+    "오송은",
+    "이민수",
+    "이수민",
+    "이승효",
+    "정담온",
+    "최석호",
+    "어준규",
+    "현자의 돌",
+    "이현호",
+]
+
+INSTRUCTOR_ALIAS: Dict[str, str] = {
+    "셀리나": "박소현",
+    "박소현(셀리나)": "박소현",
+    "박소현(리아)": "리아",
+    "차쌤": "차현호",
+    "미친국어": "이현호",
+    "이현호(미친국어)": "이현호",
+    "김민정": "민정",
+    "이지원": "이진리",
+    "임수민": "현자의 돌",
+}
 
 
 def convert_md_to_ymd(md_raw: str, target_ym: str = "2027-01") -> str:
@@ -216,13 +319,36 @@ def extract_printed_weekday(raw_date_token: str) -> Tuple[str, bool]:
 
 def clean_instructor_name(raw_inst: str) -> str:
     """
-    '박소현(셀리나)', '심수현T' 등에서 괄호 별칭 및 불필요한 접미사 'T', '선생님'을 제거한 기본 강사명을 반환합니다.
+    '박소현(셀리나)', '심수현T', '차 현 호', '민 정' 등에서
+    공백, 괄호 별칭, 접두/접미사('T', '선생님', '강사' 등)를 제거한 코어 강사명을 반환합니다.
     """
     if not raw_inst:
         return ""
     s = str(raw_inst).strip()
-    s = re.sub(r"\([^)]*\)", "", s).strip()
-    s = re.sub(r"(?:선생님|강사님|강사|교수님|T)$", "", s, flags=re.IGNORECASE).strip()
+    if s in INSTRUCTOR_ALIAS:
+        return INSTRUCTOR_ALIAS[s]
+    s_ns = re.sub(r"\s+", "", s)
+    if s_ns in INSTRUCTOR_ALIAS:
+        return INSTRUCTOR_ALIAS[s_ns]
+
+    # 괄호 별칭 분리: '박소현(셀리나)' -> '박소현'
+    m_paren = re.match(r"^([^\(]+)\((.+?)\)$", s)
+    if m_paren:
+        base_n = m_paren.group(1).strip()
+        alias_n = m_paren.group(2).strip()
+        if alias_n in INSTRUCTOR_ALIAS:
+            return INSTRUCTOR_ALIAS[alias_n]
+        if base_n:
+            s = base_n
+
+    # 접두/접미사 제거
+    s = re.sub(r"^(?:T\.|강사\s*)", "", s, flags=re.IGNORECASE).strip()
+    s = re.sub(r"\s*(?:선생님|강사님|강사|교수님|쌤|T)$", "", s, flags=re.IGNORECASE).strip()
+
+    # 한글 이름 내부 공백 제거 ('민 정' -> '민정', '차 현 호' -> '차현호')
+    s_clean_ns = re.sub(r"\s+", "", s)
+    if re.match(r"^[가-힣]{2,4}$", s_clean_ns):
+        return s_clean_ns
     return s
 
 
@@ -254,28 +380,83 @@ def _parse_header_lines(page_text: str) -> Dict[str, str]:
     if m_baza_any:
         info["바자관시수"] = normalize_baza_hours(m_baza_any.group(1))
 
-    parts = re.split(r"^\s*강의\s*개요\s*$", page_text, maxsplit=1, flags=re.MULTILINE)
-    header_block = parts[0] if parts else page_text
+    # 강의개요/강좌개요/수업안내/강좌소개 등 유연한 앵커 분할
+    parts = re.split(
+        r"^\s*(?:[■▶●○\d\.\-\[\]\s]*)\s*(?:강의|강좌|수업)?\s*(?:개요|안내|소개|일정|특징)\s*\]?\s*$",
+        page_text,
+        maxsplit=1,
+        flags=re.MULTILINE,
+    )
+    if len(parts) > 1:
+        header_block = parts[0]
+    else:
+        m_anc = re.search(r"(?:[■▶●○\d\.\-\[\]\s]*)(?:강의|강좌|수업)\s*(?:개요|안내|소개|일정)", page_text)
+        header_block = page_text[:m_anc.start()] if m_anc else page_text
+
     lines = [ln.strip() for ln in header_block.splitlines() if ln.strip()]
     if not lines:
         return info
 
     subj_inst_idx = -1
-    subj_pattern = re.compile(
-        r"^(" + "|".join(KNOWN_SUBJECT_PREFIXES) + r")\s*(.+)$"
-    )
+    matched_inst = ""
+    matched_subj = ""
+
+    # 헤더 하단 라인부터 역방향 탐색하여 과목/강사 라인 검출
     for idx in range(len(lines) - 1, -1, -1):
-        m = subj_pattern.match(lines[idx])
-        if m:
-            candidate_inst = m.group(2).strip()
-            if 1 <= len(candidate_inst) <= 15 and " " not in candidate_inst:
-                info["과목"] = m.group(1).strip()
-                info["강사명_원본"] = candidate_inst
-                info["강사명"] = clean_instructor_name(candidate_inst)
+        line = lines[idx]
+        line_ns = re.sub(r"\s+", "", line)
+
+        # 1) TARGET_INSTRUCTORS 탐색 (공백 무시 매칭: '현대사회와윤리차현호', '민 정', '차 현 호')
+        for inst in sorted(TARGET_INSTRUCTORS, key=len, reverse=True):
+            inst_ns = inst.replace(" ", "")
+            if inst_ns in line_ns:
+                pos = line_ns.rfind(inst_ns)
+                matched_subj = line_ns[:pos]
+                matched_subj = re.sub(r"^[■▶●○\-\d\.\s]+", "", matched_subj).strip()
+                matched_inst = inst
+                subj_inst_idx = idx
+                break
+        if subj_inst_idx != -1:
+            break
+
+        # 2) KNOWN_SUBJECT_PREFIXES + 강사명(2~4글자, 공백 무관) 매칭
+        subj_pattern = re.compile(
+            r"^(" + "|".join(KNOWN_SUBJECT_PREFIXES) + r")\s*(.+)$"
+        )
+        m_subj = subj_pattern.match(line)
+        if m_subj:
+            cand_inst = clean_instructor_name(m_subj.group(2).strip())
+            if 2 <= len(cand_inst) <= 6:
+                matched_subj = m_subj.group(1).strip()
+                matched_inst = cand_inst
                 subj_inst_idx = idx
                 break
 
-    pre_lines = lines[:subj_inst_idx] if subj_inst_idx != -1 else lines
+        # 3) 일반 [과목][강사명 2~4글자] 결합형 정규식 (예: '세계사김종웅', '물리학장선근')
+        m_gen = re.search(r"^(.*?)([가-힣]{2,4})(?:선생님|강사님|강사|교수님|쌤|T)?$", line_ns)
+        if m_gen and m_gen.group(1) and len(m_gen.group(2)) >= 2:
+            matched_subj = m_gen.group(1).strip()
+            matched_inst = m_gen.group(2).strip()
+            subj_inst_idx = idx
+            break
+
+    if subj_inst_idx != -1:
+        info["과목"] = matched_subj
+        info["강사명_원본"] = lines[subj_inst_idx]
+        info["강사명"] = clean_instructor_name(matched_inst)
+        pre_lines = lines[:subj_inst_idx]
+    else:
+        pre_lines = lines
+
+    # 강사명 Fallback: 헤더에서 못 찾은 경우 전체 페이지 텍스트에서 TARGET_INSTRUCTORS 탐색
+    if not info["강사명"]:
+        txt_ns = re.sub(r"\s+", "", page_text)
+        for inst in sorted(TARGET_INSTRUCTORS, key=len, reverse=True):
+            if inst.replace(" ", "") in txt_ns:
+                info["강사명"] = inst
+                info["강사명_원본"] = inst
+                break
+
     if not pre_lines:
         return info
 
@@ -307,6 +488,12 @@ def _parse_header_lines(page_text: str) -> Dict[str, str]:
             else:
                 merged_title += " " + tl
         info["강좌명"] = re.sub(r"\s+", " ", merged_title).strip()
+
+    # 강좌명 Fallback: 강좌명이 비어있는 경우 대괄호 태그 탐색
+    if not info["강좌명"]:
+        m_title = re.search(r"(\[.*?\][^\n\r]+)", header_block)
+        if m_title:
+            info["강좌명"] = m_title.group(1).strip()
 
     return info
 
@@ -682,163 +869,203 @@ def parse_syllabus_pdf(
 
     records: List[Dict[str, Any]] = []
     global_course_idx = 0
+    total_scanned_pages = 0
 
     for f_item in file_list:
         if f_item is None:
             continue
-        raw_bytes, pdf_filename = _read_single_pdf_bytes(f_item)
+        try:
+            raw_bytes, pdf_filename = _read_single_pdf_bytes(f_item)
+        except Exception as e:
+            print(f"[PDF Parser Error] 파일 읽기 실패 ({f_item}): {e}")
+            continue
 
-        # pypdf.PdfReader 기반 초고속 텍스트 추출 (40페이지 0.2초대 추출)
+        # pypdf.PdfReader / PyMuPDF 기반 초고속 텍스트 추출 (40페이지 0.2초대 추출)
         fast_texts = _extract_page_texts_fast(raw_bytes)
+        total_scanned_pages += len(fast_texts)
 
         courses_raw_groups: List[Dict[str, Any]] = []
         for idx, txt in enumerate(fast_texts):
             p_num = idx + 1
-            # '강의개요'가 포함된 페이지를 강좌 블록 시작점으로 식별
-            is_course_start = ("강의개요" in txt or "강의 개요" in txt) and (
-                "개강일" in txt or "수강 기간" in txt or "수강기간" in txt or "수강료" in txt
-            )
-            if is_course_start:
-                courses_raw_groups.append(
-                    {
-                        "start_page": p_num,
-                        "end_page": p_num,
-                        "page_indices": [idx],
-                        "texts": [txt],
-                    }
+            if not txt or not txt.strip():
+                continue
+
+            try:
+                txt_nospace = re.sub(r"\s+", "", txt)
+                has_anchor = bool(
+                    re.search(r"(?:[■▶●○\d\.\-\[\]\s]*)(?:강의|강좌|수업)?\s*(?:개요|안내|소개|일정|특징)", txt)
                 )
-            else:
-                if courses_raw_groups:
-                    courses_raw_groups[-1]["end_page"] = p_num
-                    courses_raw_groups[-1]["page_indices"].append(idx)
-                    courses_raw_groups[-1]["texts"].append(txt)
+                has_core = (
+                    "개강일" in txt
+                    or "수강기간" in txt
+                    or "수강 기간" in txt
+                    or "수강료" in txt
+                )
+                has_target = any(ti.replace(" ", "") in txt_nospace for ti in TARGET_INSTRUCTORS)
+
+                is_course_start = (
+                    (has_anchor and has_core)
+                    or (has_target and has_core and ("개강일" in txt or "수강료" in txt))
+                )
+
+                # 직전 강좌의 진도표(날짜/단원) 전용 페이지는 새 강좌로 오인하지 않도록 방어
+                if is_course_start and not has_anchor:
+                    if ("날짜 단원 및 수업내용" in txt or "1월 과정" in txt or "2월 과정" in txt) and "수강료" not in txt:
+                        is_course_start = False
+
+                if is_course_start:
+                    courses_raw_groups.append(
+                        {
+                            "start_page": p_num,
+                            "end_page": p_num,
+                            "page_indices": [idx],
+                            "texts": [txt],
+                        }
+                    )
+                else:
+                    if courses_raw_groups:
+                        courses_raw_groups[-1]["end_page"] = p_num
+                        courses_raw_groups[-1]["page_indices"].append(idx)
+                        courses_raw_groups[-1]["texts"].append(txt)
+            except Exception as e_page:
+                print(f"[PDF Parser Warning] 페이지 {p_num} 분석 중 예외 발생 (건너뜀): {e_page}")
+                continue
 
         for grp in courses_raw_groups:
-            global_course_idx += 1
-            first_text = grp["texts"][0]
-            all_texts = grp["texts"]
+            try:
+                global_course_idx += 1
+                first_text = grp["texts"][0]
+                all_texts = grp["texts"]
 
-            # 멀티페이지 텍스트 병합 (각 페이지의 하단 푸터 노이즈 정리)
-            clean_pages = [re.sub(r"○\s*러셀\s*대치(?:학원|별관학원)?[^\n\r]*", "", t) for t in all_texts]
-            combined_clean_text = "\n".join(clean_pages)
+                # 멀티페이지 텍스트 병합 (각 페이지의 하단 푸터 노이즈 정리)
+                clean_pages = [re.sub(r"○\s*러셀\s*대치(?:학원|별관학원)?[^\n\r]*", "", t) for t in all_texts]
+                combined_clean_text = "\n".join(clean_pages)
 
-            full_text = "\n\n".join(
-                f"[Page {grp['start_page'] + i}]\n{t}" for i, t in enumerate(all_texts)
-            )
+                full_text = "\n\n".join(
+                    f"[Page {grp['start_page'] + i}]\n{t}" for i, t in enumerate(all_texts)
+                )
 
-            hdr = _parse_header_lines(first_text)
-            ov = _parse_overview_section(combined_clean_text, target_ym=target_ym)
-            parsed_sched = parse_schedule_text(ov["수업시간_원본"])
+                hdr = _parse_header_lines(first_text)
+                ov = _parse_overview_section(combined_clean_text, target_ym=target_ym)
+                parsed_sched = parse_schedule_text(ov["수업시간_원본"])
 
-            sched_ver = _extract_schedule_and_verify_january(
-                page_texts=clean_pages,
-                course_days_list=parsed_sched["days_list"],
-                target_ym=target_ym,
-            )
+                sched_ver = _extract_schedule_and_verify_january(
+                    page_texts=clean_pages,
+                    course_days_list=parsed_sched["days_list"],
+                    target_ym=target_ym,
+                )
 
-            pure_title, bracket_tags = strip_course_brackets(hdr["강좌명"])
-            sched_items = sched_ver["all_items"]
-            active_sched = [it for it in sched_items if not it["휴강여부"]]
+                pure_title, bracket_tags = strip_course_brackets(hdr["강좌명"])
+                sched_items = sched_ver["all_items"]
+                active_sched = [it for it in sched_items if not it["휴강여부"]]
 
-            sched_summary_parts = [
-                f"{it['날짜_정제표시']}: {it['단원_및_수업내용']}" for it in sched_ver["jan_items"][:8]
-            ]
-            if len(sched_ver["jan_items"]) > 8:
-                sched_summary_parts.append(f"... 외 {len(sched_ver['jan_items']) - 8}회")
+                sched_summary_parts = [
+                    f"{it['날짜_정제표시']}: {it['단원_및_수업내용']}" for it in sched_ver["jan_items"][:8]
+                ]
+                if len(sched_ver["jan_items"]) > 8:
+                    sched_summary_parts.append(f"... 외 {len(sched_ver['jan_items']) - 8}회")
 
-            page_range_str = (
-                f"p.{grp['start_page']}~{grp['end_page']}"
-                if grp["start_page"] != grp["end_page"]
-                else f"p.{grp['start_page']}"
-            )
+                page_range_str = (
+                    f"p.{grp['start_page']}~{grp['end_page']}"
+                    if grp["start_page"] != grp["end_page"]
+                    else f"p.{grp['start_page']}"
+                )
 
-            # PDF 개요 개강~종강(회차) 및 1월 진도표(첫날~끝날/회차) 표준 표시 문자열
-            ov_open_short = format_short_md_with_weekday(ov["개강일"]) if ov["개강일"] else (ov["개강일_원본"] or "-")
-            ov_close_short = format_short_md_with_weekday(ov["종강일"]) if ov["종강일"] else (ov["종강일_원본"] or "-")
-            pdf_overview_period_disp = f"{ov_open_short}~{ov_close_short} ({ov['회차']}회)"
+                # PDF 개요 개강~종강(회차) 및 1월 진도표(첫날~끝날/회차) 표준 표시 문자열
+                ov_open_short = format_short_md_with_weekday(ov["개강일"]) if ov["개강일"] else (ov["개강일_원본"] or "-")
+                ov_close_short = format_short_md_with_weekday(ov["종강일"]) if ov["종강일"] else (ov["종강일_원본"] or "-")
+                pdf_overview_period_disp = f"{ov_open_short}~{ov_close_short} ({ov['회차']}회)"
 
-            jan_cnt = sched_ver["진도표_1월_실제회차"]
-            jan_first_disp = sched_ver["진도표_첫수업일_표시"]
-            jan_last_disp = sched_ver["진도표_마지막수업일_표시"]
-            if jan_cnt > 0:
-                pdf_jan_plan_disp = f"{jan_first_disp}~{jan_last_disp} ({jan_cnt}회)"
-                if sched_ver["진도표_2월표_1월날짜리스트"]:
-                    spilled_str = ",".join(sched_ver["진도표_2월표_1월날짜리스트"])
-                    pdf_jan_plan_disp += f" [※2월표에 {spilled_str} 포함]"
-            else:
-                pdf_jan_plan_disp = "진도표 미추출 (0회)"
+                jan_cnt = sched_ver["진도표_1월_실제회차"]
+                jan_first_disp = sched_ver["진도표_첫수업일_표시"]
+                jan_last_disp = sched_ver["진도표_마지막수업일_표시"]
+                if jan_cnt > 0:
+                    pdf_jan_plan_disp = f"{jan_first_disp}~{jan_last_disp} ({jan_cnt}회)"
+                    if sched_ver["진도표_2월표_1월날짜리스트"]:
+                        spilled_str = ",".join(sched_ver["진도표_2월표_1월날짜리스트"])
+                        pdf_jan_plan_disp += f" [※2월표에 {spilled_str} 포함]"
+                else:
+                    pdf_jan_plan_disp = "진도표 미추출 (0회)"
 
-            records.append(
-                {
-                    "PDF_순번": global_course_idx,
-                    "PDF_파일명": pdf_filename,
-                    "페이지_범위": page_range_str,
-                    "시작페이지": grp["start_page"],
-                    "종료페이지": grp["end_page"],
-                    "과목": hdr["과목"],
-                    "강사명": hdr["강사명"],
-                    "강사명_원본": hdr["강사명_원본"],
-                    "대상학년": hdr["대상학년"],
-                    "과정구분": hdr["과정구분"],
-                    "바자관시수": hdr["바자관시수"],
-                    "슬로건": hdr["슬로건"],
-                    "강좌명": hdr["강좌명"],
-                    "순수강좌명": pure_title,
-                    "말머리태그": bracket_tags,
-                    "개강일": ov["개강일"],
-                    "개강일_원본": ov["개강일_원본"],
-                    "개강일_표기요일": ov["개강일_표기요일"],
-                    "개강일_실제요일": ov["개강일_실제요일"],
-                    "개강일_깨짐보정여부": ov["개강일_깨짐보정여부"],
-                    "수강시작일": ov["수강시작일"],
-                    "종강일": ov["종강일"],
-                    "종강일_원본": ov["종강일_원본"],
-                    "종강일_표기요일": ov["종강일_표기요일"],
-                    "종강일_실제요일": ov["종강일_실제요일"],
-                    "수강기간_원본": ov["수강기간_원본"],
-                    "회차": ov["회차"],
-                    "PDF_개요_기간회차_표시": pdf_overview_period_disp,
-                    "수업시간_원본": ov["수업시간_원본"],
-                    "수업요일": parsed_sched["days_str"],
-                    "수업요일_점표시": parsed_sched["days_dot_str"],
-                    "요일_리스트": parsed_sched["days_list"],
-                    "시작시간": parsed_sched["primary_start"],
-                    "전체시작시간": parsed_sched["start_times_str"],
-                    "요일시간키_리스트": parsed_sched["day_start_keys"],
-                    "요일전체시간키_리스트": parsed_sched["day_full_keys"],
-                    "표준수업시간": parsed_sched["formatted_schedule"],
-                    "간결수업시간": parsed_sched["compact_schedule"],
-                    "수강료": ov["수강료"],
-                    "회차당수강료": ov["회차당수강료"],
-                    "수강료_표시": ov["수강료_표시"],
-                    "교재내역": ov["교재내역"],
-                    "교재비_합계": ov["교재비_합계"],
-                    "교재비_표시": ov["교재비_표시"],
-                    "추천대상": ov["추천대상"],
-                    "휴강일": ov["휴강일"],
-                    "보강방법": ov["보강방법"],
-                    "진도표_1월_실제회차": jan_cnt,
-                    "진도표_1월_휴강횟수": sched_ver["진도표_1월_휴강횟수"],
-                    "진도표_첫수업일": sched_ver["진도표_첫수업일"],
-                    "진도표_첫수업일_표시": jan_first_disp,
-                    "진도표_마지막수업일": sched_ver["진도표_마지막수업일"],
-                    "진도표_마지막수업일_표시": jan_last_disp,
-                    "진도표_1월_기간회차_표시": pdf_jan_plan_disp,
-                    "진도표_1월_날짜리스트": sched_ver["진도표_1월_날짜리스트"],
-                    "진도표_1월_날짜문자열": sched_ver["진도표_1월_날짜문자열"],
-                    "진도표_2월표_1월날짜리스트": sched_ver["진도표_2월표_1월날짜리스트"],
-                    "진도표_2월표_1월날짜문자열": sched_ver["진도표_2월표_1월날짜문자열"],
-                    "진도표_요일오류여부": sched_ver["진도표_요일오류여부"],
-                    "진도표_요일오류상세": sched_ver["진도표_요일오류상세"],
-                    "진도계획_당월회차": jan_cnt,
-                    "진도계획_전체회차": len(active_sched),
-                    "주차별진도계획_리스트": sched_items,
-                    "주차별진도계획_1월리스트": sched_ver["jan_items"],
-                    "주차별진도계획_2월리스트": sched_ver["feb_items"],
-                    "주차별진도계획_요약": " | ".join(sched_summary_parts),
-                    "원문전체텍스트": full_text,
-                    "강좌_텍스트리스트": all_texts,
-                }
-            )
+                records.append(
+                    {
+                        "PDF_순번": global_course_idx,
+                        "PDF_파일명": pdf_filename,
+                        "페이지_범위": page_range_str,
+                        "시작페이지": grp["start_page"],
+                        "종료페이지": grp["end_page"],
+                        "과목": hdr["과목"],
+                        "강사명": hdr["강사명"],
+                        "강사명_원본": hdr["강사명_원본"],
+                        "대상학년": hdr["대상학년"],
+                        "과정구분": hdr["과정구분"],
+                        "바자관시수": hdr["바자관시수"],
+                        "슬로건": hdr["슬로건"],
+                        "강좌명": hdr["강좌명"],
+                        "순수강좌명": pure_title,
+                        "말머리태그": bracket_tags,
+                        "개강일": ov["개강일"],
+                        "개강일_원본": ov["개강일_원본"],
+                        "개강일_표기요일": ov["개강일_표기요일"],
+                        "개강일_실제요일": ov["개강일_실제요일"],
+                        "개강일_깨짐보정여부": ov["개강일_깨짐보정여부"],
+                        "수강시작일": ov["수강시작일"],
+                        "종강일": ov["종강일"],
+                        "종강일_원본": ov["종강일_원본"],
+                        "종강일_표기요일": ov["종강일_표기요일"],
+                        "종강일_실제요일": ov["종강일_실제요일"],
+                        "수강기간_원본": ov["수강기간_원본"],
+                        "회차": ov["회차"],
+                        "PDF_개요_기간회차_표시": pdf_overview_period_disp,
+                        "수업시간_원본": ov["수업시간_원본"],
+                        "수업요일": parsed_sched["days_str"],
+                        "수업요일_점표시": parsed_sched["days_dot_str"],
+                        "요일_리스트": parsed_sched["days_list"],
+                        "시작시간": parsed_sched["primary_start"],
+                        "전체시작시간": parsed_sched["start_times_str"],
+                        "요일시간키_리스트": parsed_sched["day_start_keys"],
+                        "요일전체시간키_리스트": parsed_sched["day_full_keys"],
+                        "표준수업시간": parsed_sched["formatted_schedule"],
+                        "간결수업시간": parsed_sched["compact_schedule"],
+                        "수강료": ov["수강료"],
+                        "회차당수강료": ov["회차당수강료"],
+                        "수강료_표시": ov["수강료_표시"],
+                        "교재내역": ov["교재내역"],
+                        "교재비_합계": ov["교재비_합계"],
+                        "교재비_표시": ov["교재비_표시"],
+                        "추천대상": ov["추천대상"],
+                        "휴강일": ov["휴강일"],
+                        "보강방법": ov["보강방법"],
+                        "진도표_1월_실제회차": jan_cnt,
+                        "진도표_1월_휴강횟수": sched_ver["진도표_1월_휴강횟수"],
+                        "진도표_첫수업일": sched_ver["진도표_첫수업일"],
+                        "진도표_첫수업일_표시": jan_first_disp,
+                        "진도표_마지막수업일": sched_ver["진도표_마지막수업일"],
+                        "진도표_마지막수업일_표시": jan_last_disp,
+                        "진도표_1월_기간회차_표시": pdf_jan_plan_disp,
+                        "진도표_1월_날짜리스트": sched_ver["진도표_1월_날짜리스트"],
+                        "진도표_1월_날짜문자열": sched_ver["진도표_1월_날짜문자열"],
+                        "진도표_2월표_1월날짜리스트": sched_ver["진도표_2월표_1월날짜리스트"],
+                        "진도표_2월표_1월날짜문자열": sched_ver["진도표_2월표_1월날짜문자열"],
+                        "진도표_요일오류여부": sched_ver["진도표_요일오류여부"],
+                        "진도표_요일오류상세": sched_ver["진도표_요일오류상세"],
+                        "진도계획_당월회차": jan_cnt,
+                        "진도계획_전체회차": len(active_sched),
+                        "주차별진도계획_리스트": sched_items,
+                        "주차별진도계획_1월리스트": sched_ver["jan_items"],
+                        "주차별진도계획_2월리스트": sched_ver["feb_items"],
+                        "주차별진도계획_요약": " | ".join(sched_summary_parts),
+                        "원문전체텍스트": full_text,
+                        "강좌_텍스트리스트": all_texts,
+                    }
+                )
+            except Exception as e_grp:
+                print(f"[PDF Parser Warning] 강좌 그룹 ({grp.get('start_page')}~{grp.get('end_page')}페이지) 파싱 중 오류: {e_grp}")
+                continue
 
-    return pd.DataFrame(records)
+    result_df = pd.DataFrame(records)
+    inst_list = sorted(list(set(result_df["강사명"].dropna().unique()))) if not result_df.empty else []
+    print(f"\n[PDF 파싱 완료] 총 {total_scanned_pages}페이지 탐색 | 인식된 강좌 총 {len(result_df)}건")
+    print("인식된 강사 리스트:", inst_list)
+
+    return result_df

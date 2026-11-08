@@ -82,6 +82,18 @@ DEFAULT_MAPPING_LIST: List[Dict[str, str]] = [
         "canonical": "이현호(미친국어)",
         "memo": "이현호 ↔ 이현호(미친국어) (국어)",
     },
+    {
+        "rms_name": "차현호",
+        "sheet_name": "차쌤",
+        "canonical": "차현호",
+        "memo": "차쌤 ↔ 차현호 (사회탐구)",
+    },
+    {
+        "rms_name": "민정",
+        "sheet_name": "민 정",
+        "canonical": "민정",
+        "memo": "민 정 ↔ 민정 (사회탐구)",
+    },
 ]
 
 
@@ -192,6 +204,10 @@ class InstructorMapper:
         if s_nospace in self.lookup:
             return self.lookup[s_nospace]
 
+        # 2~4글자 순수 한글 이름 내부 공백 자동 제거 ('민 정' -> '민정', '차 현 호' -> '차현호')
+        if re.match(r"^[가-힣]{2,4}$", s_nospace):
+            return s_nospace
+
         return s_clean
 
     def match_instructors(self, name_a: Any, name_b: Any) -> bool:
@@ -219,7 +235,7 @@ class InstructorMapper:
             if m:
                 tokens.add(m.group(1).strip())
                 tokens.add(m.group(2).strip())
-            return {t for t in tokens if len(t) >= 2}
+            return {re.sub(r"\s+", "", t) for t in tokens if len(t) >= 2}
 
         tokens_a = _extract_tokens(norm_a)
         tokens_b = _extract_tokens(norm_b)
@@ -714,6 +730,28 @@ def run_rms_pdf_crosscheck(
                 pdf_to_rms_idx[p_idx] = best_r_idx
                 used_pdf_indices.add(p_idx)
 
+        # [3차 보조 매칭]: 특정 강사의 잔여 미매칭 강좌가 RMS 1건, PDF 1건으로 유일한 경우 자동 매칭
+        for p_idx, p_row in pdf_df.iterrows():
+            if p_idx in used_pdf_indices:
+                continue
+            p_inst_orig = str(p_row.get("강사명_원본", "")).strip()
+            p_inst_clean = str(p_row.get("강사명", "")).strip()
+
+            candidate_r_indices = []
+            for r_idx, r_row in rms.iterrows():
+                if r_idx in rms_to_pdf_idx:
+                    continue
+                r_inst = str(r_row["강사"]).strip()
+                if mapper.match_instructors(r_inst, p_inst_orig) or mapper.match_instructors(r_inst, p_inst_clean):
+                    candidate_r_indices.append(r_idx)
+
+            if len(candidate_r_indices) == 1:
+                r_idx = candidate_r_indices[0]
+                rms_to_pdf_idx[r_idx] = p_idx
+                pdf_to_rms_idx[p_idx] = r_idx
+                used_pdf_indices.add(p_idx)
+                print(f"[Matcher 3차] 단일 강사 1:1 자동 매칭 성공: RMS '{rms.loc[r_idx, '강좌명']}' ↔ PDF '{p_row.get('강좌명')}' (강사: {p_inst_clean})")
+
     # ---------------------------------------------------------
     # 전 강좌 대조 테이블 생성
     # ---------------------------------------------------------
@@ -887,6 +925,34 @@ def run_rms_pdf_crosscheck(
         if not comparison_df.empty
         else pd.DataFrame()
     )
+
+    # ---------------------------------------------------------
+    # RMS ↔ PDF 미매칭 사유 디버깅 콘솔 로그 출력
+    # ---------------------------------------------------------
+    if not missing_pdf_df.empty:
+        print(f"\n[RMS ↔ PDF 미매칭 분석] 총 {len(missing_pdf_df)}건의 RMS 강좌가 PDF 미수록으로 분류됨:")
+        pdf_instructors_normalized = set()
+        if not pdf_df.empty:
+            for p_inst in pdf_df["강사명"].dropna():
+                p_norm = mapper.normalize(p_inst)
+                pdf_instructors_normalized.add(p_norm)
+                pdf_instructors_normalized.add(re.sub(r"\s+", "", p_norm))
+
+        for _, r_row in missing_pdf_df.iterrows():
+            r_inst = str(r_row.get("RMS_강사명", "")).strip()
+            r_norm = mapper.normalize(r_inst)
+            r_norm_ns = re.sub(r"\s+", "", r_norm)
+            r_title = str(r_row.get("RMS 강좌명", "")).strip()
+            r_code = str(r_row.get("강좌코드", "")).strip()
+
+            inst_in_pdf = bool(
+                r_norm in pdf_instructors_normalized or r_norm_ns in pdf_instructors_normalized
+            )
+            if not inst_in_pdf:
+                reason = "강사명 미발견 (PDF 내 해당 강사 강의계획서 미추출)"
+            else:
+                reason = "강사명은 PDF에 존재하나 요일/시간/강좌명 유사도 미달 또는 다른 분반에 우선 매칭됨"
+            print(f"  - [{r_code}] 강사: {r_inst} | 강좌명: {r_title} ➔ 사유: {reason}")
 
     # PDF 진도표 상세 검수 테이블 (Tab 3 & Sheet 4 전용)
     pdf_sched_rows: List[Dict[str, Any]] = []
