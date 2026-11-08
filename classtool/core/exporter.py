@@ -44,7 +44,22 @@ def build_all_in_one_master_df(
     stopped_df: pd.DataFrame = crosscheck_result.get("stopped_rms_df", pd.DataFrame())
     spelling_df: pd.DataFrame = crosscheck_result.get("spelling_df", pd.DataFrame())
     long_sentence_df: pd.DataFrame = crosscheck_result.get("long_sentence_df", pd.DataFrame())
-    ai_titles_df: pd.DataFrame = crosscheck_result.get("ai_titles_df", pd.DataFrame())
+    ai_titles_df = crosscheck_result.get("ai_titles_df")
+
+    # 만약 세션에 AI 강의명이 아직 없다면 엑셀 통합 시 기본 내장 규칙으로 0.01초 만에 자동 생성
+    if ai_titles_df is None or (isinstance(ai_titles_df, pd.DataFrame) and ai_titles_df.empty):
+        if comparison_df is not None and not comparison_df.empty:
+            from core.title_suggester import batch_suggest_course_titles
+            courses_list = comparison_df.to_dict(orient="records")
+            ai_results = batch_suggest_course_titles(
+                course_list=courses_list,
+                api_key=None,
+                direction="대치동 트렌드 종합",
+            )
+            ai_titles_df = pd.DataFrame(ai_results)
+            crosscheck_result["ai_titles_df"] = ai_titles_df
+        else:
+            ai_titles_df = pd.DataFrame()
 
     # 1. 맞춤법 요약 사전 구축 (강좌명 및 강사명 매핑)
     spell_map: Dict[Tuple[str, str], List[str]] = {}
@@ -78,7 +93,7 @@ def build_all_in_one_master_df(
 
     # 3. AI 추천 강의명 사전 구축
     ai_map: Dict[Tuple[str, str], Dict[str, Any]] = {}
-    if not ai_titles_df.empty:
+    if ai_titles_df is not None and not ai_titles_df.empty:
         for _, r in ai_titles_df.iterrows():
             c_title = str(r.get("현재강의명", r.get("현재강좌명", ""))).strip()
             inst = str(r.get("강사명", "")).strip()
@@ -91,6 +106,11 @@ def build_all_in_one_master_df(
             }
             ai_map[(inst, c_title)] = ai_info
             ai_map[("", c_title)] = ai_info
+            from parsers.rms_parser import strip_course_brackets
+            pure_t, _ = strip_course_brackets(c_title)
+            if pure_t:
+                ai_map[(inst, pure_t)] = ai_info
+                ai_map[("", pure_t)] = ai_info
 
     master_rows: List[Dict[str, Any]] = []
 
@@ -98,13 +118,24 @@ def build_all_in_one_master_df(
     if not comparison_df.empty:
         for _, row in comparison_df.iterrows():
             inst = str(row.get("강사명", "")).strip()
+            rms_inst = str(row.get("RMS_강사명", "") or row.get("강사명", "")).strip()
+            norm_inst = str(row.get("정규화강사명", "")).strip()
             rms_title = str(row.get("RMS 강좌명", "")).strip()
             pdf_title = str(row.get("PDF 강좌명", "")).strip()
 
             # 매핑 데이터 찾기
             sp_list = spell_map.get((inst, pdf_title)) or spell_map.get((inst, rms_title)) or spell_map.get(("", pdf_title)) or []
             lg_list = long_map.get((inst, pdf_title)) or long_map.get((inst, rms_title)) or long_map.get(("", pdf_title)) or []
-            ai_info = ai_map.get((inst, pdf_title)) or ai_map.get((inst, rms_title)) or ai_map.get(("", pdf_title)) or {}
+            ai_info = (
+                ai_map.get((inst, pdf_title))
+                or ai_map.get((inst, rms_title))
+                or ai_map.get((rms_inst, rms_title))
+                or ai_map.get((norm_inst, rms_title))
+                or ai_map.get((rms_inst, pdf_title))
+                or ai_map.get(("", pdf_title))
+                or ai_map.get(("", rms_title))
+                or {}
+            )
 
             # 수강료 단가 계산
             rms_fee = row.get("RMS 수강료", 0)

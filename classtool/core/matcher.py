@@ -1686,7 +1686,34 @@ def export_crosscheck_to_excel(
     # Sheet 7: AI_강의명제안
     # =========================================================================
     ws_s7 = wb.create_sheet(title="AI_강의명제안")
-    ai_df = crosscheck_result.get("ai_titles_df", pd.DataFrame())
+    ai_df = crosscheck_result.get("ai_titles_df")
+    if ai_df is None or (isinstance(ai_df, pd.DataFrame) and ai_df.empty):
+        # 세션에서 아직 일괄 생성을 실행하지 않았더라도, 엑셀 출력 시에는 기본 내장 규칙 엔진으로 자동 생성하여 수록
+        comparison_df_for_ai = crosscheck_result.get("comparison_df", pd.DataFrame())
+        if comparison_df_for_ai is not None and not comparison_df_for_ai.empty:
+            from core.title_suggester import batch_suggest_course_titles
+            courses_list = comparison_df_for_ai.to_dict(orient="records")
+            ai_results = batch_suggest_course_titles(
+                course_list=courses_list,
+                api_key=None,
+                direction="대치동 트렌드 종합",
+            )
+            ai_df = pd.DataFrame(ai_results)
+            crosscheck_result["ai_titles_df"] = ai_df
+        else:
+            ai_df = pd.DataFrame()
+
+    if ai_df is not None and not ai_df.empty:
+        ai_df = ai_df.copy()
+        if "현재강의명" not in ai_df.columns and "현재강좌명" in ai_df.columns:
+            ai_df["현재강의명"] = ai_df["현재강좌명"]
+        if "판정사유" not in ai_df.columns and "진단비평" in ai_df.columns:
+            ai_df["판정사유"] = ai_df["진단비평"]
+        if "⚡ 추천 강의명 1 (직관·시그니처형)" not in ai_df.columns and "제안1_초단축직관형" in ai_df.columns:
+            ai_df["⚡ 추천 강의명 1 (직관·시그니처형)"] = ai_df["제안1_초단축직관형"]
+        if "🔥 추천 강의명 2 (킬러·임팩트형)" not in ai_df.columns and "제안2_초단축시그니처" in ai_df.columns:
+            ai_df["🔥 추천 강의명 2 (킬러·임팩트형)"] = ai_df["제안2_초단축시그니처"]
+
     sheet7_cols = [
         "순번",
         "판정결과",
@@ -1917,4 +1944,113 @@ def export_results_to_google_sheets(
         "updated_tabs": updated_tabs,
         "logs": logs,
     }
+
+
+def export_ai_titles_only_excel(ai_df: pd.DataFrame) -> bytes:
+    """
+    AI 추천 강의명 제안 결과만을 예쁘게 스타일링하여 단독 .xlsx 바이너리 바이트로 내보냅니다.
+    """
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "AI_초단축강의명제안"
+
+    header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+    header_font = Font(name="맑은 고딕", size=10, bold=True, color="FFFFFF")
+    base_font = Font(name="맑은 고딕", size=9, color="111111")
+    bold_font = Font(name="맑은 고딕", size=9, bold=True, color="111111")
+
+    thin_border = Border(
+        left=Side(style="thin", color="D9D9D9"),
+        right=Side(style="thin", color="D9D9D9"),
+        top=Side(style="thin", color="D9D9D9"),
+        bottom=Side(style="thin", color="D9D9D9"),
+    )
+
+    fill_rev = PatternFill(start_color="FFF8E1", end_color="FFF8E1", fill_type="solid")
+    font_rev = Font(name="맑은 고딕", size=9, color="B78103", bold=True)
+    fill_keep = PatternFill(start_color="E8F5E9", end_color="E8F5E9", fill_type="solid")
+    font_keep = Font(name="맑은 고딕", size=9, color="2E7D32", bold=True)
+
+    sheet_cols = [
+        "순번",
+        "판정결과",
+        "과목",
+        "학년",
+        "강사명",
+        "현재강의명",
+        "임팩트점수",
+        "판정사유",
+        "⚡ 추천 강의명 1 (직관·시그니처형)",
+        "🔥 추천 강의명 2 (킬러·임팩트형)",
+        "생성엔진",
+        "최종선택강좌명",
+    ]
+
+    if ai_df is None or ai_df.empty:
+        ws.append(["데이터가 없습니다."])
+    else:
+        df_copy = ai_df.copy()
+        if "현재강의명" not in df_copy.columns and "현재강좌명" in df_copy.columns:
+            df_copy["현재강의명"] = df_copy["현재강좌명"]
+        if "판정사유" not in df_copy.columns and "진단비평" in df_copy.columns:
+            df_copy["판정사유"] = df_copy["진단비평"]
+        if "⚡ 추천 강의명 1 (직관·시그니처형)" not in df_copy.columns and "제안1_초단축직관형" in df_copy.columns:
+            df_copy["⚡ 추천 강의명 1 (직관·시그니처형)"] = df_copy["제안1_초단축직관형"]
+        if "🔥 추천 강의명 2 (킬러·임팩트형)" not in df_copy.columns and "제안2_초단축시그니처" in df_copy.columns:
+            df_copy["🔥 추천 강의명 2 (킬러·임팩트형)"] = df_copy["제안2_초단축시그니처"]
+
+        cols = [c for c in sheet_cols if c in df_copy.columns]
+        ws.append(cols)
+        for col_idx in range(1, len(cols) + 1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = thin_border
+        ws.row_dimensions[1].height = 26
+
+        for r_idx, (_, r_data) in enumerate(df_copy.iterrows(), start=2):
+            status_val = str(r_data.get("판정결과", ""))
+            row_vals = [r_data.get(c, "") for c in cols]
+            ws.append(row_vals)
+            ws.row_dimensions[r_idx].height = 20
+
+            for col_idx, col_name in enumerate(cols, start=1):
+                cell = ws.cell(row=r_idx, column=col_idx)
+                cell.font = base_font
+                cell.border = thin_border
+                cell.alignment = Alignment(
+                    horizontal="center" if col_name in ("순번", "판정결과", "과목", "학년", "강사명", "임팩트점수", "생성엔진") else "left",
+                    vertical="center",
+                )
+                if col_name == "판정결과":
+                    if "수정" in status_val:
+                        cell.fill = fill_rev
+                        cell.font = font_rev
+                    elif "유지" in status_val:
+                        cell.fill = fill_keep
+                        cell.font = font_keep
+                elif "추천 강의명" in col_name and cell.value and cell.value != "-":
+                    cell.font = bold_font
+
+        # 열 너비 자동 조정
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for c in col:
+                val_str = str(c.value or "")
+                korean_len = len(val_str.encode("utf-8"))
+                max_len = max(max_len, int(korean_len * 0.7) + 2)
+            ws.column_dimensions[col_letter].width = min(max(max_len, 10), 45)
+
+    ws.freeze_panes = "A2"
+    bio = io.BytesIO()
+    wb.save(bio)
+    return bio.getvalue()
+
 

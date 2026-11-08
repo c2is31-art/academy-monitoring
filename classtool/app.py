@@ -79,6 +79,7 @@ from core.exporter import (
 from core.matcher import (
     EXPORT_DISPLAY_COLUMNS,
     InstructorMapper,
+    export_ai_titles_only_excel,
     export_crosscheck_to_csv_bytes,
     export_crosscheck_to_excel,
     export_crosscheck_to_tsv_string,
@@ -613,7 +614,7 @@ if active_rms_df is not None:
     rms_hash_key = f"{st.session_state.get('rms_file_hash', 'raw')}_{exclude_stopped}_{len(active_rms_df)}_{len(stopped_rms_df)}"
     pdf_hash_key = f"{pdf_files_hash}_{selected_rms_ym}_{len(syllabus_pdf_df) if syllabus_pdf_df is not None else 0}"
 
-    crosscheck_result = run_crosscheck_cached(
+    raw_cross = run_crosscheck_cached(
         _rms_df=active_rms_df,
         _syllabus_pdf_df=syllabus_pdf_df,
         _mapper=mapper,
@@ -624,6 +625,7 @@ if active_rms_df is not None:
         title_sim_threshold=float(user_settings.get("title_sim_threshold", 55)),
         max_char_threshold=int(max_char_threshold),
     )
+    crosscheck_result = dict(raw_cross)
     # AI 강의명 추천 데이터프레임이 세션에 있으면 병합
     if st.session_state.get("ai_titles_df") is not None:
         crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
@@ -641,9 +643,19 @@ if crosscheck_result is not None:
 
     snap_a = st.session_state.get("selected_snapshot_a", None)
     snap_b = st.session_state.get("selected_snapshot_b", None)
-    ai_cnt = len(st.session_state.get("ai_titles_df", [])) if st.session_state.get("ai_titles_df") is not None else 0
-    sp_cnt = len(st.session_state.get("custom_spelling_df", [])) if st.session_state.get("custom_spelling_df") is not None else 0
-    export_cache_key = f"{rms_hash_key}_{pdf_hash_key}_{selected_rms_ym}_{snap_a}_{snap_b}_{ai_cnt}_{sp_cnt}"
+    ai_df_state = st.session_state.get("ai_titles_df")
+    if ai_df_state is not None and not ai_df_state.empty:
+        ai_hash = hashlib.md5(f"{len(ai_df_state)}_{ai_df_state.iloc[0].to_json()}".encode()).hexdigest()[:8]
+    else:
+        ai_hash = "none"
+
+    sp_df_state = st.session_state.get("custom_spelling_df")
+    if sp_df_state is not None and not sp_df_state.empty:
+        sp_hash = hashlib.md5(f"{len(sp_df_state)}_{sp_df_state.iloc[0].to_json()}".encode()).hexdigest()[:8]
+    else:
+        sp_hash = "none"
+
+    export_cache_key = f"{rms_hash_key}_{pdf_hash_key}_{selected_rms_ym}_{snap_a}_{snap_b}_{ai_hash}_{sp_hash}"
 
     # 1. 올인원 마스터 DataFrame 및 전체 TSV 준비 (캐싱 적용: 0.00초)
     all_in_one_master_df = build_all_in_one_master_df_cached(
@@ -1289,6 +1301,7 @@ with tab3:
                 if crosscheck_result is not None:
                     crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
                 st.success(f"🎉 **총 {len(ai_results)}개 강좌의 임팩트 분석 및 초단축 강의명 생성이 완료되었습니다.**")
+                st.rerun()
 
             # 결과 데이터프레임 표시
             ai_df = st.session_state.get("ai_titles_df")
@@ -1311,6 +1324,38 @@ with tab3:
                     """,
                     unsafe_allow_html=True,
                 )
+
+                # AI 추천 강의명 전용 다운로드 액션 바
+                col_ai_down1, col_ai_down2, col_ai_down3 = st.columns([1.5, 1.8, 1.2])
+                with col_ai_down1:
+                    ai_only_bytes = export_ai_titles_only_excel(ai_df)
+                    st.download_button(
+                        label="📥 **AI 추천 강의명 전용 엑셀 (.xlsx)**",
+                        data=ai_only_bytes,
+                        file_name=f"러셀대치_AI추천강의명_리브랜딩_{selected_rms_ym}_{datetime.now().strftime('%m%d_%H%M')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="primary",
+                        use_container_width=True,
+                        key="btn_down_ai_only_excel",
+                        help="임팩트 평가 및 15자 이내 초단축 강의명 제안 결과만 깔끔하게 서식화된 전용 엑셀입니다.",
+                    )
+                with col_ai_down2:
+                    st.download_button(
+                        label="📥 **전 항목 통합 결과지 엑셀 (.xlsx)**",
+                        data=excel_bytes,
+                        file_name=f"러셀대치_강의계획서_종합검수결과_{selected_rms_ym}_{datetime.now().strftime('%m%d_%H%M')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="btn_down_full_excel_tab3",
+                        help="Sheet 0(올인원)부터 Sheet 7(AI추천강의명)까지 모든 시트가 수록된 통합 마스터 엑셀입니다.",
+                    )
+                with col_ai_down3:
+                    ai_tsv_str = ai_df.to_csv(index=False, sep="\t")
+                    render_google_sheets_copy_button(
+                        tsv_text=ai_tsv_str,
+                        button_label="📋 표 전체 복사 (시트 붙여넣기)",
+                        height=38,
+                    )
 
                 # 라디오 필터: [🔧 수정 추천 강좌만 보기 (기본값)] vs [전체 강좌 보기 (기존 유지 포함)]
                 filter_ai_view = st.radio(
