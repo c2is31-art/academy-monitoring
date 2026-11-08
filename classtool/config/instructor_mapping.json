@@ -1,0 +1,41 @@
+{
+  "mappings": [
+    {
+      "rms_name": "리아",
+      "sheet_name": "박소현(리아)",
+      "canonical": "리아",
+      "memo": "박소현(리아) ↔ 리아 (영어)"
+    },
+    {
+      "rms_name": "박소현(셀리나)",
+      "sheet_name": "박소현",
+      "canonical": "박소현(셀리나)",
+      "memo": "박소현 ↔ 박소현(셀리나) (영어)"
+    },
+    {
+      "rms_name": "민정",
+      "sheet_name": "김민정",
+      "canonical": "민정",
+      "memo": "김민정 ↔ 민정 (사회탐구)"
+    },
+    {
+      "rms_name": "이진리",
+      "sheet_name": "이지원",
+      "canonical": "이진리",
+      "memo": "이지원 ↔ 이진리 (수학)"
+    },
+    {
+      "rms_name": "현자의 돌",
+      "sheet_name": "임수민",
+      "canonical": "현자의 돌",
+      "memo": "임수민 ↔ 현자의 돌 (통합사회)"
+    },
+    {
+      "rms_name": "이현호(미친국어)",
+      "sheet_name": "이현호",
+      "canonical": "이현호(미친국어)",
+      "memo": "이현호 ↔ 이현호(미친국어) (국어)"
+    }
+  ]
+}
+

@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Streamlit secrets & logs
+.streamlit/secrets.toml
+*.log
+
+# Scratch and test files
+scratch/
+test_*.py
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
