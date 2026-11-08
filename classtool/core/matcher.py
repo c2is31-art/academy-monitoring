@@ -259,6 +259,161 @@ def compute_title_similarity(title_a: str, title_b: str) -> float:
     return round(max(score_token, score_partial * 0.9), 1)
 
 
+SUBJECT_ALIAS_MAP: Dict[str, str] = {
+    "세시지": "세계시민과지리",
+    "화반세": "화학반응의세계",
+    "현사윤": "현대사회와윤리",
+    "사문": "사회와문화",
+    "윤사": "윤리와사상",
+    "한지": "한국지리",
+    "세지": "세계지리",
+    "동사": "동아시아사",
+    "정법": "정치와법",
+    "생윤": "생활과윤리",
+    "물1": "물리학",
+    "화1": "화학",
+    "생1": "생명과학",
+    "지1": "지구과학",
+    "물2": "물리학",
+    "화2": "화학",
+    "생2": "생명과학",
+    "지2": "지구과학",
+    "물": "물리학",
+    "화": "화학",
+    "생": "생명과학",
+    "지": "지구과학",
+}
+
+MATCH_CORE_KEYWORDS: List[str] = [
+    "개념",
+    "특강",
+    "BEGIN",
+    "DEEP",
+    "정규",
+    "8주",
+    "내신",
+    "진로",
+    "일반선택",
+    "LEAD IN",
+    "추월차선",
+    "마스터",
+    "DOPAMINE",
+    "QUANTUM",
+    "유전",
+    "수능",
+    "파이널",
+    "심화",
+    "기본",
+    "실력",
+]
+
+
+def normalize_subject(subj: Any) -> str:
+    """과목명 정규화: 약칭 및 개정 전후 과목명을 표준 과목명으로 매핑합니다."""
+    if not subj:
+        return ""
+    s = str(subj).strip()
+    s_clean = re.sub(r"[\s\[\]()]+", "", s)
+    if s_clean in SUBJECT_ALIAS_MAP:
+        return SUBJECT_ALIAS_MAP[s_clean]
+    for alias in sorted(SUBJECT_ALIAS_MAP.keys(), key=len, reverse=True):
+        if alias in s_clean:
+            return SUBJECT_ALIAS_MAP[alias]
+    return s_clean
+
+
+def match_subjects(subj_a: Any, subj_b: Any) -> bool:
+    """두 과목명이 동일하거나 상호 정규화/포함 관계인지 확인합니다."""
+    if not subj_a or not subj_b:
+        return False
+    norm_a = normalize_subject(subj_a)
+    norm_b = normalize_subject(subj_b)
+    if not norm_a or not norm_b:
+        return False
+    if norm_a == norm_b or norm_a in norm_b or norm_b in norm_a:
+        return True
+    return False
+
+
+def calculate_inquiry_match_score(
+    r_row: pd.Series,
+    p_row: pd.Series,
+    mapper: InstructorMapper,
+) -> float:
+    """
+    RMS 강좌와 PDF 강좌 간의 정합성 가중치 점수를 산출합니다.
+    - 강사 일치 전제 (불일치 시 0.0)
+    - 수업 요일 일치: +30점 (예: '일', '수', '금', '토')
+    - 과목 정규화 일치: +25점 (세시지 ↔ 세계시민과지리 등)
+    - 시작 시간 일치: +20점
+    - 핵심 키워드 일치: 키워드당 +10점 ('개념', '특강', 'BEGIN', 'DEEP', '정규', '8주', '내신' 등)
+    - 대상학년 일치: +10점
+    - 강좌명/슬로건 유사도(0~100): * 0.3 (최대 30점)
+    """
+    r_inst = str(r_row.get("강사", "")).strip()
+    p_inst_orig = str(p_row.get("강사명_원본", "")).strip()
+    p_inst_clean = str(p_row.get("강사명", "")).strip()
+
+    if not (
+        mapper.match_instructors(r_inst, p_inst_orig)
+        or mapper.match_instructors(r_inst, p_inst_clean)
+    ):
+        return 0.0
+
+    score = 100.0  # 기본 강사 일치 점수
+
+    # 1. 수업 요일 일치 (+30점)
+    r_days = str(r_row.get("수업요일", "")).strip()
+    p_days = str(p_row.get("수업요일", "")).strip()
+    if r_days and p_days:
+        r_day_set = set(re.findall(r"[월화수목금토일]", r_days))
+        p_day_set = set(re.findall(r"[월화수목금토일]", p_days))
+        if r_day_set and p_day_set and (r_day_set == p_day_set or r_day_set.issubset(p_day_set) or p_day_set.issubset(r_day_set)):
+            score += 30.0
+
+    # 2. 과목 정규화 일치 (+25점)
+    r_subj = str(r_row.get("과목", "")).strip()
+    p_subj = str(p_row.get("과목", "")).strip()
+    if r_subj and p_subj and match_subjects(r_subj, p_subj):
+        score += 25.0
+    elif r_subj and p_subj:
+        p_title_full = f"{p_row.get('강좌명', '')} {p_row.get('강사명_원본', '')}"
+        if normalize_subject(r_subj) in p_title_full:
+            score += 20.0
+
+    # 3. 시작 시간 일치 (+20점)
+    r_start = str(r_row.get("전체시작시간", "") or r_row.get("시작시간", "")).strip()
+    p_start = str(p_row.get("전체시작시간", "") or p_row.get("시작시간", "")).strip()
+    if r_start and p_start and r_start == p_start:
+        score += 20.0
+
+    # 4. 핵심 키워드 일치 (키워드당 +10점)
+    r_full_text = f"{r_row.get('강좌명', '')} {r_row.get('과목', '')}".upper()
+    p_full_text = f"{p_row.get('강좌명', '')} {p_row.get('슬로건', '')} {p_row.get('과목', '')}".upper()
+    for kw in MATCH_CORE_KEYWORDS:
+        kw_u = kw.upper()
+        if kw_u in r_full_text and kw_u in p_full_text:
+            score += 10.0
+
+    # 5. 대상학년 일치 (+10점)
+    r_grade = str(r_row.get("학년", "")).strip()
+    p_grade = str(p_row.get("대상학년", "")).strip()
+    if r_grade and p_grade and (r_grade in p_grade or p_grade in r_grade):
+        score += 10.0
+
+    # 6. 강좌명/슬로건 유사도 (최대 30점)
+    r_pure = str(r_row.get("순수강좌명", "")).strip()
+    p_pure = str(p_row.get("순수강좌명", "")).strip()
+    p_slogan = str(p_row.get("슬로건", "")).strip()
+    sim = max(
+        compute_title_similarity(r_pure, p_pure),
+        compute_title_similarity(r_pure, p_slogan),
+    )
+    score += (sim * 0.3)
+
+    return score
+
+
 def verify_rms_vs_pdf_course(
     rms_row: pd.Series,
     pdf_row: pd.Series,
@@ -651,40 +806,26 @@ def run_rms_pdf_crosscheck(
     used_pdf_indices: Set[int] = set()
 
     if not pdf_df.empty:
-        # [1차 정확 매칭]: 강사명 일치 + 수업요일 + 시작시간 일치 (동일 강사 다중 반은 강좌명/슬로건 유사도 + 학년으로 구분)
+        # [1차 정확 매칭]: 강사명 일치 + 수업요일 + 시작시간 일치 (calculate_inquiry_match_score 종합 가중치로 최적 선택)
         for r_idx, r_row in rms.iterrows():
-            r_inst = str(r_row["강사"]).strip()
-            r_days = str(r_row.get("수업요일", "")).strip()
-            r_start = str(r_row.get("전체시작시간", "") or r_row.get("시작시간", "")).strip()
-            r_pure = str(r_row.get("순수강좌명", "")).strip()
-            r_grade = str(r_row.get("학년", "")).strip()
-
             best_p_idx = None
             best_score = -1.0
 
             for p_idx, p_row in pdf_df.iterrows():
                 if p_idx in used_pdf_indices:
                     continue
-                p_inst_orig = str(p_row.get("강사명_원본", "")).strip()
-                p_inst_clean = str(p_row.get("강사명", "")).strip()
-                if not (
-                    mapper.match_instructors(r_inst, p_inst_orig)
-                    or mapper.match_instructors(r_inst, p_inst_clean)
-                ):
+                sc = calculate_inquiry_match_score(r_row, p_row, mapper)
+                if sc <= 0:
                     continue
 
+                r_days = str(r_row.get("수업요일", "")).strip()
                 p_days = str(p_row.get("수업요일", "")).strip()
+                r_start = str(r_row.get("전체시작시간", "") or r_row.get("시작시간", "")).strip()
                 p_start = str(p_row.get("전체시작시간", "") or p_row.get("시작시간", "")).strip()
 
                 if r_days and p_days and r_days == p_days and r_start and p_start and r_start == p_start:
-                    sim_t = compute_title_similarity(r_pure, str(p_row.get("순수강좌명", "")))
-                    sim_s = compute_title_similarity(r_pure, str(p_row.get("슬로건", "")))
-                    sim = max(sim_t, sim_s)
-                    p_grade = str(p_row.get("대상학년", "")).strip()
-                    if r_grade and p_grade and (r_grade in p_grade or p_grade in r_grade):
-                        sim += 15.0
-                    if sim > best_score:
-                        best_score = sim
+                    if sc > best_score:
+                        best_score = sc
                         best_p_idx = p_idx
 
             if best_p_idx is not None:
@@ -692,43 +833,25 @@ def run_rms_pdf_crosscheck(
                 pdf_to_rms_idx[best_p_idx] = r_idx
                 used_pdf_indices.add(best_p_idx)
 
-        # [2차 보조 매칭]: 요일/시간 일부 오기입 시 강사명 + 강좌명/슬로건 유사도 + 학년 기반 매칭
-        for p_idx, p_row in pdf_df.iterrows():
-            if p_idx in used_pdf_indices:
+        # [2차 가중치 종합 매칭]: 동일 강사 다중 강좌 최적 쌍 매칭 (과목 정규화 + 핵심 키워드 + 요일 가중치)
+        candidate_pairs = []
+        for r_idx, r_row in rms.iterrows():
+            if r_idx in rms_to_pdf_idx:
                 continue
-            p_inst_orig = str(p_row.get("강사명_원본", "")).strip()
-            p_inst_clean = str(p_row.get("강사명", "")).strip()
-            p_pure = str(p_row.get("순수강좌명", "")).strip()
-            p_slogan = str(p_row.get("슬로건", "")).strip()
-            p_grade = str(p_row.get("대상학년", "")).strip()
-
-            best_r_idx = None
-            best_score = -1.0
-            for r_idx, r_row in rms.iterrows():
-                if r_idx in rms_to_pdf_idx:
+            for p_idx, p_row in pdf_df.iterrows():
+                if p_idx in used_pdf_indices:
                     continue
-                r_inst = str(r_row["강사"]).strip()
-                if not (
-                    mapper.match_instructors(r_inst, p_inst_orig)
-                    or mapper.match_instructors(r_inst, p_inst_clean)
-                ):
-                    continue
-                r_pure = str(r_row.get("순수강좌명", "")).strip()
-                sim = max(
-                    compute_title_similarity(r_pure, p_pure),
-                    compute_title_similarity(r_pure, p_slogan),
-                )
-                r_grade = str(r_row.get("학년", "")).strip()
-                if r_grade and p_grade and (r_grade in p_grade or p_grade in r_grade):
-                    sim += 12.0
-                if sim > best_score:
-                    best_score = sim
-                    best_r_idx = r_idx
+                sc = calculate_inquiry_match_score(r_row, p_row, mapper)
+                if sc >= 120.0:  # 강사 일치 + 요일/과목/키워드 일치
+                    candidate_pairs.append((sc, r_idx, p_idx))
 
-            if best_r_idx is not None and best_score >= 45.0:
-                rms_to_pdf_idx[best_r_idx] = p_idx
-                pdf_to_rms_idx[p_idx] = best_r_idx
-                used_pdf_indices.add(p_idx)
+        candidate_pairs.sort(key=lambda x: x[0], reverse=True)
+        for sc, r_idx, p_idx in candidate_pairs:
+            if r_idx in rms_to_pdf_idx or p_idx in used_pdf_indices:
+                continue
+            rms_to_pdf_idx[r_idx] = p_idx
+            pdf_to_rms_idx[p_idx] = r_idx
+            used_pdf_indices.add(p_idx)
 
         # [3차 보조 매칭]: 특정 강사의 잔여 미매칭 강좌가 RMS 1건, PDF 1건으로 유일한 경우 자동 매칭
         for p_idx, p_row in pdf_df.iterrows():
@@ -751,6 +874,26 @@ def run_rms_pdf_crosscheck(
                 pdf_to_rms_idx[p_idx] = r_idx
                 used_pdf_indices.add(p_idx)
                 print(f"[Matcher 3차] 단일 강사 1:1 자동 매칭 성공: RMS '{rms.loc[r_idx, '강좌명']}' ↔ PDF '{p_row.get('강좌명')}' (강사: {p_inst_clean})")
+
+        # [4차 유사도 Fallback 매칭]: 남은 강좌 중 점수 115.0 이상 최적 쌍 매칭
+        fallback_pairs = []
+        for r_idx, r_row in rms.iterrows():
+            if r_idx in rms_to_pdf_idx:
+                continue
+            for p_idx, p_row in pdf_df.iterrows():
+                if p_idx in used_pdf_indices:
+                    continue
+                sc = calculate_inquiry_match_score(r_row, p_row, mapper)
+                if sc >= 115.0:
+                    fallback_pairs.append((sc, r_idx, p_idx))
+
+        fallback_pairs.sort(key=lambda x: x[0], reverse=True)
+        for sc, r_idx, p_idx in fallback_pairs:
+            if r_idx in rms_to_pdf_idx or p_idx in used_pdf_indices:
+                continue
+            rms_to_pdf_idx[r_idx] = p_idx
+            pdf_to_rms_idx[p_idx] = r_idx
+            used_pdf_indices.add(p_idx)
 
     # ---------------------------------------------------------
     # 전 강좌 대조 테이블 생성

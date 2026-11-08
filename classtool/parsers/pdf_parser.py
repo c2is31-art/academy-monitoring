@@ -154,24 +154,70 @@ KNOWN_SUBJECT_PREFIXES = (
     "기하",
 )
 
-TARGET_INSTRUCTORS: List[str] = [
-    # 사용자 지정 탐구 및 주요 강사
-    "김영진",
-    "차현호",
-    "우영호",
-    "민정",
-    "김종웅",
-    "장선근",
-    "정우정",
-    "정가현",
-    "임재관",
-    "최우택",
-    "심수현",
-    "지인해",
-    "박성민",
-    "이현수",
-    "이진리",
-    "고병훈",
+TARGET_INSTRUCTOR_MAP: Dict[str, List[str]] = {
+    "김영진": ["김영진", "together"],
+    "차현호": ["차현호", "차쌤", "전력질주"],
+    "우영호": ["우영호", "LEAD IN", "리드인"],
+    "민정": ["민정", "세시지", "지리"],
+    "김종웅": ["김종웅", "흥겨웅", "웅쌤"],
+    "장선근": ["장선근"],
+    "정우정": ["정우정", "BEGIN", "DEEP"],
+    "박지향": ["박지향", "추월차선", "생물의 유전"],
+    "정소진": ["정소진", "세계시민"],
+    "강민웅": ["강민웅", "물리학 8주"],
+    "김휘영": ["김휘영", "내신 마스터"],
+    "정가현": ["정가현", "DOPAMINE", "도파민"],
+    "현자의 돌": ["현자의 돌", "현자의돌", "임상욱", "현돌"],
+    "한종철": ["한종철", "생물의 유전", "철두철미"],
+}
+
+MAJOR_INSTRUCTOR_KEYWORDS: Dict[str, List[str]] = {
+    "심수현": ["심수현", "진심국어"],
+    "김수현": ["김수현", "PRIDE"],
+    "지인해": ["지인해"],
+    "리아": ["리아"],
+    "박소현": ["박소현", "셀리나"],
+    "박성민": ["박성민", "Big Bang"],
+    "이현수": ["이현수", "FinalCUT"],
+    "이진리": ["이진리", "풀이학"],
+    "고병훈": ["고병훈", "기고만장"],
+    "박은주": ["박은주"],
+    "이예린": ["이예린"],
+    "김영훈": ["김영훈"],
+    "최적": ["최적"],
+    "김연호": ["김연호"],
+    "신용선": ["신용선", "스캔"],
+    "류현준": ["류현준"],
+    "박석준": ["박석준"],
+    "김동관": ["김동관"],
+    "이준호": ["이준호"],
+    "최인호": ["최인호"],
+    "유진": ["유진"],
+    "윤성훈": ["윤성훈"],
+    "이기상": ["이기상"],
+    "임재관": ["임재관"],
+    "최우택": ["최우택"],
+    "차현": ["차현"],
+}
+
+INQUIRY_SUBJECTS: List[str] = [
+    "사회와문화",
+    "현대사회와윤리",
+    "윤리와사상",
+    "경제",
+    "세계시민과지리",
+    "세계사",
+    "통합사회",
+    "물리학",
+    "화학",
+    "화학반응의세계",
+    "생명과학",
+    "지구과학",
+    "전자기와양자",
+    "생물의유전",
+]
+
+TARGET_INSTRUCTORS: List[str] = list(TARGET_INSTRUCTOR_MAP.keys()) + list(MAJOR_INSTRUCTOR_KEYWORDS.keys()) + [
     # RMS 및 강의계획서 수록 탐구/국영수 전체 강사
     "박지향",
     "강민웅",
@@ -223,9 +269,13 @@ TARGET_INSTRUCTORS: List[str] = [
     "어준규",
     "현자의 돌",
     "이현호",
+    "차현",
 ]
 
 INSTRUCTOR_ALIAS: Dict[str, str] = {
+    "현자의돌": "현자의 돌",
+    "임상욱": "현자의 돌",
+    "현돌": "현자의 돌",
     "셀리나": "박소현",
     "박소현(셀리나)": "박소현",
     "박소현(리아)": "리아",
@@ -453,8 +503,16 @@ def _parse_header_lines(page_text: str) -> Dict[str, str]:
         txt_ns = re.sub(r"\s+", "", page_text)
         for inst in sorted(TARGET_INSTRUCTORS, key=len, reverse=True):
             if inst.replace(" ", "") in txt_ns:
-                info["강사명"] = inst
+                info["강사명"] = clean_instructor_name(inst)
                 info["강사명_원본"] = inst
+                break
+
+    # 과목 Fallback: 과목을 못 찾은 경우 2028 개정 탐구과목(INQUIRY_SUBJECTS) 및 주요 과목 탐색
+    if not info["과목"]:
+        txt_ns = re.sub(r"\s+", "", page_text)
+        for isubj in sorted(INQUIRY_SUBJECTS, key=len, reverse=True):
+            if isubj in txt_ns:
+                info["과목"] = isubj
                 break
 
     if not pre_lines:
@@ -850,6 +908,16 @@ def _read_single_pdf_bytes(pdf_file: Union[str, Path, bytes, io.BytesIO, Any]) -
     elif hasattr(pdf_file, "read"):
         pdf_file.seek(0)
         return pdf_file.read(), fname or "uploaded.pdf"
+    elif isinstance(pdf_file, (tuple, list)) and len(pdf_file) == 2:
+        fn, val = pdf_file
+        if isinstance(val, bytes):
+            return val, str(fn)
+        elif hasattr(val, "getvalue"):
+            return val.getvalue(), str(fn)
+        elif hasattr(val, "read"):
+            val.seek(0)
+            return val.read(), str(fn)
+        return bytes(val), str(fn)
     else:
         raise ValueError("지원하지 않는 PDF 파일 입력 형식입니다.")
 
@@ -902,10 +970,11 @@ def parse_syllabus_pdf(
                     or "수강료" in txt
                 )
                 has_target = any(ti.replace(" ", "") in txt_nospace for ti in TARGET_INSTRUCTORS)
+                has_inquiry_subj = any(isubj in txt_nospace for isubj in INQUIRY_SUBJECTS)
 
                 is_course_start = (
                     (has_anchor and has_core)
-                    or (has_target and has_core and ("개강일" in txt or "수강료" in txt))
+                    or ((has_target or has_inquiry_subj) and has_core and ("개강일" in txt or "수강료" in txt))
                 )
 
                 # 직전 강좌의 진도표(날짜/단원) 전용 페이지는 새 강좌로 오인하지 않도록 방어
@@ -1064,8 +1133,14 @@ def parse_syllabus_pdf(
                 continue
 
     result_df = pd.DataFrame(records)
-    inst_list = sorted(list(set(result_df["강사명"].dropna().unique()))) if not result_df.empty else []
+    detected = set(result_df["강사명"].dropna().unique()) if not result_df.empty else set()
+    detected_normalized = {clean_instructor_name(d).replace(" ", "") for d in detected}
     print(f"\n[PDF 파싱 완료] 총 {total_scanned_pages}페이지 탐색 | 인식된 강좌 총 {len(result_df)}건")
-    print("인식된 강사 리스트:", inst_list)
+    print("[디버그] 인식된 강사 전체 목록:", sorted(list(detected)))
+    missing = [
+        inst for inst in TARGET_INSTRUCTOR_MAP
+        if inst not in detected and clean_instructor_name(inst).replace(" ", "") not in detected_normalized
+    ]
+    print("[디버그] 아직 인식되지 않은 타깃 강사:", missing)
 
     return result_df
