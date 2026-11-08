@@ -1282,12 +1282,13 @@ with tab3:
         )
 
         if active_rms_df is not None:
-            # PDF 강좌 매핑 사전 구축 (강사명 및 강좌명 기준)
+            # PDF 강좌 매핑 사전 구축 (강사명 및 강좌명 기준, Dict 변환으로 참/거짓 모호성 에러 원천 차단)
             pdf_map = {}
             if syllabus_pdf_df is not None and not syllabus_pdf_df.empty:
                 for _, p_row in syllabus_pdf_df.iterrows():
-                    p_inst = str(p_row.get("강사명", "") or p_row.get("강사명_원본", "")).strip()
-                    pdf_map.setdefault(p_inst, []).append(p_row)
+                    p_dict = p_row.to_dict()
+                    p_inst = str(p_dict.get("강사명", "") or p_dict.get("강사명_원본", "")).strip()
+                    pdf_map.setdefault(p_inst, []).append(p_dict)
 
             courses_for_ai = []
             for idx, r_row in active_rms_df.iterrows():
@@ -1303,7 +1304,7 @@ with tab3:
                         if cand_title == r_title or r_title in cand_title or cand_title in r_title:
                             matched_p = cand
                             break
-                    if not matched_p and candidates:
+                    if matched_p is None and len(candidates) > 0:
                         matched_p = candidates[0]
 
                 if matched_p is not None:
@@ -1350,7 +1351,14 @@ with tab3:
             ai_df = st.session_state.get("ai_titles_df")
             if ai_df is not None and not ai_df.empty:
                 # 1. 상단 요약 배지
-                rev_mask = ai_df["needs_revision"] == True if "needs_revision" in ai_df.columns else ai_df.get("판정", ai_df.get("판정결과", pd.Series())).str.contains("수정")
+                if "needs_revision" in ai_df.columns:
+                    rev_mask = ai_df["needs_revision"].fillna(False).astype(bool)
+                elif "판정" in ai_df.columns:
+                    rev_mask = ai_df["판정"].fillna("").astype(str).str.contains("수정")
+                elif "판정결과" in ai_df.columns:
+                    rev_mask = ai_df["판정결과"].fillna("").astype(str).str.contains("수정")
+                else:
+                    rev_mask = pd.Series([False] * len(ai_df), index=ai_df.index)
                 rev_cnt = int(rev_mask.sum())
                 keep_cnt = len(ai_df) - rev_cnt
 
