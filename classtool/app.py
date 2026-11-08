@@ -1184,7 +1184,69 @@ with tab2:
                 "자동 생성된 수정 요청 사항 요약",
             ]
             valid_view_cols = [c for c in view_cols if c in disp_df.columns]
-            st.dataframe(disp_df[valid_view_cols], use_container_width=True, hide_index=True)
+
+            st.caption(
+                "💡 **[RMS vs PDF 강의명 좌우 인접 대조 및 직접 편집]** "
+                "`RMS 강좌명`과 `PDF 강좌명`이 나란히 배치되어 있어 불일치 사항을 한눈에 비교할 수 있습니다. "
+                "셀을 더블 클릭하여 오탈자나 강의명을 직접 수정할 수 있으며, 수정된 내용은 엑셀 다운로드에 즉시 반영됩니다."
+            )
+
+            disabled_cols = [
+                c for c in valid_view_cols
+                if c not in ("RMS 강좌명", "PDF 강좌명", "자동 생성된 수정 요청 사항 요약")
+            ]
+
+            edited_df = st.data_editor(
+                disp_df[valid_view_cols],
+                use_container_width=True,
+                hide_index=True,
+                disabled=disabled_cols,
+                column_config={
+                    "RMS 강좌명": st.column_config.TextColumn(
+                        "RMS 강의명 ✏️",
+                        help="RMS 등록 강좌명입니다. 더블 클릭하여 직접 수정할 수 있습니다.",
+                    ),
+                    "PDF 강좌명": st.column_config.TextColumn(
+                        "PDF 강의명 ✏️",
+                        help="PDF 수록 강좌명입니다. 더블 클릭하여 직접 수정할 수 있습니다.",
+                    ),
+                    "강의상태": st.column_config.TextColumn(
+                        "강의상태",
+                        help="판매 중 / 판매중지 상태",
+                    ),
+                },
+                key="tab2_comparison_data_editor",
+            )
+
+            # 사용자가 표에서 직접 수정한 강의명을 원본 comparison_df에 즉시 동기화
+            if edited_df is not None and not edited_df.empty:
+                has_updates = False
+                for _, e_row in edited_df.iterrows():
+                    e_code = e_row.get("강좌코드")
+                    e_no = e_row.get("No")
+                    e_rms_t = e_row.get("RMS 강좌명")
+                    e_pdf_t = e_row.get("PDF 강좌명")
+                    e_fix_t = e_row.get("자동 생성된 수정 요청 사항 요약")
+
+                    mask = None
+                    if e_code and e_code in comp_df["강좌코드"].values:
+                        mask = comp_df["강좌코드"] == e_code
+                    elif e_no and e_no in comp_df["No"].values:
+                        mask = comp_df["No"] == e_no
+
+                    if mask is not None and mask.any():
+                        old_rms = comp_df.loc[mask, "RMS 강좌명"].iloc[0]
+                        old_pdf = comp_df.loc[mask, "PDF 강좌명"].iloc[0]
+                        if old_rms != e_rms_t or old_pdf != e_pdf_t:
+                            comp_df.loc[mask, "RMS 강좌명"] = e_rms_t
+                            comp_df.loc[mask, "PDF 강좌명"] = e_pdf_t
+                            if e_fix_t is not None:
+                                comp_df.loc[mask, "자동 생성된 수정 요청 사항 요약"] = e_fix_t
+                            has_updates = True
+
+                if has_updates:
+                    crosscheck_result["comparison_df"] = comp_df
+                    st.session_state["crosscheck_result"] = crosscheck_result
 
             # 디자인팀 및 강사용 수정 요청 안내문 자동 생성
             st.markdown("---")

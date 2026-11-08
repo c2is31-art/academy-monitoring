@@ -40,10 +40,18 @@ def build_all_in_one_master_df(
     RMS 강좌 목록을 기준으로 PDF 검수 결과, 수강생 수, 맞춤법/문장 축약, AI 추천 강의명까지
     한 행(Row)에 모든 정보를 가로로 완전 결합한 올인원 마스터 DataFrame을 생성합니다.
     """
-    comparison_df: pd.DataFrame = crosscheck_result.get("comparison_df", pd.DataFrame())
-    stopped_df: pd.DataFrame = crosscheck_result.get("stopped_rms_df", pd.DataFrame())
-    spelling_df: pd.DataFrame = crosscheck_result.get("spelling_df", pd.DataFrame())
-    long_sentence_df: pd.DataFrame = crosscheck_result.get("long_sentence_df", pd.DataFrame())
+    comparison_df = crosscheck_result.get("comparison_df")
+    if comparison_df is None:
+        comparison_df = pd.DataFrame()
+    stopped_df = crosscheck_result.get("stopped_rms_df")
+    if stopped_df is None:
+        stopped_df = pd.DataFrame()
+    spelling_df = crosscheck_result.get("spelling_df")
+    if spelling_df is None:
+        spelling_df = pd.DataFrame()
+    long_sentence_df = crosscheck_result.get("long_sentence_df")
+    if long_sentence_df is None:
+        long_sentence_df = pd.DataFrame()
     ai_titles_df = crosscheck_result.get("ai_titles_df")
 
     # 만약 세션에 AI 강의명이 아직 없다면 엑셀 통합 시 기본 내장 규칙으로 0.01초 만에 자동 생성
@@ -158,24 +166,23 @@ def build_all_in_one_master_df(
                 sale_status_str = raw_sale
 
             master_rows.append({
-                # 1. 기본/수강생 정보
+                # 1. 기본 정보 및 강의명 좌우 인접 대조
                 "No": row.get("No", len(master_rows) + 1),
                 "강의상태": sale_status_str,
-                "판매상태": sale_status_str,
                 "과목": row.get("과목", ""),
                 "학년": row.get("학년", ""),
                 "강사명": inst,
                 "RMS 강좌명": rms_title,
+                "PDF 강좌명": pdf_title or "-",
+                "최종검수상태": status_val,
+                "오류상세내역": row.get("오류 상세 내역", ""),
+                "자동생성_수정요청요약": row.get("자동 생성된 수정 요청 사항 요약", ""),
+                "PDF 페이지": row.get("PDF 페이지", "-"),
                 "총수강생(가등록포함)": tot_stu,
                 "결제완료인원": paid_stu,
                 "미결제(가등록)": unpaid_stu if unpaid_stu >= 0 else 0,
                 "결제율(%)": row.get("결제율(%)", 0.0),
-                # 2. PDF 대조 검수 정보
-                "최종검수상태": status_val,
-                "오류상세내역": row.get("오류 상세 내역", ""),
-                "자동생성_수정요청요약": row.get("자동 생성된 수정 요청 사항 요약", ""),
-                "PDF 강좌명": pdf_title or "-",
-                "PDF 페이지": row.get("PDF 페이지", "-"),
+                "판매상태": sale_status_str,
                 "RMS 개강~종강(회차)": row.get("RMS 개강~종강(회차)", ""),
                 "PDF 개요 개강~종강(회차)": row.get("PDF 개요 개강~종강(회차)", ""),
                 "PDF 1월진도표(첫날~끝날/실제회차)": row.get("PDF 1월진도표(첫날~끝날/회차)", ""),
@@ -202,20 +209,20 @@ def build_all_in_one_master_df(
             master_rows.append({
                 "No": s_row.get("No", len(master_rows) + 1),
                 "강의상태": "판매중지",
-                "판매상태": "판매중지",
                 "과목": s_row.get("과목", ""),
                 "학년": s_row.get("학년", ""),
                 "강사명": s_row.get("강사", ""),
                 "RMS 강좌명": s_row.get("강좌명", ""),
+                "PDF 강좌명": "-",
+                "최종검수상태": "⚪ RMS 판매중지 (검수 제외 강좌)",
+                "오류상세내역": "RMS 상에서 판매중지로 등록된 강좌입니다.",
+                "자동생성_수정요청요약": "사전 검수 시 필터 해제 / 폐강 시 PDF 삭제 필요",
+                "PDF 페이지": "-",
                 "총수강생(가등록포함)": s_row.get("가등록포함수강생수", 0),
                 "결제완료인원": s_row.get("결제인원", 0),
                 "미결제(가등록)": s_row.get("가등록(미결제)", 0),
                 "결제율(%)": s_row.get("결제율(%)", 0.0),
-                "최종검수상태": "⚪ RMS 판매중지 (검수 제외 강좌)",
-                "오류상세내역": "RMS 상에서 판매중지로 등록된 강좌입니다.",
-                "자동생성_수정요청요약": "사전 검수 시 필터 해제 / 폐강 시 PDF 삭제 필요",
-                "PDF 강좌명": "-",
-                "PDF 페이지": "-",
+                "판매상태": "판매중지",
                 "RMS 개강~종강(회차)": f"{s_row.get('개강일_짧은표시', '')}~{s_row.get('종강일_짧은표시', '')} ({s_row.get('회차', 0)}회)",
                 "PDF 개요 개강~종강(회차)": "-",
                 "PDF 1월진도표(첫날~끝날/실제회차)": "-",

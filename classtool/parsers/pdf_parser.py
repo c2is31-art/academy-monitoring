@@ -508,12 +508,15 @@ def _extract_schedule_and_verify_january(
     items: List[Dict[str, Any]] = []
     seen_keys = set()
 
-    # 1) 텍스트 기반 '1월 과정' vs '2월 과정' 구간 내 날짜 소속 판별 맵 생성
-    combined_text = "\n".join(page_texts)
-    m_plan_start = re.search(r"주차별\s*진도\s*계획(.*)", combined_text, flags=re.DOTALL)
-    plan_text = m_plan_start.group(1) if m_plan_start else combined_text
-    # 연간 커리큘럼 및 하단 학원 정보 이전까지만 슬라이싱
-    plan_text = re.split(r"연간\s*커리큘럼|○\s*러셀\s*대치", plan_text, maxsplit=1)[0]
+    # 1) 멀티페이지 병합 및 푸터 노이즈 정돈 후 '1월 과정' vs '2월 과정' 구간 분리
+    clean_pages = [re.sub(r"○\s*러셀\s*대치(?:학원|별관학원)?[^\n\r]*", "", t) for t in page_texts]
+    clean_combined = "\n".join(clean_pages)
+    clean_combined = re.sub(r"○\s*러셀\s*대치(?:학원|별관학원)?[^\n\r]*", "", clean_combined)
+
+    m_plan_start = re.search(r"주차별\s*진도\s*계획(.*)", clean_combined, flags=re.DOTALL)
+    plan_text = m_plan_start.group(1) if m_plan_start else clean_combined
+    # 연간 커리큘럼 이전까지만 슬라이싱 (멀티페이지 단절을 유발하던 '○ 러셀 대치' 분리 제거)
+    plan_text = re.split(r"연간\s*커리큘럼|연간\s*커리", plan_text, maxsplit=1)[0]
 
     # '2월 과정' 키워드를 기준으로 1월 영역 텍스트와 2월 영역 텍스트 분리
     feb_split = re.split(r"2\s*월\s*과정", plan_text, maxsplit=1)
@@ -523,32 +526,34 @@ def _extract_schedule_and_verify_january(
     if "1월 과정" in jan_text_block or "1월과정" in jan_text_block:
         jan_text_block = re.split(r"1\s*월\s*과정", jan_text_block, maxsplit=1)[-1]
 
-    # 정규표현식으로 jan_text_block과 feb_text_block에서 날짜(M/D) 집합 추출
-    date_token_regex = re.compile(
-        r"(?<!\d)(\d{1,2}\s*/\s*\d{1,2})\s*(?:[월화수목금토일]?\s*\([^)\n\r]{0,15}\)|\([월화수목금토일]\))"
+    # 2) 텍스트 정규표현식 기반 초고속 파싱 (단일열, 다중열 및 페이지 경계 분리 완벽 지원)
+    date_token_pattern = re.compile(
+        r"(?<!\d)(?:(\d{1,2}\s*(?:주차|회차|강|회))\s*)?(\d{1,2}\s*(?:/|월)\s*\d{1,2}(?:\s*일)?(?:\s*[월화수목금토일]?(?:\s*\([^)\n\r]{0,15}\)|\([월화수목금토일]\))?)?)"
     )
-    jan_block_ymds = {
-        convert_md_to_ymd(m.group(0), target_ym=target_ym)
-        for m in date_token_regex.finditer(jan_text_block)
-    } - {""}
-    feb_block_ymds = {
-        convert_md_to_ymd(m.group(0), target_ym=target_ym)
-        for m in date_token_regex.finditer(feb_text_block)
-    } - {""}
 
-    # 2) 텍스트 정규표현식 기반 초고속 파싱
     for sec_label, sec_txt in [("1월 과정", jan_text_block), ("2월 과정", feb_text_block)]:
         if not sec_txt.strip():
             continue
-        for m_line in re.finditer(
-            r"(?<!\d)(\d{1,2}\s*/\s*\d{1,2}\s*(?:[월화수목금토일]?\s*\([^)\n\r]{0,15}\))?)\s+([^\n\r]+)",
-            sec_txt,
-        ):
-            d_raw = m_line.group(1).strip()
-            c_raw = m_line.group(2).strip()
+
+        matches = list(date_token_pattern.finditer(sec_txt))
+        for idx_m, m in enumerate(matches):
+            full_token = m.group(0).strip()
+            d_raw = m.group(2).strip() if m.group(2) else full_token
             std_d = convert_md_to_ymd(d_raw, target_ym=target_ym)
             if not std_d:
                 continue
+
+            # 다음 날짜 토큰 시작 지점 전까지를 현재 회차의 수업 내용으로 추출
+            next_pos = matches[idx_m + 1].start() if idx_m + 1 < len(matches) else len(sec_txt)
+            chunk = sec_txt[m.end():next_pos]
+            c_lines = [
+                line.strip()
+                for line in chunk.splitlines()
+                if line.strip() and "단원 및 수업내용" not in line and "주차별 진도" not in line
+            ]
+            c_raw = " ".join(c_lines)
+            c_raw = re.sub(r"\s+", " ", c_raw).strip() or "수업 진행"
+
             key = f"{std_d}|{c_raw}"
             if key in seen_keys:
                 continue
@@ -712,16 +717,21 @@ def parse_syllabus_pdf(
             global_course_idx += 1
             first_text = grp["texts"][0]
             all_texts = grp["texts"]
+
+            # 멀티페이지 텍스트 병합 (각 페이지의 하단 푸터 노이즈 정리)
+            clean_pages = [re.sub(r"○\s*러셀\s*대치(?:학원|별관학원)?[^\n\r]*", "", t) for t in all_texts]
+            combined_clean_text = "\n".join(clean_pages)
+
             full_text = "\n\n".join(
                 f"[Page {grp['start_page'] + i}]\n{t}" for i, t in enumerate(all_texts)
             )
 
             hdr = _parse_header_lines(first_text)
-            ov = _parse_overview_section(first_text, target_ym=target_ym)
+            ov = _parse_overview_section(combined_clean_text, target_ym=target_ym)
             parsed_sched = parse_schedule_text(ov["수업시간_원본"])
 
             sched_ver = _extract_schedule_and_verify_january(
-                page_texts=all_texts,
+                page_texts=clean_pages,
                 course_days_list=parsed_sched["days_list"],
                 target_ym=target_ym,
             )
