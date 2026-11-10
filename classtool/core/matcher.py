@@ -1069,7 +1069,22 @@ def run_rms_pdf_crosscheck(
 
     for r_idx, r_row in rms.iterrows():
         r_no = int(r_row.get("No", r_idx + 1) or (r_idx + 1))
-        r_symbol = str(r_row.get("수강기호", "") or "").strip()
+        # 수강기호 추출 (다중 fallback 및 공백/nan 방어)
+        r_symbol = ""
+        for sym_key in ("수강기호", "수강 기호", "강좌기호", "기호", "과정기호", "수강반기호", "단과기호", "수강코드"):
+            val = r_row.get(sym_key)
+            if pd.notna(val) and str(val).strip() and str(val).strip().lower() not in ("nan", "none", "-", ""):
+                r_symbol = str(val).strip()
+                break
+        if not r_symbol:
+            for c in r_row.index:
+                if "기호" in str(c):
+                    val = r_row[c]
+                    if pd.notna(val) and str(val).strip() and str(val).strip().lower() not in ("nan", "none", "-", ""):
+                        r_symbol = str(val).strip()
+                        break
+        if not r_symbol:
+            r_symbol = "-"
         r_code = str(r_row.get("강좌코드", "")).strip()
         r_area = str(r_row.get("영역", "")).strip()
         r_subj = str(r_row.get("과목", "")).strip()
@@ -1339,13 +1354,28 @@ def run_rms_pdf_crosscheck(
                     status_badge = "⚠️ RMS 판매중지 (폐강 의심)"
                     detail_str = f"RMS에서 '판매중지' 상태인 강좌입니다. (강좌코드: {r_code})"
                     fix_str = "사전 검수 시 상단 필터 해제 / 실제 폐강 강좌라면 PDF에서 삭제 필요"
+                    stopped_sym = ""
+                    for sym_key in ("수강기호", "수강 기호", "강좌기호", "기호", "과정기호", "수강반기호", "단과기호", "수강코드"):
+                        val = stopped_matched_row.get(sym_key)
+                        if pd.notna(val) and str(val).strip() and str(val).strip().lower() not in ("nan", "none", "-", ""):
+                            stopped_sym = str(val).strip()
+                            break
+                    if not stopped_sym:
+                        for c in stopped_matched_row.index:
+                            if "기호" in str(c):
+                                val = stopped_matched_row[c]
+                                if pd.notna(val) and str(val).strip() and str(val).strip().lower() not in ("nan", "none", "-", ""):
+                                    stopped_sym = str(val).strip()
+                                    break
+                    if not stopped_sym:
+                        stopped_sym = "-"
                     pdf_stopped_matches.append(
                         {
                             "PDF_순번": p_seq,
                             "PDF_페이지": p_page,
                             "검수상태": status_badge,
                             "강의상태": "[판매중지]",
-                            "수강기호": str(stopped_matched_row.get("수강기호", "") or "").strip(),
+                            "수강기호": stopped_sym,
                             "과목": p_subj,
                             "학년": p_grade,
                             "강사명": p_inst,
@@ -1454,6 +1484,7 @@ def run_rms_pdf_crosscheck(
     stopped_cnt = len(stopped_rms_df) if (stopped_rms_df is not None and not stopped_rms_df.empty) else 0
 
     return {
+        "rms_df": rms,
         "comparison_df": comparison_df,
         "error_df": error_df,
         "missing_pdf_df": missing_pdf_df,
@@ -2032,7 +2063,7 @@ def export_crosscheck_to_excel(
                     "검수상태": "⚠️ RMS 판매중지 (폐강 의심)",
                     "No": r.get("RMS_No", 0),
                     "강의상태": "[판매중지]",
-                    "수강기호": r.get("수강기호", ""),
+                    "수강기호": str(r.get("수강기호", "-") or "-"),
                     "강좌코드": r.get("강좌코드", ""),
                     "과목": r.get("과목", ""),
                     "학년": r.get("학년", ""),
@@ -2160,9 +2191,20 @@ def export_crosscheck_to_excel(
     # =========================================================================
     ws_s8 = wb.create_sheet(title="판매중지_제외강좌목록")
     stopped_df = crosscheck_result.get("stopped_rms_df", pd.DataFrame())
+    if not stopped_df.empty:
+        stopped_df = stopped_df.copy()
+        if "수강기호" not in stopped_df.columns:
+            for c in stopped_df.columns:
+                if "기호" in str(c):
+                    stopped_df["수강기호"] = stopped_df[c]
+                    break
+            if "수강기호" not in stopped_df.columns:
+                stopped_df["수강기호"] = "-"
+        stopped_df["수강기호"] = stopped_df["수강기호"].fillna("-").astype(str).replace({"": "-", "nan": "-", "None": "-"})
     sheet8_cols = [
         "No",
         "강의상태",
+        "수강기호",
         "강좌코드",
         "영역",
         "과목",

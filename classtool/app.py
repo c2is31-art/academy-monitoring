@@ -278,11 +278,15 @@ def parse_all_pdfs_cached(
     return pd.DataFrame()
 
 
+CACHE_VERSION_SALT = "v3_20261110_symbol_fixed"
+
+
 @st.cache_data(show_spinner=False, max_entries=20)
 def parse_rms_cached(
     _file_bytes: bytes,
     file_hash: str,
     file_name: str,
+    salt: str = CACHE_VERSION_SALT,
 ) -> pd.DataFrame:
     """
     RMS 엑셀 파일 바이트(_file_bytes)의 Streamlit 자체 해싱을 방지하고
@@ -644,8 +648,8 @@ if raw_rms_df is not None:
 # -------------------------------------------------------------------------
 crosscheck_result = None
 if active_rms_df is not None:
-    rms_hash_key = f"{st.session_state.get('rms_file_hash', 'raw')}_{exclude_stopped}_{len(active_rms_df)}_{len(stopped_rms_df)}"
-    pdf_hash_key = f"{pdf_files_hash}_{selected_rms_ym}_{len(syllabus_pdf_df) if syllabus_pdf_df is not None else 0}"
+    rms_hash_key = f"{CACHE_VERSION_SALT}_{st.session_state.get('rms_file_hash', 'raw')}_{exclude_stopped}_{len(active_rms_df)}_{len(stopped_rms_df)}"
+    pdf_hash_key = f"{CACHE_VERSION_SALT}_{pdf_files_hash}_{selected_rms_ym}_{len(syllabus_pdf_df) if syllabus_pdf_df is not None else 0}"
 
     raw_cross = run_crosscheck_cached(
         _rms_df=active_rms_df,
@@ -660,6 +664,9 @@ if active_rms_df is not None:
     )
     crosscheck_result = dict(raw_cross)
     crosscheck_result["stopped_rms_df"] = stopped_rms_df
+    crosscheck_result["rms_df"] = active_rms_df
+    if "raw_rms_df" in locals() and raw_rms_df is not None:
+        crosscheck_result["raw_rms_df"] = raw_rms_df
     # AI 강의명 추천 데이터프레임이 세션에 있으면 병합
     if st.session_state.get("ai_titles_df") is not None:
         crosscheck_result["ai_titles_df"] = st.session_state["ai_titles_df"]
@@ -683,7 +690,7 @@ if crosscheck_result is not None:
     sp_df_state = st.session_state.get("custom_spelling_df")
     sp_hash = safe_get_hash(sp_df_state)
 
-    export_cache_key = f"{rms_hash_key}_{pdf_hash_key}_{selected_rms_ym}_{snap_a}_{snap_b}_{ai_hash}_{sp_hash}"
+    export_cache_key = f"{CACHE_VERSION_SALT}_{rms_hash_key}_{pdf_hash_key}_{selected_rms_ym}_{snap_a}_{snap_b}_{ai_hash}_{sp_hash}"
 
     # 1. 올인원 마스터 DataFrame 및 전체 TSV 준비 (캐싱 적용: 0.00초)
     all_in_one_master_df = build_all_in_one_master_df_cached(

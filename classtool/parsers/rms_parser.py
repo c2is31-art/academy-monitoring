@@ -268,6 +268,36 @@ def decode_rms_bytes(raw_bytes: bytes) -> str:
     return raw_bytes.decode("cp949", errors="replace")
 
 
+def standardize_rms_column_name(col_name: Any) -> str:
+    """
+    RMS 엑셀 컬럼명의 공백, 개행 및 변형 표기를 표준 단일 컬럼명으로 정규화합니다.
+    특히 '수강기호', '수강 기호', '강좌기호', '기호', '수강코드' 등을 '수강기호'로 일괄 통일합니다.
+    """
+    if pd.isna(col_name) or col_name is None:
+        return ""
+    s = re.sub(r"\s+", " ", str(col_name)).strip()
+    s_compact = re.sub(r"[\s_\-\.\/\\]+", "", s)
+    if s_compact in ("수강기호", "강좌기호", "기호", "과정기호", "수강반기호", "단과기호", "수강코드", "과목기호", "접수기호"):
+        return "수강기호"
+    if s_compact in ("강좌명", "강의명", "수업명"):
+        return "강좌명"
+    if s_compact in ("강좌코드", "강의코드"):
+        return "강좌코드"
+    if s_compact in ("강사", "강사명", "선생님"):
+        return "강사"
+    if s_compact in ("수업시간", "강의시간"):
+        return "수업시간"
+    if s_compact in ("개강일", "개강일자", "첫수업일"):
+        return "개강일"
+    if s_compact in ("종강일", "종강일자", "끝수업일"):
+        return "종강일"
+    if s_compact in ("수강료", "금액", "학원비"):
+        return "수강료"
+    if s_compact in ("1회차기준수강료", "1회차수강료", "회차당수강료"):
+        return "1회차 기준 수강료"
+    return s
+
+
 def _normalize_candidate_df(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     """
     추출된 DataFrame의 컬럼 또는 상단 행에 필수 컬럼이 모두 포함되어 있는지 확인하고,
@@ -276,20 +306,20 @@ def _normalize_candidate_df(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     if df is None or df.empty:
         return None
 
-    cols_str = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
+    cols_str = [standardize_rms_column_name(c) for c in df.columns]
     if all(req in cols_str for req in REQUIRED_RMS_COLUMNS):
         out = df.copy()
         out.columns = cols_str
         return out
 
     if isinstance(df.columns, pd.MultiIndex):
-        last_level = [re.sub(r"\s+", " ", str(c[-1])).strip() for c in df.columns]
+        last_level = [standardize_rms_column_name(c[-1]) for c in df.columns]
         if all(req in last_level for req in REQUIRED_RMS_COLUMNS):
             out = df.copy()
             out.columns = last_level
             return out
 
-    first_row = [re.sub(r"\s+", " ", str(v)).strip() for v in df.iloc[0].values]
+    first_row = [standardize_rms_column_name(v) for v in df.iloc[0].values]
     if all(req in first_row for req in REQUIRED_RMS_COLUMNS):
         out = df.iloc[1:].copy().reset_index(drop=True)
         out.columns = first_row
@@ -297,7 +327,7 @@ def _normalize_candidate_df(df: pd.DataFrame) -> Optional[pd.DataFrame]:
 
     max_scan = min(10, len(df))
     for idx in range(1, max_scan):
-        row_vals = [re.sub(r"\s+", " ", str(v)).strip() for v in df.iloc[idx].values]
+        row_vals = [standardize_rms_column_name(v) for v in df.iloc[idx].values]
         if all(req in row_vals for req in REQUIRED_RMS_COLUMNS):
             out = df.iloc[idx + 1 :].copy().reset_index(drop=True)
             out.columns = row_vals
@@ -424,6 +454,14 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
     # 세 번째 테이블(가장 안쪽 본 데이터 테이블) 선택
     target_df = matched_candidates[-1].copy()
 
+    # 컬럼 재표준화 (수강기호, 강좌코드 등 통일)
+    target_df.columns = [standardize_rms_column_name(c) for c in target_df.columns]
+    if "수강기호" not in target_df.columns:
+        for c in target_df.columns:
+            if "기호" in str(c):
+                target_df.rename(columns={c: "수강기호"}, inplace=True)
+                break
+
     # 헤더 행이 데이터 중간에 중복 삽입된 경우나 빈 행 제거
     target_df = target_df[target_df["강좌코드"].notna()].copy()
     target_df["강좌코드"] = target_df["강좌코드"].astype(str).str.strip()
@@ -436,6 +474,7 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
     # 주요 텍스트 컬럼 클리닝
     text_cols = [
         "강좌코드",
+        "수강기호",
         "영역",
         "학년",
         "과목",
@@ -461,6 +500,18 @@ def parse_rms_xls(file_source: Union[str, Path, bytes, io.BytesIO, Any]) -> pd.D
                 .apply(lambda x: re.sub(r"\s+", " ", html.unescape(x)).strip())
                 .replace({"nan": "", "None": ""})
             )
+
+    # 수강기호 컬럼 무결성 보장: 공백/nan을 방어하고 유효 값 유지
+    if "수강기호" not in target_df.columns:
+        target_df["수강기호"] = "-"
+    else:
+        target_df["수강기호"] = (
+            target_df["수강기호"]
+            .fillna("-")
+            .astype(str)
+            .str.strip()
+            .replace({"": "-", "nan": "-", "None": "-"})
+        )
 
     def _to_int(val: Any) -> int:
         if pd.isna(val):

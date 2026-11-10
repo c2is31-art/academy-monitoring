@@ -123,6 +123,61 @@ def build_all_in_one_master_df(
                 ai_map[(inst, pure_t)] = ai_info
                 ai_map[("", pure_t)] = ai_info
 
+    # 수강기호 다중 매핑 사전 구축 (RMS 및 판매중지 원본 기준)
+    rms_df_ref = crosscheck_result.get("rms_df")
+    symbol_code_map: Dict[str, str] = {}
+    symbol_no_map: Dict[Any, str] = {}
+    symbol_title_map: Dict[Tuple[str, str], str] = {}
+
+    def _extract_sym(d_or_s: Any) -> str:
+        if d_or_s is None:
+            return ""
+        for sk in ("수강기호", "수강 기호", "강좌기호", "기호", "과정기호", "수강반기호", "단과기호", "수강코드"):
+            v = d_or_s.get(sk) if hasattr(d_or_s, "get") else None
+            if pd.notna(v) and str(v).strip() and str(v).strip().lower() not in ("nan", "none", "-", ""):
+                return str(v).strip()
+        if hasattr(d_or_s, "index"):
+            for c in d_or_s.index:
+                if "기호" in str(c):
+                    v = d_or_s[c]
+                    if pd.notna(v) and str(v).strip() and str(v).strip().lower() not in ("nan", "none", "-", ""):
+                        return str(v).strip()
+        elif isinstance(d_or_s, dict):
+            for k, v in d_or_s.items():
+                if "기호" in str(k) and pd.notna(v) and str(v).strip() and str(v).strip().lower() not in ("nan", "none", "-", ""):
+                    return str(v).strip()
+        return ""
+
+    if rms_df_ref is not None and isinstance(rms_df_ref, pd.DataFrame) and not rms_df_ref.empty:
+        for _, r in rms_df_ref.iterrows():
+            sym = _extract_sym(r)
+            if sym:
+                code = str(r.get("강좌코드", "")).strip()
+                no_val = r.get("No")
+                inst = str(r.get("강사", "")).strip()
+                title = str(r.get("강좌명", "")).strip()
+                if code:
+                    symbol_code_map[code] = sym
+                if no_val is not None:
+                    symbol_no_map[no_val] = sym
+                if inst and title:
+                    symbol_title_map[(inst, title)] = sym
+
+    if not stopped_df.empty:
+        for _, r in stopped_df.iterrows():
+            sym = _extract_sym(r)
+            if sym:
+                code = str(r.get("강좌코드", "")).strip()
+                no_val = r.get("No")
+                inst = str(r.get("강사", "")).strip()
+                title = str(r.get("강좌명", "")).strip()
+                if code and code not in symbol_code_map:
+                    symbol_code_map[code] = sym
+                if no_val is not None and no_val not in symbol_no_map:
+                    symbol_no_map[no_val] = sym
+                if inst and title and (inst, title) not in symbol_title_map:
+                    symbol_title_map[(inst, title)] = sym
+
     master_rows: List[Dict[str, Any]] = []
 
     # comparison_df 순회
@@ -133,6 +188,22 @@ def build_all_in_one_master_df(
             norm_inst = str(row.get("정규화강사명", "")).strip()
             rms_title = str(row.get("RMS 강좌명", "")).strip()
             pdf_title = str(row.get("PDF 강좌명", "")).strip()
+
+            # 수강기호 추출 및 3중 fallback
+            sym_val = _extract_sym(row)
+            if not sym_val:
+                c_code = str(row.get("강좌코드", "")).strip()
+                c_no = row.get("No")
+                if c_code in symbol_code_map:
+                    sym_val = symbol_code_map[c_code]
+                elif c_no in symbol_no_map:
+                    sym_val = symbol_no_map[c_no]
+                elif (inst, rms_title) in symbol_title_map:
+                    sym_val = symbol_title_map[(inst, rms_title)]
+                elif (rms_inst, rms_title) in symbol_title_map:
+                    sym_val = symbol_title_map[(rms_inst, rms_title)]
+                else:
+                    sym_val = "-"
 
             # 매핑 데이터 찾기
             sp_list = spell_map.get((inst, pdf_title)) or spell_map.get((inst, rms_title)) or spell_map.get(("", pdf_title)) or []
@@ -173,7 +244,7 @@ def build_all_in_one_master_df(
                 # 1. 기본 정보 및 강의명 좌우 인접 대조
                 "No": row.get("No", len(master_rows) + 1),
                 "강의상태": sale_status_str,
-                "수강기호": str(row.get("수강기호", "-") or "-"),
+                "수강기호": sym_val or "-",
                 "과목": row.get("과목", ""),
                 "학년": row.get("학년", ""),
                 "강사명": inst,
@@ -223,10 +294,24 @@ def build_all_in_one_master_df(
             if (s_no is not None and s_no in existing_nos) or (s_inst, s_title) in existing_titles:
                 continue
 
+            # 판매중지 강좌 수강기호 추출
+            s_sym_val = _extract_sym(s_row)
+            if not s_sym_val:
+                s_code = str(s_row.get("강좌코드", "")).strip()
+                s_no_val = s_row.get("No")
+                if s_code in symbol_code_map:
+                    s_sym_val = symbol_code_map[s_code]
+                elif s_no_val in symbol_no_map:
+                    s_sym_val = symbol_no_map[s_no_val]
+                elif (s_inst, s_title) in symbol_title_map:
+                    s_sym_val = symbol_title_map[(s_inst, s_title)]
+                else:
+                    s_sym_val = "-"
+
             master_rows.append({
                 "No": s_no or (len(master_rows) + 1),
                 "강의상태": "[판매중지]",
-                "수강기호": str(s_row.get("수강기호", "-") or "-"),
+                "수강기호": s_sym_val or "-",
                 "과목": s_row.get("과목", ""),
                 "학년": s_row.get("학년", ""),
                 "강사명": s_inst,
