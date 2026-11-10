@@ -1124,24 +1124,24 @@ with tab2:
                 f"• 만약 **실제 폐강된 강좌**라면 배포용 강의계획서 PDF에서 해당 강좌의 삭제가 필요합니다."
             )
             with st.expander(f"📋 RMS 판매중지(폐강 의심) 강좌 리스트 ({len(pdf_stopped_df)}건 보기)", expanded=True):
+                p_stopped_cols = [
+                    "PDF_페이지",
+                    "검수상태",
+                    "강의상태",
+                    "수강기호",
+                    "과목",
+                    "학년",
+                    "강사명",
+                    "PDF 강좌명",
+                    "RMS 강좌명",
+                    "강좌코드",
+                    "수업시간",
+                    "수강료",
+                    "확인 및 조치사항",
+                ]
+                valid_p_stopped = [c for c in p_stopped_cols if c in pdf_stopped_df.columns]
                 st.dataframe(
-                    pdf_stopped_df[
-                        [
-                            "PDF_페이지",
-                            "검수상태",
-                            "강의상태",
-                            "수강기호",
-                            "과목",
-                            "학년",
-                            "강사명",
-                            "PDF 강좌명",
-                            "RMS 강좌명",
-                            "강좌코드",
-                            "수업시간",
-                            "수강료",
-                            "확인 및 조치사항",
-                        ]
-                    ],
+                    pdf_stopped_df[valid_p_stopped],
                     use_container_width=True,
                     hide_index=True,
                 )
@@ -1407,6 +1407,17 @@ with tab3:
             # 2. 통합 검수 결과 테이블
             st.markdown("---")
             if combined_proofread_df is not None and not combined_proofread_df.empty:
+                # 이전 세션/캐시 호환성: 컬럼명 정규화
+                if "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)" in combined_proofread_df.columns:
+                    combined_proofread_df = combined_proofread_df.rename(
+                        columns={"✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": "✅ 교정 완료 단락 (오타 수정본)"}
+                    )
+                # 이전 세션의 기호통일/비허용부호 잔여 행 자동 제외
+                if "교정 구분" in combined_proofread_df.columns:
+                    combined_proofread_df = combined_proofread_df[
+                        ~combined_proofread_df["교정 구분"].str.contains("비허용|기호통일", na=False)
+                    ]
+
                 filtered_df = combined_proofread_df.copy()
                 if filter_opt == "🔴 맞춤법·오탈자만":
                     filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("맞춤법|오탈자", na=False)]
@@ -1415,18 +1426,21 @@ with tab3:
 
                 st.markdown(f"##### 📋 검수 결과 목록 (총 {len(filtered_df)}건)")
                 if not filtered_df.empty:
+                    preferred_proof_cols = [
+                        "강사명",
+                        "강좌명",
+                        "교정 구분",
+                        "발견 항목",
+                        "PDF 원문 단락",
+                        "✅ 교정 완료 단락 (오타 수정본)",
+                        "사유",
+                    ]
+                    valid_proof_cols = [c for c in preferred_proof_cols if c in filtered_df.columns]
+                    if not valid_proof_cols:
+                        valid_proof_cols = filtered_df.columns.tolist()
+
                     st.dataframe(
-                        filtered_df[
-                            [
-                                "강사명",
-                                "강좌명",
-                                "교정 구분",
-                                "발견 항목",
-                                "PDF 원문 단락",
-                                "✅ 교정 완료 단락 (오타 수정본)",
-                                "사유",
-                            ]
-                        ],
+                        filtered_df[valid_proof_cols],
                         use_container_width=True,
                         hide_index=True,
                     )
@@ -1694,24 +1708,25 @@ with tab4:
             st.caption("아래 강좌들은 RMS 상에서 '판매중지' 상태여서 검수 및 통계 집계에서 제외되었습니다 (상단 토글 체크 해제 시 전체 검수 가능):")
         else:
             st.caption("아래 강좌들은 RMS 상에서 '판매중지' 상태이나, 현재 상단 토글 설정에 따라 전체 검수 및 대조가 함께 진행되었습니다:")
+        stopped_cols = [
+            "No",
+            "강의상태",
+            "수강기호",
+            "강좌코드",
+            "영역",
+            "과목",
+            "학년",
+            "강사",
+            "강좌명",
+            "간결수업시간",
+            "개강일_짧은표시",
+            "종강일_짧은표시",
+            "수강료",
+            "판매",
+        ]
+        valid_stopped_cols = [c for c in stopped_cols if c in stopped_rms_df.columns]
         st.dataframe(
-            stopped_rms_df[
-                [
-                    "No",
-                    "강의상태",
-                    "강좌코드",
-                    "영역",
-                    "과목",
-                    "학년",
-                    "강사",
-                    "강좌명",
-                    "간결수업시간",
-                    "개강일_짧은표시",
-                    "종강일_짧은표시",
-                    "수강료",
-                    "판매",
-                ]
-            ],
+            stopped_rms_df[valid_stopped_cols],
             use_container_width=True,
             hide_index=True,
         )
