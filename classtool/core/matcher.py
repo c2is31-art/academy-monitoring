@@ -870,6 +870,31 @@ def verify_rms_vs_pdf_course(
     has_error = len(error_tags) > 0
     has_red_error = any("🔴" in t for t in error_tags)
 
+    # 수강료 및 수강회차 중대 오류 판별
+    is_fee_err = bool(
+        fee_mismatch
+        or any("수강료" in t or "단가" in t for t in error_tags)
+        or (p_fee > 0 and r_fee > 0 and p_fee != r_fee)
+    )
+    is_sess_err = bool(
+        any("🔴 [회차 불일치]" in t for t in error_tags)
+        or (p_sess > 0 and r_sess > 0 and p_sess != r_sess)
+    )
+
+    if is_fee_err and is_sess_err:
+        critical_error_badge = "🚨 수강료·회차 불일치"
+    elif is_fee_err:
+        critical_error_badge = "🚨 수강료 불일치"
+    elif is_sess_err:
+        critical_error_badge = "🚨 회차 불일치"
+    else:
+        critical_error_badge = "-"
+
+    if is_fee_err:
+        error_columns.update(["RMS 수강료", "PDF 수강료", "중대오류"])
+    if is_sess_err:
+        error_columns.update(["RMS 개강~종강(회차)", "PDF 개요 개강~종강(회차)", "PDF 1월진도표(첫날~끝날/회차)", "중대오류"])
+
     if has_red_error:
         status_badge = "🔴 오류 (" + ", ".join(t.replace("🔴 ", "").replace("🟡 ", "") for t in error_tags) + ")"
     elif has_error:
@@ -898,6 +923,9 @@ def verify_rms_vs_pdf_course(
         "sched_compare_str": sched_compare_str,
         "baza_compare_str": baza_compare_str,
         "fee_mismatch": fee_mismatch,
+        "is_fee_err": is_fee_err,
+        "is_sess_err": is_sess_err,
+        "critical_error_badge": critical_error_badge,
     }
 
 
@@ -1174,6 +1202,7 @@ def run_rms_pdf_crosscheck(
             p_fee_int = int(p_row.get("수강료", 0) or 0)
             p_sess_int = int(p_row.get("회차", 0) or 0)
             p_jan_sess_int = int(p_row.get("진도표_1월_실제회차", 0) or 0)
+            critical_badge = ver.get("critical_error_badge", "-")
         else:
             inst_display = r_inst
             p_title = "-"
@@ -1184,6 +1213,7 @@ def run_rms_pdf_crosscheck(
             p_book_disp = "-"
             p_jan_dates_str = "-"
             status_badge = "⚪ PDF 미수록"
+            critical_badge = "-"
             detail_str = "업로드된 강의계획서 PDF 내 미수록"
             fix_summary_str = "PDF 강의계획서 원고 수령 및 수록 확인 필요"
             sched_compare_str = f"RMS: {r_compact_sched} (PDF 미수록)"
@@ -1199,6 +1229,7 @@ def run_rms_pdf_crosscheck(
         comparison_rows.append(
             {
                 "검수상태": status_badge,
+                "중대오류": critical_badge,
                 "No": r_no,
                 "강의상태": r_sale_status,
                 "수강기호": r_symbol,
@@ -1241,12 +1272,14 @@ def run_rms_pdf_crosscheck(
 
     comparison_df = pd.DataFrame(comparison_rows)
 
-    # 오류 및 수정 필요 강좌 목록 (Sheet 2 전용)
-    error_df = (
-        comparison_df[comparison_df["검수상태"].str.startswith(("🔴", "🟡"))].copy().reset_index(drop=True)
-        if not comparison_df.empty
-        else pd.DataFrame()
-    )
+    # 오류 및 수정 필요 강좌 목록 (중대오류(수강료/회차 불일치) 최상단 우선 정렬)
+    if not comparison_df.empty:
+        error_df = comparison_df[comparison_df["검수상태"].str.startswith(("🔴", "🟡"))].copy()
+        if not error_df.empty:
+            error_df["_중대오류순위"] = error_df["중대오류"].apply(lambda x: 0 if str(x).startswith("🚨") else 1)
+            error_df = error_df.sort_values(by=["_중대오류순위", "No"]).drop(columns=["_중대오류순위"]).reset_index(drop=True)
+    else:
+        error_df = pd.DataFrame()
 
     # PDF 미수록 강좌 목록 (Sheet 3 전용)
     missing_pdf_df = (
@@ -1511,6 +1544,7 @@ def run_rms_pdf_crosscheck(
             "pdf_stopped_count": len(pdf_stopped_matches),
             "fee_error_count": kpi_fee_err,
             "session_error_count": kpi_session_err,
+            "critical_error_count": sum(1 for r in comparison_rows if str(r.get("중대오류", "-")).startswith("🚨")),
             "date_error_count": kpi_date_err,
             "schedule_typo_count": kpi_sched_typo,
             "title_mismatch_count": kpi_title_mismatch,
@@ -1624,6 +1658,9 @@ def export_crosscheck_to_excel(
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
 
+    from core.version import APP_VERSION
+    download_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     wb = Workbook()
 
     header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
@@ -1640,6 +1677,16 @@ def export_crosscheck_to_excel(
     font_error_row = Font(name="맑은 고딕", size=9, bold=False, color="5B1A18")
     font_error_cell = Font(name="맑은 고딕", size=9, bold=True, color="C00000")
     fill_error_cell = PatternFill(start_color="F5B7B1", end_color="F5B7B1", fill_type="solid")
+
+    # 중대 오류(수강료·회차 불일치) 전용 강력 강조 서식
+    fill_critical_error = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+    font_critical_error = Font(name="맑은 고딕", size=9, bold=True, color="922B21")
+    border_critical_cell = Border(
+        left=Side(border_style="medium", color="C0392B"),
+        right=Side(border_style="medium", color="C0392B"),
+        top=Side(border_style="medium", color="C0392B"),
+        bottom=Side(border_style="medium", color="C0392B"),
+    )
 
     fill_normal_row = PatternFill(start_color="EAFAF1", end_color="EAFAF1", fill_type="solid")
     font_normal_row = Font(name="맑은 고딕", size=9, color="1E5631")
@@ -1671,8 +1718,16 @@ def export_crosscheck_to_excel(
         columns_to_export: List[str],
         status_col_name: str = "검수상태",
         highlight_error_cells: bool = True,
+        title_banner: Optional[str] = None,
     ) -> None:
         if df is None or df.empty:
+            if title_banner:
+                ws.append([title_banner])
+                c_b = ws.cell(row=1, column=1)
+                c_b.font = Font(name="맑은 고딕", size=10, bold=True, color="1B4F72")
+                c_b.fill = banner_fill
+                ws.row_dimensions[1].height = 26
+                ws.append([])
             ws.append(["데이터가 없습니다."])
             return
 
@@ -1684,19 +1739,31 @@ def export_crosscheck_to_excel(
                 lambda x: re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", ", ".join(map(str, x)) if isinstance(x, (list, tuple, set)) else ("" if pd.isna(x) else str(x)))
             )
 
+        header_row_idx = 1
+        if title_banner:
+            ws.append([title_banner])
+            c_b = ws.cell(row=1, column=1)
+            c_b.font = Font(name="맑은 고딕", size=10, bold=True, color="1B4F72")
+            c_b.fill = banner_fill
+            ws.row_dimensions[1].height = 26
+            ws.append([])
+            ws.row_dimensions[2].height = 6
+            header_row_idx = 3
+
         ws.append(cols)
         for col_idx in range(1, len(cols) + 1):
-            cell = ws.cell(row=1, column=col_idx)
+            cell = ws.cell(row=header_row_idx, column=col_idx)
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             cell.border = cell_border
-        ws.row_dimensions[1].height = 28
+        ws.row_dimensions[header_row_idx].height = 28
 
-        for row_offset, (orig_idx, r_data) in enumerate(sub_df.iterrows(), start=2):
+        start_data_row = header_row_idx + 1
+        for row_idx, (orig_idx, r_data) in enumerate(sub_df.iterrows(), start=start_data_row):
             row_vals = [r_data[c] for c in cols]
             ws.append(row_vals)
-            ws.row_dimensions[row_offset].height = 22
+            ws.row_dimensions[row_idx].height = 22
 
             status_val = str(r_data.get(status_col_name, "")) if status_col_name in cols else ""
             err_cols_for_row: Set[str] = set()
@@ -1705,7 +1772,9 @@ def export_crosscheck_to_excel(
                 if isinstance(raw_ec, (list, set, tuple)):
                     err_cols_for_row = set(raw_ec)
 
-            is_err_row = status_val.startswith(("🔴", "🟡")) or ("불일치" in status_val) or ("오타" in status_val) or ("모순" in status_val)
+            crit_val = str(r_data.get("중대오류", "-"))
+            is_crit_row = crit_val.startswith("🚨")
+            is_err_row = status_val.startswith(("🔴", "🟡")) or ("불일치" in status_val) or ("오타" in status_val) or ("모순" in status_val) or is_crit_row
             is_ok_row = status_val.startswith("✅") or ("정상" in status_val)
             is_missing_row = status_val.startswith("⚪") or ("미수록" in status_val)
 
@@ -1722,13 +1791,22 @@ def export_crosscheck_to_excel(
                 row_font = font_missing_row
 
             for col_idx, col_name in enumerate(cols, start=1):
-                c = ws.cell(row=row_offset, column=col_idx)
+                c = ws.cell(row=row_idx, column=col_idx)
                 c.border = cell_border
                 if row_fill is not None:
                     c.fill = row_fill
                 c.font = row_font
 
-                if is_err_row and (
+                # 🚨 수강료/회차 불일치 중대 오류 셀 집중 강조
+                if is_crit_row and (
+                    col_name == "중대오류"
+                    or (col_name in ("RMS 수강료", "PDF 수강료") and ("수강료" in crit_val or any("수강료" in ec for ec in err_cols_for_row)))
+                    or (col_name in ("RMS 개강~종강(회차)", "PDF 개요 개강~종강(회차)", "PDF 1월진도표(첫날~끝날/회차)") and ("회차" in crit_val or any("회차" in ec for ec in err_cols_for_row)))
+                ):
+                    c.fill = fill_critical_error
+                    c.font = font_critical_error
+                    c.border = border_critical_cell
+                elif is_err_row and (
                     col_name in err_cols_for_row
                     or col_name in ("검수상태", "오류 상세 내역", "자동 생성된 수정 요청 사항 요약")
                     or (col_name == "진도표 요일 정합성" and ("🔴" in str(c.value) or "🟡" in str(c.value)))
@@ -1742,8 +1820,8 @@ def export_crosscheck_to_excel(
                 else:
                     c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
 
-        ws.freeze_panes = "A2"
-        ws.auto_filter.ref = f"A1:{get_column_letter(len(cols))}{len(sub_df) + 1}"
+        ws.freeze_panes = f"A{header_row_idx + 1}"
+        ws.auto_filter.ref = f"A{header_row_idx}:{get_column_letter(len(cols))}{len(sub_df) + header_row_idx}"
 
         for col_idx, col_name in enumerate(cols, start=1):
             col_letter = get_column_letter(col_idx)
@@ -1766,6 +1844,7 @@ def export_crosscheck_to_excel(
         columns_to_export=list(all_in_one_master_df.columns),
         status_col_name="최종검수상태",
         highlight_error_cells=True,
+        title_banner=f"📢 메가스터디 러셀 대치학원 강의계획서 종합 정밀검수결과지 [{target_ym}] (검수 및 생성일시: {download_dt} KST | 시스템 버전: {APP_VERSION})",
     )
 
     # =========================================================================
@@ -2007,6 +2086,7 @@ def export_crosscheck_to_excel(
     ws_s4 = wb.create_sheet(title="전체검수결과_유효강좌")
     sheet4_cols = [
         "검수상태",
+        "중대오류",
         "No",
         "강의상태",
         "수강기호",
@@ -2018,11 +2098,11 @@ def export_crosscheck_to_excel(
         "RMS 강좌명",
         "PDF 강좌명",
         "PDF 페이지",
+        "RMS 수강료",
+        "PDF 수강료",
         "RMS 개강~종강(회차)",
         "PDF 개요 개강~종강(회차)",
         "PDF 1월진도표(첫날~끝날/회차)",
-        "RMS 수강료",
-        "PDF 수강료",
         "총수강생(가등록포함)",
         "결제완료인원",
         "완납&분납인원",
@@ -2039,6 +2119,7 @@ def export_crosscheck_to_excel(
         columns_to_export=sheet4_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
+        title_banner=f"📋 메가스터디 러셀 대치학원 유효강좌 정밀대조 검수표 (출력일시: {download_dt} | {APP_VERSION})",
     )
 
     # =========================================================================
@@ -2054,6 +2135,8 @@ def export_crosscheck_to_excel(
             d = dict(r)
             if "강의상태" not in d or not d["강의상태"]:
                 d["강의상태"] = "판매 중"
+            if "중대오류" not in d or not d["중대오류"]:
+                d["중대오류"] = "-"
             combined_err_list.append(d)
 
     if not pdf_stopped_df.empty:
@@ -2061,6 +2144,7 @@ def export_crosscheck_to_excel(
             combined_err_list.append(
                 {
                     "검수상태": "⚠️ RMS 판매중지 (폐강 의심)",
+                    "중대오류": "-",
                     "No": r.get("RMS_No", 0),
                     "강의상태": "[판매중지]",
                     "수강기호": str(r.get("수강기호", "-") or "-"),
@@ -2071,6 +2155,11 @@ def export_crosscheck_to_excel(
                     "RMS 강좌명": r.get("RMS 강좌명", ""),
                     "PDF 강좌명": r.get("PDF 강좌명", ""),
                     "PDF 페이지": r.get("PDF_페이지", ""),
+                    "RMS 수강료": "-",
+                    "PDF 수강료": r.get("수강료", "-"),
+                    "RMS 개강~종강(회차)": "-",
+                    "PDF 개요 개강~종강(회차)": "-",
+                    "PDF 1월진도표(첫날~끝날/회차)": "-",
                     "수업시간 비교": f"PDF: {r.get('수업시간', '')}",
                     "바자관시수 비교": "-",
                     "오류 상세 내역": r.get("오류 상세 내역", "RMS에서 '판매중지' 상태로 등록된 강좌입니다."),
@@ -2081,6 +2170,7 @@ def export_crosscheck_to_excel(
     combined_err_df = pd.DataFrame(combined_err_list)
     sheet5_cols = [
         "검수상태",
+        "중대오류",
         "No",
         "강의상태",
         "수강기호",
@@ -2092,11 +2182,11 @@ def export_crosscheck_to_excel(
         "RMS 강좌명",
         "PDF 강좌명",
         "PDF 페이지",
+        "RMS 수강료",
+        "PDF 수강료",
         "RMS 개강~종강(회차)",
         "PDF 개요 개강~종강(회차)",
         "PDF 1월진도표(첫날~끝날/회차)",
-        "RMS 수강료",
-        "PDF 수강료",
         "수업시간 비교",
         "바자관시수 비교",
         "오류 상세 내역",
@@ -2108,6 +2198,7 @@ def export_crosscheck_to_excel(
         columns_to_export=sheet5_cols,
         status_col_name="검수상태",
         highlight_error_cells=True,
+        title_banner=f"🚨 데이터 오류 및 수정 필요 강좌 / 판매중지 확인 목록 (출력일시: {download_dt} | {APP_VERSION})",
     )
 
     # =========================================================================

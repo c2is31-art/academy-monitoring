@@ -27,6 +27,7 @@ from core.cumulative_db import (
     get_available_snapshots,
     normalize_snapshot_key,
 )
+from core.version import APP_VERSION
 
 
 # -------------------------------------------------------------------------
@@ -40,6 +41,7 @@ def build_all_in_one_master_df(
     RMS 강좌 목록을 기준으로 PDF 검수 결과, 수강생 수, 맞춤법/문장 축약, AI 추천 강의명까지
     한 행(Row)에 모든 정보를 가로로 완전 결합한 올인원 마스터 DataFrame을 생성합니다.
     """
+    download_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     comparison_df = crosscheck_result.get("comparison_df")
     if comparison_df is None:
         comparison_df = pd.DataFrame()
@@ -240,10 +242,26 @@ def build_all_in_one_master_df(
             else:
                 sale_status_str = raw_sale
 
+            # 중대 오류 (수강료/회차 불일치) 배지 결정
+            critical_badge = str(row.get("중대오류", "-") or "-").strip()
+            if not critical_badge or critical_badge == "-":
+                err_text = str(row.get("오류 상세 내역", ""))
+                is_f_err = "수강료" in err_text or "단가" in err_text
+                is_s_err = "회차" in err_text
+                if is_f_err and is_s_err:
+                    critical_badge = "🚨 수강료·회차 불일치"
+                elif is_f_err:
+                    critical_badge = "🚨 수강료 불일치"
+                elif is_s_err:
+                    critical_badge = "🚨 회차 불일치"
+                else:
+                    critical_badge = "-"
+
             master_rows.append({
                 # 1. 기본 정보 및 강의명 좌우 인접 대조
                 "No": row.get("No", len(master_rows) + 1),
                 "강의상태": sale_status_str,
+                "중대오류": critical_badge,
                 "수강기호": sym_val or "-",
                 "과목": row.get("과목", ""),
                 "학년": row.get("학년", ""),
@@ -279,6 +297,7 @@ def build_all_in_one_master_df(
                 "AI_판정사유": ai_info.get("판정사유", "-"),
                 "AI추천강의명1(직관·시그니처)": ai_info.get("추천1", "-"),
                 "AI추천강의명2(킬러·임팩트)": ai_info.get("추천2", "-"),
+                "검수생성일시": download_dt,
             })
 
     # 판매중지 강좌 중 comparison_df에 이미 포함되지 않은 강좌만 추가 (토글로 제외된 경우)
@@ -311,6 +330,7 @@ def build_all_in_one_master_df(
             master_rows.append({
                 "No": s_no or (len(master_rows) + 1),
                 "강의상태": "[판매중지]",
+                "중대오류": "-",
                 "수강기호": s_sym_val or "-",
                 "과목": s_row.get("과목", ""),
                 "학년": s_row.get("학년", ""),
@@ -345,6 +365,7 @@ def build_all_in_one_master_df(
                 "AI_판정사유": "-",
                 "AI추천강의명1(직관·시그니처)": "-",
                 "AI추천강의명2(킬러·임팩트)": "-",
+                "검수생성일시": download_dt,
             })
 
     master_df = pd.DataFrame(master_rows)
@@ -408,7 +429,7 @@ def build_multi_section_report_tsv(
     # =========================================================================
     tsv_lines.append("=" * 70)
     tsv_lines.append("📋 [러셀대치 RMS ↔ 강의계획서 PDF 종합 검수 및 수강생 통계 전체 리포트]")
-    tsv_lines.append(f"생성일시: {now_str}\t검수 기준 연월: {target_ym}\t스냅샷 비교: {kpi.get('label_a', snap_a)} vs {kpi.get('label_b', snap_b)}")
+    tsv_lines.append(f"생성일시: {now_str} KST (시스템 버전: {APP_VERSION})\t검수 기준 연월: {target_ym}\t스냅샷 비교: {kpi.get('label_a', snap_a)} vs {kpi.get('label_b', snap_b)}")
     tsv_lines.append(
         f"총 강좌수: {rms_sum.get('total_courses', 0)}건\t"
         f"총 수강생: {rms_sum.get('total_students', 0):,}명\t"

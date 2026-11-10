@@ -39,6 +39,7 @@ import core.exporter as _exporter_mod
 import core.matcher as _matcher_mod
 import core.text_improver as _text_improver_mod
 import core.title_suggester as _title_suggester_mod
+import core.version as _version_mod
 import parsers.pdf_parser as _pdf_parser_mod
 import parsers.rms_parser as _rms_parser_mod
 
@@ -50,6 +51,9 @@ importlib.reload(_title_suggester_mod)
 importlib.reload(_cum_db_mod)
 importlib.reload(_matcher_mod)
 importlib.reload(_exporter_mod)
+importlib.reload(_version_mod)
+
+from core.version import APP_VERSION, BUILD_DATE, RELEASE_NOTES
 
 from core.cumulative_db import (
     build_pivot_table,
@@ -278,7 +282,7 @@ def parse_all_pdfs_cached(
     return pd.DataFrame()
 
 
-CACHE_VERSION_SALT = "v3_20261110_symbol_fixed"
+CACHE_VERSION_SALT = f"{APP_VERSION}_{BUILD_DATE.replace(' ', '_')}"
 
 
 @st.cache_data(show_spinner=False, max_entries=20)
@@ -388,10 +392,10 @@ if "ai_single_suggestions" not in st.session_state:
 # 상단 타이틀 배너
 # -------------------------------------------------------------------------
 st.markdown(
-    """
+    f"""
     <div class="main-header">
         <h2>메가스터디 러셀 대치학원 — RMS ↔ 강의계획서 PDF 종합 검수 시스템</h2>
-        <p>RMS 강좌목록 엑셀(.xls/.xlsx)과 강의계획서 PDF(.pdf) 7대 항목 정밀 검수 · 수강생/결제자수 누적 통계 · 15자 이내 초단축 AI 강의명 제안 <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; margin-left: 6px;">v2.2 최신배포본</span></p>
+        <p>RMS 강좌목록 엑셀(.xls/.xlsx)과 강의계획서 PDF(.pdf) 7대 항목 정밀 검수 · 수강생/결제자수 누적 통계 · 15자 이내 초단축 AI 강의명 제안 <span style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45); padding: 3px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; margin-left: 8px;">🚀 {APP_VERSION} ({BUILD_DATE} 최신 배포본)</span></p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -401,6 +405,24 @@ st.markdown(
 # 사이드바 설정 영역
 # -------------------------------------------------------------------------
 with st.sidebar:
+    # 실시간 배포 버전 및 릴리스 노트 카드
+    release_items_html = "".join(f"<div style='margin-bottom:3px;'>• {r}</div>" for r in RELEASE_NOTES)
+    st.markdown(
+        f"""
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+            <div style="font-weight:700; color:#1e40af; font-size:0.92rem; display:flex; justify-content:space-between; align-items:center;">
+                <span>🚀 배포 버전: {APP_VERSION}</span>
+                <span style="background:#2563eb; color:white; font-size:0.72rem; padding:1px 6px; border-radius:4px;">최신버전</span>
+            </div>
+            <div style="font-size:0.78rem; color:#3b82f6; margin-top:3px; font-weight:600;">📅 빌드 일시: {BUILD_DATE}</div>
+            <div style="font-size:0.75rem; color:#475569; margin-top:6px; line-height:1.4;">
+                {release_items_html}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.subheader("⚙️ 시스템 및 검수 설정")
 
     # Gemini API 키 설정
@@ -1155,13 +1177,36 @@ with tab2:
 
         st.markdown("### 🔍 7대 항목 정밀 대조 검수표")
         kpi = crosscheck_result.get("kpi", {})
-        k_col1, k_col2, k_col3, k_col4, k_col5 = st.columns(5)
+        comp_df = crosscheck_result.get("comparison_df", pd.DataFrame())
+
+        # 🚨 중대 오류(수강료/회차 불일치) 건수 집계 및 긴급 경고 배너
+        critical_count = kpi.get("critical_error_count", 0)
+        if critical_count == 0 and not comp_df.empty and "중대오류" in comp_df.columns:
+            critical_count = int(comp_df["중대오류"].astype(str).str.startswith("🚨").sum())
+
+        if critical_count > 0:
+            st.error(
+                f"🚨 **[중대 오류 발생: 수강료·수강회차 불일치 총 {critical_count}건 감지]**\n\n"
+                f"학생 결제 오차 및 현장 수업 운영 착오를 방지하기 위해 **수강료** 또는 **회차** 불일치 강좌를 최우선으로 검토하고 수정해 주세요! "
+                f"아래 필터에서 **`🚨 [중대 오류] 수강료·회차 불일치만 모아보기`**를 클릭하면 해당 강좌만 즉시 모아볼 수 있습니다."
+            )
+
+        k_col1, k_col2, k_col3, k_crit, k_col4, k_col5 = st.columns(6)
         if exclude_stopped:
             k_col1.metric("총 RMS 유효 강좌", f"{kpi.get('total_rms', 0)}건", delta=f"판매중지 {len(stopped_rms_df)}건 제외" if len(stopped_rms_df) > 0 else None, delta_color="inverse")
         else:
             k_col1.metric("총 RMS 검수 강좌", f"{kpi.get('total_rms', 0)}건", delta=f"판매중지 {len(stopped_rms_df)}건 포함" if len(stopped_rms_df) > 0 else "전체 포함", delta_color="normal")
         k_col2.metric("정상 일치 강좌", f"{kpi.get('normal_count', 0)}건")
-        k_col3.metric("오류·확인필요 강좌", f"{kpi.get('error_count', 0)}건", delta_color="inverse")
+        k_col3.metric("전체 오류·확인필요", f"{kpi.get('error_count', 0)}건", delta_color="inverse")
+
+        # 🚨 중대 오류 (수강료/회차) 전용 메트릭
+        k_crit.metric(
+            "🚨 수강료·회차 중대오류",
+            f"{critical_count}건",
+            delta="즉시 시정 필요" if critical_count > 0 else "정상",
+            delta_color="inverse" if critical_count > 0 else "normal",
+            help="학생 결제 및 수업 운영에 직결되는 수강료 및 개강/종강/진도표 회차 불일치 강좌 수입니다.",
+        )
 
         # 🚨 강좌명(대괄호 포함) 불일치 메트릭
         t_mismatch = kpi.get("title_mismatch_count", 0)
@@ -1178,10 +1223,11 @@ with tab2:
         # 필터링 라디오
         filter_options = [
             "전체 강좌 보기 (판매중지 포함)",
+            "🚨 [중대 오류] 수강료·회차 불일치만 모아보기",
+            "🔴 전체 오류 발생 강좌만 보기",
+            "🚨 강좌명(대괄호 포함) 불일치만 보기",
             "판매 중 강좌만 보기",
             "판매중지 강좌만 보기",
-            "🔴 오류 발생 강좌만 보기",
-            "🚨 강좌명(대괄호 포함) 불일치만 보기",
             "⚪ PDF 미수록 강좌만 보기",
         ]
         filter_status = st.radio(
@@ -1191,13 +1237,18 @@ with tab2:
             horizontal=True,
         )
 
-        comp_df = crosscheck_result.get("comparison_df", pd.DataFrame())
         if not comp_df.empty:
-            if filter_status == "판매 중 강좌만 보기":
+            if filter_status == "🚨 [중대 오류] 수강료·회차 불일치만 모아보기":
+                disp_df = comp_df[
+                    comp_df.get("중대오류", pd.Series(dtype=str)).astype(str).str.contains("🚨")
+                    | comp_df["검수상태"].astype(str).str.contains("수강료|단가|회차")
+                    | comp_df["오류 상세 내역"].astype(str).str.contains("수강료|단가|회차")
+                ].copy()
+            elif filter_status == "판매 중 강좌만 보기":
                 disp_df = comp_df[comp_df["강의상태"].astype(str).str.contains("판매 중|판매중") & ~comp_df["강의상태"].astype(str).str.contains("중지")].copy()
             elif filter_status == "판매중지 강좌만 보기":
                 disp_df = comp_df[comp_df["강의상태"].astype(str).str.contains("중지")].copy()
-            elif filter_status == "🔴 오류 발생 강좌만 보기":
+            elif filter_status == "🔴 전체 오류 발생 강좌만 보기":
                 disp_df = comp_df[comp_df["검수상태"].astype(str).str.contains("🔴|🟡|⚠️|불일치|오류|오타|모순")].copy()
             elif filter_status == "🚨 강좌명(대괄호 포함) 불일치만 보기":
                 disp_df = comp_df[comp_df["강좌명 일치여부"].astype(str).str.contains("불일치|차이")].copy()
@@ -1214,6 +1265,7 @@ with tab2:
 
             view_cols = [
                 "검수상태",
+                "중대오류",
                 "No",
                 "강의상태",
                 "수강기호",
@@ -1225,11 +1277,11 @@ with tab2:
                 "RMS 강좌명",
                 "PDF 강좌명",
                 "PDF 페이지",
+                "RMS 수강료",
+                "PDF 수강료",
                 "RMS 개강~종강(회차)",
                 "PDF 개요 개강~종강(회차)",
                 "PDF 1월진도표(첫날~끝날/회차)",
-                "RMS 수강료",
-                "PDF 수강료",
                 "수업시간 비교",
                 "바자관시수 비교",
                 "오류 상세 내역",
@@ -1254,9 +1306,23 @@ with tab2:
                 hide_index=True,
                 disabled=disabled_cols,
                 column_config={
+                    "중대오류": st.column_config.TextColumn(
+                        "🚨 중대오류",
+                        help="수강료 또는 회차 불일치 등 결제 및 운영에 치명적인 오류",
+                    ),
                     "수강기호": st.column_config.TextColumn(
                         "수강기호",
                         help="RMS 엑셀에 등록된 강좌 고유 수강기호입니다.",
+                    ),
+                    "RMS 수강료": st.column_config.NumberColumn(
+                        "RMS 수강료",
+                        format="%d원",
+                        help="RMS 시스템 등록 수강료",
+                    ),
+                    "PDF 수강료": st.column_config.NumberColumn(
+                        "PDF 수강료",
+                        format="%d원",
+                        help="강의계획서 PDF 기재 수강료",
                     ),
                     "강좌명 일치여부": st.column_config.TextColumn(
                         "강좌명(대괄호) 일치여부",
