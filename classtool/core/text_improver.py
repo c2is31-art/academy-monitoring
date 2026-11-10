@@ -189,80 +189,6 @@ SPELLING_CORRECTION_RULES: List[Dict[str, Any]] = [
 # -------------------------------------------------------------------------
 # 3. PDF 깨진 줄바꿈 복원 및 문장 분리 로직
 # -------------------------------------------------------------------------
-# 허용된 문장부호: ■, -, [ ]
-ALLOWED_PUNCTUATION = {"■", "-", "[", "]"}
-
-# 비허용 특수 문장부호 (■, -, [ ] 제외) 탐지 정규식
-DISALLOWED_PUNCTUATION_RE = re.compile(
-    r"([▶▷▲▼◀◁►◄●○◎◐◑◆◇◈▣□▪▫★☆✦✧♥♡※☞👉➢➤➔➜→➡✓✔☑•*|｜＆]"
-    r"|[〈〉《》〔〕【】『』「」]"
-    r"|(?<![월화수목금토일])·(?![월화수목금토일])"
-    r"|(?<!https)(?<!http)(?<!\d):(?!//)(?!\d))"
-)
-
-# 비표준 괄호 매핑 (대괄호 [ ]로 변환)
-BRACKET_REPLACE_RULES = [
-    (re.compile(r"[〈《〔【『「]\s*(.*?)\s*[〉》〕】』」]"), r"[\1]"),
-    (re.compile(r"[〈《〔【『「]"), "["),
-    (re.compile(r"[〉》〕】』」]"), "]"),
-]
-
-# 비표준 글머리 기호 (■, - 이외의 기호) 탐지 정규식
-NON_STANDARD_BULLET_RE = re.compile(
-    r"^(\s*)([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※~→➔➜➡:]+|\+(?=\s|[가-힣a-zA-Z]))\s*(.*)$"
-)
-# ■ 기호 뒤 공백 누락 탐지 정규식 (예: ■수업특징 -> ■ 수업특징)
-SQUARE_NO_SPACE_RE = re.compile(r"^(\s*)■([^\s].*)$")
-
-# 표준 ■ 글머리 기호 (이미 정상: ■ 뒤 공백 1칸 이상)
-STANDARD_SQUARE_RE = re.compile(r"^(\s*)■\s+(.*)$")
-
-
-def sanitize_punctuations_in_text(sent: str) -> str:
-    """
-    본문 텍스트 내에서 규정된 3가지 문장부호 (■, -, [ ]) 이외의
-    비허용 부호들을 규정 부호 또는 자연스러운 연결 부호로 교정합니다.
-    """
-    if not sent:
-        return ""
-    res = sent.strip()
-
-    # 1. 단락 맨 앞머리 비표준 기호(▶, →, :, ●, ○, ◆, ◇ 등)를 표준 ■ 기호로 우선 변환
-    m_head = re.match(r"^([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※\+\~*→➔➜➡:]+)\s*(.*)$", res)
-    if m_head:
-        res = f"■ {m_head.group(2).strip()}"
-
-    # 2. 비표준 괄호 -> [ ] 대괄호로 변환
-    for pat, rep in BRACKET_REPLACE_RULES:
-        res = pat.sub(rep, res)
-
-    # 3. 전각 ＆ -> 및
-    res = res.replace("＆", " 및 ").replace(" & ", " 및 ")
-
-    # 4. 파이프 기호 | -> -
-    res = res.replace("｜", " - ").replace(" | ", " - ")
-
-    # 5. 본문 중간 화살표 ▶, ▷, → 등 연결 -> -
-    res = re.sub(r"\s*[▶▷→➔➜➡]+\s*", " - ", res)
-
-    # 6. 본문 중간 콜론(:) (시간 09:00, URL http://, 1:1 제외) -> -
-    res = re.sub(r"\s*(?<!https)(?<!http)(?<!\d):(?!//)(?!\d)\s*", " - ", res)
-
-    # 7. 불필요한 장식 기호(★, ☆, ♥, ♡, ※, ●, ○, ◆, ◇, •, ·, *) 제거 또는 정리
-    res = re.sub(r"[★☆♥♡]", "", res)
-    res = re.sub(r"\s*[•∙]\s*", " - ", res)
-    res = re.sub(r"(?<![월화수목금토일])·(?![월화수목금토일])", ", ", res)
-
-    # ■ 바로 뒤 공백 확보
-    res = re.sub(r"^■([^\s])", r"■ \1", res)
-    # - 바로 뒤 공백 확보
-    res = re.sub(r"^-([^\s\d])", r"- \1", res)
-
-    # 다중 공백 정리
-    res = re.sub(r"[ \t]+", " ", res).strip()
-    return res
-
-
 def clean_pdf_broken_glyphs(text: str) -> str:
     """
     PDF 텍스트 내 글리프 깨짐, 잡음 기호 정제.
@@ -638,25 +564,21 @@ def analyze_course_text_content(
 ) -> Dict[str, Any]:
     """
     개별 강좌의 전체 텍스트를 정밀 분석하여
-    1) 규정 문장부호(■, -, [ ]) 외 비허용 부호 검수 리스트
-    2) 맞춤법 및 오탈자 오류 리스트
-    3) 긴 문장 감지 및 간략화(서술형/개조식) 제안 리스트
-    4) 오타 및 '■, -, [ ]' 규정 부호 통일이 100% 완료된 강좌별 통합완성본텍스트를 반환합니다.
+    1) 맞춤법 및 오탈자 오류 리스트
+    2) 55자 초과 긴 문장 감지 및 간략화(서술형/개조식) 제안 리스트
+    3) 오타가 교정된 강좌별 통합완성본텍스트를 반환합니다.
+    (모든 문장부호/특수기호 검수 및 변환 로직은 100% 완전 삭제됨)
     """
     combined_raw = "\n".join(raw_texts)
     combined_clean = clean_pdf_broken_glyphs(combined_raw)
     sentences_data = restore_pdf_sentences(combined_clean)
 
     spelling_issues: List[Dict[str, Any]] = []
-    bullet_issues: List[Dict[str, Any]] = []
-    disallowed_punct_issues: List[Dict[str, Any]] = []
     long_sentence_proposals: List[Dict[str, Any]] = []
     combined_proofread: List[Dict[str, Any]] = []
     unified_paragraphs: List[str] = []
 
     seen_spelling_keys = set()
-    seen_bullet_keys = set()
-    seen_disallowed_keys = set()
     seen_long_keys = set()
 
     for item in sentences_data:
@@ -672,126 +594,53 @@ def analyze_course_text_content(
             ft in sent for ft in ["학원등록번호", "러셀 대치학원", "원격교습", "교습과정", "수강료 및 교습비", "신고번호"]
         )
 
-        # -------------------------------------------------------------
-        # A. 비허용 문장부호(■, -, [ ] 외) 탐지 & 규정 부호 교정
-        # -------------------------------------------------------------
-        raw_disallowed = DISALLOWED_PUNCTUATION_RE.findall(sent) if not is_footer else []
-        unique_found = [s for s in sorted(list(set(raw_disallowed))) if s not in ALLOWED_PUNCTUATION]
-        m_non = NON_STANDARD_BULLET_RE.match(sent) if not is_footer else None
-        m_no_sp = SQUARE_NO_SPACE_RE.match(sent) if not is_footer else None
-
-        # 비허용 부호가 본문에 들어가 있거나 단락 시작이 비표준 기호인 경우
-        if not is_footer and (unique_found or m_non):
-            if m_non:
-                head_sym = m_non.group(2).strip()
-                if head_sym not in unique_found and head_sym not in ALLOWED_PUNCTUATION:
-                    unique_found.insert(0, head_sym)
-
-            # 규정 부호(■, -, [ ])로 교정하고 오타까지 수정한 완성형 단락 도출
-            sanitized = sanitize_punctuations_in_text(sent)
-            corrected_sent = correct_all_spelling_in_sentence(sanitized)
-
-            symbols_str = ", ".join(unique_found) if unique_found else "비표준 기호"
-            p_key = f"PUNCT_DISALLOWED|{symbols_str}|{sent}"
-            if p_key not in seen_disallowed_keys:
-                seen_disallowed_keys.add(p_key)
-                p_info = {
-                    "강좌명": course_name,
-                    "강사명": instructor,
-                    "섹션": sec,
-                    "오류유형": "비허용 문장부호 (■, -, [ ] 외)",
-                    "대상어구": symbols_str,
-                    "교정제안": "■, -, [ ] 규정 부호로 통일",
-                    "발견항목": f"{symbols_str} (규정 부호 외 사용)",
-                    "사유": f"강의계획서 규정 문장부호(■, -, [ ]) 외의 비허용 부호 '{symbols_str}'가 사용되었습니다.",
-                    "원문문장": sent,
-                    "교정문장": corrected_sent,
-                    "적용상태": "대기",
-                }
-                disallowed_punct_issues.append(p_info)
-                combined_proofread.append({
-                    "강사명": instructor,
-                    "강좌명": course_name,
-                    "교정 구분": "⬛ 비허용 문장부호 (■, -, [ ] 외)",
-                    "발견 항목": f"{symbols_str}",
-                    "PDF 원문 단락": sent,
-                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent,
-                    "사유": p_info["사유"],
-                })
-        elif not is_footer and m_no_sp:
-            sanitized = sanitize_punctuations_in_text(sent)
-            corrected_sent = correct_all_spelling_in_sentence(sanitized)
-            b_key = f"BULLET_NOSPACE|■|{sent}"
-            if b_key not in seen_bullet_keys:
-                seen_bullet_keys.add(b_key)
-                b_info = {
-                    "강좌명": course_name,
-                    "강사명": instructor,
-                    "섹션": sec,
-                    "오류유형": "기호통일 (■ 띄어쓰기)",
-                    "대상어구": "■(붙여쓰기)",
-                    "교정제안": "■ ",
-                    "발견항목": "■(붙여쓰기) → ■ ",
-                    "사유": "글머리 기호 '■' 뒤에 공백 1칸을 띄어 표준 서식을 준수합니다.",
-                    "원문문장": sent,
-                    "교정문장": corrected_sent,
-                    "적용상태": "대기",
-                }
-                bullet_issues.append(b_info)
-                combined_proofread.append({
-                    "강사명": instructor,
-                    "강좌명": course_name,
-                    "교정 구분": "⬛ 기호통일 (■ 띄어쓰기)",
-                    "발견 항목": "■(붙여쓰기) → ■ ",
-                    "PDF 원문 단락": sent,
-                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent,
-                    "사유": b_info["사유"],
-                })
-        else:
-            sanitized = sanitize_punctuations_in_text(sent)
-            corrected_sent = correct_all_spelling_in_sentence(sanitized)
-
+        # 오타 및 맞춤법 교정본 생성
+        corrected_sent = correct_all_spelling_in_sentence(sent) if not is_footer else sent
         unified_paragraphs.append(corrected_sent)
 
         # -------------------------------------------------------------
-        # B. 맞춤법 및 오탈자 검사
+        # 1. 맞춤법 및 오탈자 검사
         # -------------------------------------------------------------
         typo_hits = check_spelling_and_typos(sent) if not is_footer else []
         for th in typo_hits:
-            s_key = f"{th['rule_type']}|{th['target_word']}|{sent}"
-            if s_key not in seen_spelling_keys:
-                seen_spelling_keys.add(s_key)
-                spelling_issues.append({
+            typo_word = th["target_word"]
+            rep_word = th["replacement_word"]
+            r_type = th["rule_type"]
+            reason = th["reason"]
+            sp_key = f"{r_type}|{typo_word}|{sent}"
+            if sp_key not in seen_spelling_keys:
+                seen_spelling_keys.add(sp_key)
+                sp_info = {
                     "강좌명": course_name,
                     "강사명": instructor,
                     "섹션": sec,
-                    "오류유형": th["rule_type"],
-                    "대상어구": th["target_word"],
-                    "교정제안": th["replacement_word"],
-                    "발견항목": f"{th['target_word']} → {th['replacement_word']}",
-                    "사유": th["reason"],
+                    "오류유형": r_type,
+                    "대상어구": typo_word,
+                    "교정제안": rep_word,
+                    "발견항목": f"{typo_word} → {rep_word}",
+                    "사유": reason,
                     "원문문장": sent,
                     "교정문장": corrected_sent if corrected_sent != sent else th["suggested_sentence"],
                     "적용상태": "대기",
-                })
+                }
+                spelling_issues.append(sp_info)
                 combined_proofread.append({
                     "강사명": instructor,
                     "강좌명": course_name,
                     "교정 구분": "🔴 맞춤법·오탈자",
-                    "발견 항목": f"{th['target_word']} → {th['replacement_word']}",
+                    "발견 항목": f"{typo_word} → {rep_word}",
                     "PDF 원문 단락": sent,
-                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent if corrected_sent != sent else th["suggested_sentence"],
-                    "사유": th["reason"],
+                    "✅ 교정 완료 단락 (오타 수정본)": corrected_sent if corrected_sent != sent else th["suggested_sentence"],
+                    "사유": reason,
                 })
 
         # -------------------------------------------------------------
-        # C. 긴 문장 감지 및 간략화 제안
+        # 2. 55자 초과 긴 문장 축약 제안
         # -------------------------------------------------------------
         if not is_footer and c_len >= max_char_threshold:
             if sent not in seen_long_keys:
                 seen_long_keys.add(sent)
 
-                # Gemini API 호출 시도 (키가 있을 때)
                 ai_proposals = None
                 if gemini_api_key:
                     ai_proposals = simplify_sentence_with_gemini(
@@ -805,25 +654,28 @@ def analyze_course_text_content(
                     p1, p2 = simplify_sentence_rule_based(sent)
                     engine_type = "내장 규칙 엔진"
 
-                long_sentence_proposals.append({
+                long_info = {
                     "강좌명": course_name,
                     "강사명": instructor,
                     "섹션": sec,
                     "글자수": c_len,
+                    "기준글자수": max_char_threshold,
+                    "오류유형": "긴 문장 축약 권장",
+                    "엔진": engine_type,
                     "원문문장": sent,
                     "제안1_서술형": p1,
                     "제안2_개조식": p2,
-                    "생성엔진": engine_type,
-                    "선택제안": "제안1_서술형",
-                    "최종문장": p1,
-                })
+                    "사유": f"문장 길이가 {c_len}자로 길어 가독성 저하 우려 (간결 서술형 및 개조식 제안)",
+                    "적용상태": "대기",
+                }
+                long_sentence_proposals.append(long_info)
                 combined_proofread.append({
                     "강사명": instructor,
                     "강좌명": course_name,
                     "교정 구분": "✂️ 긴 문장 축약",
                     "발견 항목": f"글자수 {c_len}자 (기준 {max_char_threshold}자 초과)",
                     "PDF 원문 단락": sent,
-                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": f"[제안 1 서술형] {p1}\n[제안 2 개조식] {p2}",
+                    "✅ 교정 완료 단락 (오타 수정본)": f"[제안 1 서술형] {p1}\n[제안 2 개조식] {p2}",
                     "사유": f"문장 길이가 {c_len}자로 길어 가독성 저하 우려 (간결 서술형 및 개조식 제안)",
                 })
 
@@ -833,12 +685,12 @@ def analyze_course_text_content(
         "강좌명": course_name,
         "강사명": instructor,
         "맞춤법오류수": len(spelling_issues),
-        "기호통일오류수": len(bullet_issues),
-        "비허용부호오류수": len(disallowed_punct_issues),
         "긴문장수": len(long_sentence_proposals),
+        "기호통일오류수": 0,
+        "비허용부호오류수": 0,
         "맞춤법_상세목록": spelling_issues,
-        "기호통일_상세목록": bullet_issues,
-        "비허용부호_상세목록": disallowed_punct_issues,
+        "기호통일_상세목록": [],
+        "비허용부호_상세목록": [],
         "긴문장_상세목록": long_sentence_proposals,
         "통합교정_상세목록": combined_proofread,
         "통합완성본텍스트": unified_course_text,

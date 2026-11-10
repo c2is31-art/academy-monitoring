@@ -1069,6 +1069,7 @@ def run_rms_pdf_crosscheck(
 
     for r_idx, r_row in rms.iterrows():
         r_no = int(r_row.get("No", r_idx + 1) or (r_idx + 1))
+        r_symbol = str(r_row.get("수강기호", "") or "").strip()
         r_code = str(r_row.get("강좌코드", "")).strip()
         r_area = str(r_row.get("영역", "")).strip()
         r_subj = str(r_row.get("과목", "")).strip()
@@ -1185,6 +1186,7 @@ def run_rms_pdf_crosscheck(
                 "검수상태": status_badge,
                 "No": r_no,
                 "강의상태": r_sale_status,
+                "수강기호": r_symbol,
                 "강좌코드": r_code,
                 "영역": r_area,
                 "과목": r_subj,
@@ -1343,6 +1345,7 @@ def run_rms_pdf_crosscheck(
                             "PDF_페이지": p_page,
                             "검수상태": status_badge,
                             "강의상태": "[판매중지]",
+                            "수강기호": str(stopped_matched_row.get("수강기호", "") or "").strip(),
                             "과목": p_subj,
                             "학년": p_grade,
                             "강사명": p_inst,
@@ -1437,15 +1440,13 @@ def run_rms_pdf_crosscheck(
                 gemini_api_key=None,
             )
             all_spelling_issues.extend(analysis_res.get("맞춤법_상세목록", []))
-            all_bullet_issues.extend(analysis_res.get("기호통일_상세목록", []))
-            all_disallowed_punct_issues.extend(analysis_res.get("비허용부호_상세목록", []))
             all_long_proposals.extend(analysis_res.get("긴문장_상세목록", []))
             all_combined_proofread.extend(analysis_res.get("통합교정_상세목록", []))
             course_unified_texts[(c_inst, c_title)] = analysis_res.get("통합완성본텍스트", "")
 
     spelling_df = pd.DataFrame(all_spelling_issues)
-    bullet_issues_df = pd.DataFrame(all_bullet_issues)
-    disallowed_punct_df = pd.DataFrame(all_disallowed_punct_issues)
+    bullet_issues_df = pd.DataFrame()
+    disallowed_punct_df = pd.DataFrame()
     long_sentence_df = pd.DataFrame(all_long_proposals)
     combined_proofread_df = pd.DataFrame(all_combined_proofread)
     pdf_stopped_df = pd.DataFrame(pdf_stopped_matches)
@@ -1485,8 +1486,8 @@ def run_rms_pdf_crosscheck(
             "title_bracket_mismatch_count": kpi_bracket_mismatch,
             "title_exact_count": kpi_title_exact,
             "spelling_error_count": len(all_spelling_issues),
-            "bullet_error_count": len(all_bullet_issues),
-            "disallowed_punct_count": len(all_disallowed_punct_issues),
+            "bullet_error_count": 0,
+            "disallowed_punct_count": 0,
             "long_sentence_count": len(all_long_proposals),
         },
     }
@@ -1977,6 +1978,7 @@ def export_crosscheck_to_excel(
         "검수상태",
         "No",
         "강의상태",
+        "수강기호",
         "강좌코드",
         "과목",
         "학년",
@@ -2030,6 +2032,7 @@ def export_crosscheck_to_excel(
                     "검수상태": "⚠️ RMS 판매중지 (폐강 의심)",
                     "No": r.get("RMS_No", 0),
                     "강의상태": "[판매중지]",
+                    "수강기호": r.get("수강기호", ""),
                     "강좌코드": r.get("강좌코드", ""),
                     "과목": r.get("과목", ""),
                     "학년": r.get("학년", ""),
@@ -2049,6 +2052,7 @@ def export_crosscheck_to_excel(
         "검수상태",
         "No",
         "강의상태",
+        "수강기호",
         "강좌코드",
         "과목",
         "학년",
@@ -2076,16 +2080,16 @@ def export_crosscheck_to_excel(
     )
 
     # =========================================================================
-    # Sheet 6: 맞춤법_기호통일_문장축약
+    # Sheet 6: 맞춤법_문장축약
     # =========================================================================
-    ws_s6 = wb.create_sheet(title="맞춤법_기호통일_문장축약")
+    ws_s6 = wb.create_sheet(title="맞춤법_문장축약")
     sheet6_cols = [
         "강사명",
         "강좌명",
         "교정 구분",
         "발견 항목",
         "PDF 원문 단락",
-        "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)",
+        "✅ 교정 완료 단락 (오타 수정본)",
         "사유",
     ]
     comb_proof_df = crosscheck_result.get("combined_proofread_df", pd.DataFrame())

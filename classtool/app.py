@@ -844,7 +844,7 @@ tab1, tab2, tab3, tab4 = st.tabs(
     [
         "📈 Tab 1: 강사별 수강생 & 매월 20일 기준 비교 통계",
         "🔍 Tab 2: 엑셀 vs PDF 강의계획서 정밀 검수",
-        "✍️ Tab 3: ✍️ 맞춤법·기호통일 & 문장축약",
+        "✍️ Tab 3: ✍️ 맞춤법 검사 & 긴 문장 축약",
         "💾 Tab 4: 누적 DB 백업/관리 & 제외 강좌 확인",
     ]
 )
@@ -1130,6 +1130,7 @@ with tab2:
                             "PDF_페이지",
                             "검수상태",
                             "강의상태",
+                            "수강기호",
                             "과목",
                             "학년",
                             "강사명",
@@ -1208,6 +1209,7 @@ with tab2:
                 "검수상태",
                 "No",
                 "강의상태",
+                "수강기호",
                 "강좌코드",
                 "과목",
                 "학년",
@@ -1245,6 +1247,10 @@ with tab2:
                 hide_index=True,
                 disabled=disabled_cols,
                 column_config={
+                    "수강기호": st.column_config.TextColumn(
+                        "수강기호",
+                        help="RMS 엑셀에 등록된 강좌 고유 수강기호입니다.",
+                    ),
                     "강좌명 일치여부": st.column_config.TextColumn(
                         "강좌명(대괄호) 일치여부",
                         help="RMS와 PDF 강좌명의 앞단 대괄호([특강], [과목] 등) 및 본문 문구 완전 일치 여부",
@@ -1309,12 +1315,12 @@ with tab2:
                     st.info("수정이 필요한 오류 강좌가 없습니다.")
 
 # =========================================================================
-# Tab 3: ✍️ 맞춤법·기호통일 & 문장축약 / AI 강의명 제안
+# Tab 3: ✍️ 맞춤법 검사 & 긴 문장 축약 / AI 강의명 제안
 # =========================================================================
 with tab3:
     subtab_text, subtab_ai = st.tabs(
         [
-            "📝 서브탭 A: 맞춤법·기호(■)통일 & 문장축약",
+            "📝 서브탭 A: 맞춤법·오탈자 검사 & 긴 문장 축약",
             "⚡ 서브탭 B: 15자 이내 초단축 임팩트 강의명 제안",
         ]
     )
@@ -1324,29 +1330,25 @@ with tab3:
     # -------------------------------------------------------------
     with subtab_text:
         if crosscheck_result is None or syllabus_pdf_df is None:
-            st.info("💡 강의계획서 PDF를 업로드하면 맞춤법·기호(■)통일 및 문장축약 검수가 자동으로 실행됩니다.")
+            st.info("💡 강의계획서 PDF를 업로드하면 맞춤법·오탈자 및 55자 초과 문장축약 검수가 자동으로 실행됩니다.")
         else:
             if "custom_spelling_df" in st.session_state:
                 spelling_df = st.session_state["custom_spelling_df"]
             else:
                 spelling_df = crosscheck_result.get("spelling_df", pd.DataFrame())
 
-            bullet_issues_df = crosscheck_result.get("bullet_issues_df", pd.DataFrame())
-            disallowed_punct_df = crosscheck_result.get("disallowed_punct_df", pd.DataFrame())
             long_sentence_df = crosscheck_result.get("long_sentence_df", pd.DataFrame())
             combined_proofread_df = crosscheck_result.get("combined_proofread_df", pd.DataFrame())
             course_unified_texts = crosscheck_result.get("course_unified_texts", {})
 
-            # 1. 상단 3대 요약 KPI 카드
-            st.markdown("#### 📊 교열 및 문장부호(■, -, [ ]) 규정 준수 현황 요약")
-            st.caption("강의계획서 본문에는 규정상 **■, -, [ ]** 3가지 문장부호만 허용됩니다. 그 외 다른 비허용 부호(▶, :, →, ●, ★, ※, 〈 〉, 《 》, 〔 〕 등)가 사용된 본문을 정밀 탐지합니다.")
-            kpi_c1, kpi_c2, kpi_c3 = st.columns(3)
+            # 1. 상단 2대 요약 KPI 카드
+            st.markdown("#### 📊 맞춤법·오탈자 및 긴 문장 축약 현황 요약")
+            st.caption("강의계획서 본문 내 맞춤법·오탈자를 검사하고, 55자 이상의 긴 문장에 대해 가독성 개선을 위한 간략화 축약안(서술형/개조식)을 제안합니다.")
+            kpi_c1, kpi_c2 = st.columns(2)
             with kpi_c1:
-                kpi_c1.metric("⬛ 비허용 문장부호 (■, -, [ ] 외)", f"{len(disallowed_punct_df)}건")
+                kpi_c1.metric("🔴 맞춤법·오탈자", f"{len(spelling_df)}건")
             with kpi_c2:
-                kpi_c2.metric("🔴 맞춤법·오탈자", f"{len(spelling_df)}건")
-            with kpi_c3:
-                kpi_c3.metric("✂️ 긴 문장 축약 권장", f"{len(long_sentence_df)}건")
+                kpi_c2.metric("✂️ 긴 문장 축약 권장", f"{len(long_sentence_df)}건")
 
             col_filter, col_sp_btn = st.columns([3, 2])
             with col_filter:
@@ -1354,7 +1356,6 @@ with tab3:
                     "🔍 **오류 유형별 빠른 필터**",
                     [
                         "전체 보기",
-                        "⬛ 비허용 문장부호 (■, -, [ ] 외)만",
                         "🔴 맞춤법·오탈자만",
                         "✂️ 긴 문장 축약만",
                     ],
@@ -1390,7 +1391,7 @@ with tab3:
                                 "교정 구분": "🔴 외부 맞춤법",
                                 "발견 항목": f"{eh.get('target_word', '-')} → {eh.get('replacement_word', '-')}",
                                 "PDF 원문 단락": eh.get("원문문장", ""),
-                                "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": eh.get("교정문장", ""),
+                                "✅ 교정 완료 단락 (오타 수정본)": eh.get("교정문장", ""),
                                 "사유": eh.get("사유", "외부 정밀 맞춤법 교정"),
                             })
                         if ext_comb_rows:
@@ -1407,9 +1408,7 @@ with tab3:
             st.markdown("---")
             if combined_proofread_df is not None and not combined_proofread_df.empty:
                 filtered_df = combined_proofread_df.copy()
-                if filter_opt == "⬛ 비허용 문장부호 (■, -, [ ] 외)만":
-                    filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("비허용|기호통일", na=False)]
-                elif filter_opt == "🔴 맞춤법·오탈자만":
+                if filter_opt == "🔴 맞춤법·오탈자만":
                     filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("맞춤법|오탈자", na=False)]
                 elif filter_opt == "✂️ 긴 문장 축약만":
                     filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("긴 문장|축약", na=False)]
@@ -1424,7 +1423,7 @@ with tab3:
                                 "교정 구분",
                                 "발견 항목",
                                 "PDF 원문 단락",
-                                "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)",
+                                "✅ 교정 완료 단락 (오타 수정본)",
                                 "사유",
                             ]
                         ],
@@ -1434,13 +1433,13 @@ with tab3:
                 else:
                     st.success(f"✅ 선택한 필터 '{filter_opt}'에 해당하는 항목이 없습니다.")
             else:
-                st.success("✅ 감지된 맞춤법 오류, 기호(■) 미통일, 긴 문장이 없습니다.")
+                st.success("✅ 감지된 맞춤법 오류 또는 55자 초과 긴 문장이 없습니다.")
 
             # 3. 하단 강좌별 완성형 텍스트 원클릭 복사 박스
             if course_unified_texts:
                 st.markdown("---")
-                st.markdown("#### 📋 강좌별 맞춤법·기호(■) 교정 완료 텍스트 원클릭 복사")
-                st.caption("각 강좌를 펼치면 규정 문장부호인 **■, -, [ ]** 3가지만 남도록 전면 교정되고 오타가 수정된 완성본 텍스트가 표시됩니다. 코드 박스 우측 상단 복사 아이콘을 눌러 브로슈어나 RMS에 바로 활용하세요.")
+                st.markdown("#### 📋 강좌별 맞춤법·오탈자 교정 완료 텍스트 원클릭 복사")
+                st.caption("각 강좌를 펼치면 맞춤법 및 오탈자가 전면 교정된 완성본 텍스트가 표시됩니다. 코드 박스 우측 상단 복사 아이콘을 눌러 브로슈어나 RMS에 바로 활용하세요.")
 
                 for (inst, c_title), unified_text in course_unified_texts.items():
                     if unified_text:
