@@ -1310,17 +1310,19 @@ with tab3:
                 spelling_df = crosscheck_result.get("spelling_df", pd.DataFrame())
 
             bullet_issues_df = crosscheck_result.get("bullet_issues_df", pd.DataFrame())
+            disallowed_punct_df = crosscheck_result.get("disallowed_punct_df", pd.DataFrame())
             long_sentence_df = crosscheck_result.get("long_sentence_df", pd.DataFrame())
             combined_proofread_df = crosscheck_result.get("combined_proofread_df", pd.DataFrame())
             course_unified_texts = crosscheck_result.get("course_unified_texts", {})
 
             # 1. 상단 3대 요약 KPI 카드
-            st.markdown("#### 📊 교열 및 서식 통일 현황 요약")
+            st.markdown("#### 📊 교열 및 문장부호(■, -, [ ]) 규정 준수 현황 요약")
+            st.caption("강의계획서 본문에는 규정상 **■, -, [ ]** 3가지 문장부호만 허용됩니다. 그 외 다른 부호(▶, ●, ★, ※, 〈 〉, 《 》, 〔 〕 등)가 사용된 본문을 탐지합니다.")
             kpi_c1, kpi_c2, kpi_c3 = st.columns(3)
             with kpi_c1:
-                kpi_c1.metric("🔴 맞춤법·오탈자", f"{len(spelling_df)}건")
+                kpi_c1.metric("⬛ 비허용 문장부호 (■, -, [ ] 외)", f"{len(disallowed_punct_df)}건")
             with kpi_c2:
-                kpi_c2.metric("⬛ 문장부호(■ 미통일)", f"{len(bullet_issues_df)}건")
+                kpi_c2.metric("🔴 맞춤법·오탈자", f"{len(spelling_df)}건")
             with kpi_c3:
                 kpi_c3.metric("✂️ 긴 문장 축약 권장", f"{len(long_sentence_df)}건")
 
@@ -1330,8 +1332,8 @@ with tab3:
                     "🔍 **오류 유형별 빠른 필터**",
                     [
                         "전체 보기",
+                        "⬛ 비허용 문장부호 (■, -, [ ] 외)만",
                         "🔴 맞춤법·오탈자만",
-                        "⬛ 문장부호(■) 미통일만",
                         "✂️ 긴 문장 축약만",
                     ],
                     horizontal=True,
@@ -1383,10 +1385,10 @@ with tab3:
             st.markdown("---")
             if combined_proofread_df is not None and not combined_proofread_df.empty:
                 filtered_df = combined_proofread_df.copy()
-                if filter_opt == "🔴 맞춤법·오탈자만":
+                if filter_opt == "⬛ 비허용 문장부호 (■, -, [ ] 외)만":
+                    filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("비허용|기호통일", na=False)]
+                elif filter_opt == "🔴 맞춤법·오탈자만":
                     filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("맞춤법|오탈자", na=False)]
-                elif filter_opt == "⬛ 문장부호(■) 미통일만":
-                    filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("기호통일", na=False)]
                 elif filter_opt == "✂️ 긴 문장 축약만":
                     filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("긴 문장|축약", na=False)]
 
@@ -1416,7 +1418,7 @@ with tab3:
             if course_unified_texts:
                 st.markdown("---")
                 st.markdown("#### 📋 강좌별 맞춤법·기호(■) 교정 완료 텍스트 원클릭 복사")
-                st.caption("각 강좌를 펼치면 모든 단락 앞이 '■ '(공백 1칸 포함)으로 통일되고 맞춤법/오탈자가 전면 교정된 완성본 텍스트가 표시됩니다. 코드 박스 우측 상단 복사 아이콘을 눌러 브로슈어나 RMS에 바로 활용하세요.")
+                st.caption("각 강좌를 펼치면 규정 문장부호인 **■, -, [ ]** 3가지만 남도록 전면 교정되고 오타가 수정된 완성본 텍스트가 표시됩니다. 코드 박스 우측 상단 복사 아이콘을 눌러 브로슈어나 RMS에 바로 활용하세요.")
 
                 for (inst, c_title), unified_text in course_unified_texts.items():
                     if unified_text:

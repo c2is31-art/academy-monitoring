@@ -189,16 +189,74 @@ SPELLING_CORRECTION_RULES: List[Dict[str, Any]] = [
 # -------------------------------------------------------------------------
 # 3. PDF 깨진 줄바꿈 복원 및 문장 분리 로직
 # -------------------------------------------------------------------------
-# 비표준 글머리 기호 (■ 이외의 기호) 탐지 정규식
-NON_STANDARD_BULLET_RE = re.compile(
-    r"^(\s*)([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※~]+|[-+](?=\s|[가-힣a-zA-Z]))\s*(.*)$"
+# 허용된 문장부호: ■, -, [ ]
+ALLOWED_PUNCTUATION = {"■", "-", "[", "]"}
+
+# 비허용 특수 문장부호 (■, -, [ ] 제외) 탐지 정규식
+DISALLOWED_PUNCTUATION_RE = re.compile(
+    r"([▶▷▲▼◀◁►◄●○◎◐◑◆◇◈▣□▪▫★☆✦✧♥♡※☞👉➢➤➔➜→➡✓✔☑•*|｜＆]"
+    r"|[〈〉《》〔〕【】『』「」]"
+    r"|(?<![월화수목금토일])·(?![월화수목금토일]))"
 )
 
+# 비표준 괄호 매핑 (대괄호 [ ]로 변환)
+BRACKET_REPLACE_RULES = [
+    (re.compile(r"[〈《〔【『「]\s*(.*?)\s*[〉》〕】』」]"), r"[\1]"),
+    (re.compile(r"[〈《〔【『「]"), "["),
+    (re.compile(r"[〉》〕】』」]"), "]"),
+]
+
+# 비표준 글머리 기호 (■, - 이외의 기호) 탐지 정규식
+NON_STANDARD_BULLET_RE = re.compile(
+    r"^(\s*)([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※~]+|\+(?=\s|[가-힣a-zA-Z]))\s*(.*)$"
+)
 # ■ 기호 뒤 공백 누락 탐지 정규식 (예: ■수업특징 -> ■ 수업특징)
 SQUARE_NO_SPACE_RE = re.compile(r"^(\s*)■([^\s].*)$")
 
 # 표준 ■ 글머리 기호 (이미 정상: ■ 뒤 공백 1칸 이상)
 STANDARD_SQUARE_RE = re.compile(r"^(\s*)■\s+(.*)$")
+
+
+def sanitize_punctuations_in_text(sent: str) -> str:
+    """
+    본문 텍스트 내에서 규정된 3가지 문장부호 (■, -, [ ]) 이외의
+    비허용 부호들을 규정 부호 또는 자연스러운 연결 부호로 교정합니다.
+    """
+    if not sent:
+        return ""
+    res = sent.strip()
+
+    # 1. 비표준 괄호 -> [ ] 대괄호로 변환
+    for pat, rep in BRACKET_REPLACE_RULES:
+        res = pat.sub(rep, res)
+
+    # 2. 전각 ＆ -> 및
+    res = res.replace("＆", " 및 ").replace(" & ", " 및 ")
+
+    # 3. 파이프 기호 | -> -
+    res = res.replace("｜", " - ").replace(" | ", " - ")
+
+    # 4. 화살표 ▶, ▷, → 등 본문 중간 연결 -> -
+    res = re.sub(r"\s*[▶▷→➔➜➡]+\s*", " - ", res)
+
+    # 5. 불필요한 장식 기호(★, ☆, ♥, ♡, ※, ●, ○, ◆, ◇, •, ·, *) 제거 또는 정리
+    res = re.sub(r"[★☆♥♡]", "", res)
+    res = re.sub(r"\s*[•∙]\s*", " - ", res)
+    res = re.sub(r"(?<![월화수목금토일])·(?![월화수목금토일])", ", ", res)
+
+    # 6. 단락 맨 앞머리 기호 정리
+    m_head = re.match(r"^([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※\+\~*]+)\s*(.*)$", res)
+    if m_head:
+        res = f"■ {m_head.group(2).strip()}"
+
+    # ■ 바로 뒤 공백 확보
+    res = re.sub(r"^■([^\s])", r"■ ", res)
+    # - 바로 뒤 공백 확보
+    res = re.sub(r"^-([^\s\d])", r"- ", res)
+
+    # 다중 공백 정리
+    res = re.sub(r"[ 	]+", " ", res).strip()
+    return res
 
 
 def clean_pdf_broken_glyphs(text: str) -> str:
@@ -209,6 +267,8 @@ def clean_pdf_broken_glyphs(text: str) -> str:
     if not text:
         return ""
     s = text
+    # 엑셀/XML 비허용 제어문자 제거
+    s = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", s)
     # 불필요한 깨진 기호만 정제 (글머리 기호 보존)
     s = re.sub(r"[§¡¿|]{2,}", " ", s)
     return s
@@ -574,10 +634,10 @@ def analyze_course_text_content(
 ) -> Dict[str, Any]:
     """
     개별 강좌의 전체 텍스트를 정밀 분석하여
-    1) 문장부호(글머리 기호 '■') 통일 검수 리스트
+    1) 규정 문장부호(■, -, [ ]) 외 비허용 부호 검수 리스트
     2) 맞춤법 및 오탈자 오류 리스트
     3) 긴 문장 감지 및 간략화(서술형/개조식) 제안 리스트
-    4) 오타 및 '■' 기호 통일이 100% 완료된 강좌별 통합완성본텍스트를 반환합니다.
+    4) 오타 및 '■, -, [ ]' 규정 부호 통일이 100% 완료된 강좌별 통합완성본텍스트를 반환합니다.
     """
     combined_raw = "\n".join(raw_texts)
     combined_clean = clean_pdf_broken_glyphs(combined_raw)
@@ -585,12 +645,14 @@ def analyze_course_text_content(
 
     spelling_issues: List[Dict[str, Any]] = []
     bullet_issues: List[Dict[str, Any]] = []
+    disallowed_punct_issues: List[Dict[str, Any]] = []
     long_sentence_proposals: List[Dict[str, Any]] = []
     combined_proofread: List[Dict[str, Any]] = []
     unified_paragraphs: List[str] = []
 
     seen_spelling_keys = set()
     seen_bullet_keys = set()
+    seen_disallowed_keys = set()
     seen_long_keys = set()
 
     for item in sentences_data:
@@ -607,50 +669,54 @@ def analyze_course_text_content(
         )
 
         # -------------------------------------------------------------
-        # A. 단락 앞 문장부호(글머리 기호) '■' 통일 검수 & 완성형 단락 도출
+        # A. 비허용 문장부호(■, -, [ ] 외) 탐지 & 규정 부호 교정
         # -------------------------------------------------------------
-        m_non = NON_STANDARD_BULLET_RE.match(sent)
-        m_no_sp = SQUARE_NO_SPACE_RE.match(sent)
-        m_std = STANDARD_SQUARE_RE.match(sent)
+        raw_disallowed = DISALLOWED_PUNCTUATION_RE.findall(sent) if not is_footer else []
+        unique_found = [s for s in sorted(list(set(raw_disallowed))) if s not in ALLOWED_PUNCTUATION]
+        m_non = NON_STANDARD_BULLET_RE.match(sent) if not is_footer else None
+        m_no_sp = SQUARE_NO_SPACE_RE.match(sent) if not is_footer else None
 
-        if not is_footer and m_non:
-            orig_sym = m_non.group(2).strip()
-            body_part = m_non.group(3).strip()
-            # 오타까지 교정된 완성형 문장 생성
-            corrected_body = correct_all_spelling_in_sentence(body_part)
-            corrected_sent = f"■ {corrected_body}"
+        # 비허용 부호가 본문에 들어가 있거나 단락 시작이 비표준 기호인 경우
+        if not is_footer and (unique_found or m_non):
+            if m_non:
+                head_sym = m_non.group(2).strip()
+                if head_sym not in unique_found and head_sym not in ALLOWED_PUNCTUATION:
+                    unique_found.insert(0, head_sym)
 
-            b_key = f"BULLET_NON|{orig_sym}|{sent}"
-            if b_key not in seen_bullet_keys:
-                seen_bullet_keys.add(b_key)
-                b_info = {
+            # 규정 부호(■, -, [ ])로 교정하고 오타까지 수정한 완성형 단락 도출
+            sanitized = sanitize_punctuations_in_text(sent)
+            corrected_sent = correct_all_spelling_in_sentence(sanitized)
+
+            symbols_str = ", ".join(unique_found) if unique_found else "비표준 기호"
+            p_key = f"PUNCT_DISALLOWED|{symbols_str}|{sent}"
+            if p_key not in seen_disallowed_keys:
+                seen_disallowed_keys.add(p_key)
+                p_info = {
                     "강좌명": course_name,
                     "강사명": instructor,
                     "섹션": sec,
-                    "오류유형": "기호통일 (■ 변환)",
-                    "대상어구": orig_sym,
-                    "교정제안": "■ ",
-                    "발견항목": f"{orig_sym} → ■",
-                    "사유": f"단락 앞 글머리 기호 '{orig_sym}'을(를) 표준 기호 '■ '(공백 1칸 포함)으로 통일 권장합니다.",
+                    "오류유형": "비허용 문장부호 (■, -, [ ] 외)",
+                    "대상어구": symbols_str,
+                    "교정제안": "■, -, [ ] 규정 부호로 통일",
+                    "발견항목": f"{symbols_str} (규정 부호 외 사용)",
+                    "사유": f"강의계획서 규정 문장부호(■, -, [ ]) 외의 비허용 부호 '{symbols_str}'가 사용되었습니다.",
                     "원문문장": sent,
                     "교정문장": corrected_sent,
                     "적용상태": "대기",
                 }
-                bullet_issues.append(b_info)
+                disallowed_punct_issues.append(p_info)
                 combined_proofread.append({
                     "강사명": instructor,
                     "강좌명": course_name,
-                    "교정 구분": "⬛ 기호통일 (■ 변환)",
-                    "발견 항목": f"{orig_sym} → ■",
+                    "교정 구분": "⬛ 비허용 문장부호 (■, -, [ ] 외)",
+                    "발견 항목": f"{symbols_str}",
                     "PDF 원문 단락": sent,
                     "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent,
-                    "사유": b_info["사유"],
+                    "사유": p_info["사유"],
                 })
         elif not is_footer and m_no_sp:
-            body_part = m_no_sp.group(2).strip()
-            corrected_body = correct_all_spelling_in_sentence(body_part)
-            corrected_sent = f"■ {corrected_body}"
-
+            sanitized = sanitize_punctuations_in_text(sent)
+            corrected_sent = correct_all_spelling_in_sentence(sanitized)
             b_key = f"BULLET_NOSPACE|■|{sent}"
             if b_key not in seen_bullet_keys:
                 seen_bullet_keys.add(b_key)
@@ -677,12 +743,9 @@ def analyze_course_text_content(
                     "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent,
                     "사유": b_info["사유"],
                 })
-        elif not is_footer and m_std:
-            body_part = m_std.group(2).strip()
-            corrected_body = correct_all_spelling_in_sentence(body_part)
-            corrected_sent = f"■ {corrected_body}"
         else:
-            corrected_sent = correct_all_spelling_in_sentence(sent)
+            sanitized = sanitize_punctuations_in_text(sent)
+            corrected_sent = correct_all_spelling_in_sentence(sanitized)
 
         unified_paragraphs.append(corrected_sent)
 
@@ -767,9 +830,11 @@ def analyze_course_text_content(
         "강사명": instructor,
         "맞춤법오류수": len(spelling_issues),
         "기호통일오류수": len(bullet_issues),
+        "비허용부호오류수": len(disallowed_punct_issues),
         "긴문장수": len(long_sentence_proposals),
         "맞춤법_상세목록": spelling_issues,
         "기호통일_상세목록": bullet_issues,
+        "비허용부호_상세목록": disallowed_punct_issues,
         "긴문장_상세목록": long_sentence_proposals,
         "통합교정_상세목록": combined_proofread,
         "통합완성본텍스트": unified_course_text,

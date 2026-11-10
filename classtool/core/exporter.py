@@ -52,6 +52,9 @@ def build_all_in_one_master_df(
     bullet_issues_df = crosscheck_result.get("bullet_issues_df")
     if bullet_issues_df is None:
         bullet_issues_df = pd.DataFrame()
+    disallowed_punct_df = crosscheck_result.get("disallowed_punct_df")
+    if disallowed_punct_df is None:
+        disallowed_punct_df = pd.DataFrame()
     long_sentence_df = crosscheck_result.get("long_sentence_df")
     if long_sentence_df is None:
         long_sentence_df = pd.DataFrame()
@@ -95,6 +98,17 @@ def build_all_in_one_master_df(
             if item_str:
                 bullet_map.setdefault((inst, c_title), []).append(item_str)
                 bullet_map.setdefault(("", c_title), []).append(item_str)
+
+    # 1-3. 비허용 문장부호(■, -, [ ] 외) 요약 사전 구축
+    disallowed_map: Dict[Tuple[str, str], List[str]] = {}
+    if not disallowed_punct_df.empty:
+        for _, r in disallowed_punct_df.iterrows():
+            c_title = str(r.get("강좌명", "")).strip()
+            inst = str(r.get("강사명", "")).strip()
+            item_str = str(r.get("발견항목", r.get("대상어구", ""))).strip()
+            if item_str:
+                disallowed_map.setdefault((inst, c_title), []).append(item_str)
+                disallowed_map.setdefault(("", c_title), []).append(item_str)
 
     # 2. 긴 문장 축약 요약 사전 구축
     long_map: Dict[Tuple[str, str], List[str]] = {}
@@ -148,6 +162,7 @@ def build_all_in_one_master_df(
             # 매핑 데이터 찾기
             sp_list = spell_map.get((inst, pdf_title)) or spell_map.get((inst, rms_title)) or spell_map.get(("", pdf_title)) or []
             bl_list = bullet_map.get((inst, pdf_title)) or bullet_map.get((inst, rms_title)) or bullet_map.get(("", pdf_title)) or []
+            dp_list = disallowed_map.get((inst, pdf_title)) or disallowed_map.get((inst, rms_title)) or disallowed_map.get(("", pdf_title)) or []
             lg_list = long_map.get((inst, pdf_title)) or long_map.get((inst, rms_title)) or long_map.get(("", pdf_title)) or []
             ai_info = (
                 ai_map.get((inst, pdf_title))
@@ -211,6 +226,8 @@ def build_all_in_one_master_df(
                 "맞춤법교정요약(원문->수정)": " | ".join(sp_list) if sp_list else "오류 없음",
                 "기호미통일건수": len(bl_list),
                 "기호통일요약(기호->■)": " | ".join(bl_list) if bl_list else "■ 통일 완료",
+                "비허용부호건수(■·-·[]외)": len(dp_list),
+                "비허용부호요약": " | ".join(dp_list) if dp_list else "규정 부호 준수",
                 "긴문장축약건수": len(lg_list),
                 "긴문장축약요약(간결형/개조식)": " // ".join(lg_list) if lg_list else "축약 대상 없음",
                 "강의명판정(유지/수정추천)": ai_info.get("판정결과", "미분석"),
@@ -262,6 +279,8 @@ def build_all_in_one_master_df(
                 "맞춤법교정요약(원문->수정)": "-",
                 "기호미통일건수": 0,
                 "기호통일요약(기호->■)": "-",
+                "비허용부호건수(■·-·[]외)": 0,
+                "비허용부호요약": "-",
                 "긴문장축약건수": 0,
                 "긴문장축약요약(간결형/개조식)": "-",
                 "강의명판정(유지/수정추천)": "-",

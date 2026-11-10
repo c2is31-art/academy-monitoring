@@ -1305,6 +1305,7 @@ def run_rms_pdf_crosscheck(
     # ---------------------------------------------------------
     all_spelling_issues: List[Dict[str, Any]] = []
     all_bullet_issues: List[Dict[str, Any]] = []
+    all_disallowed_punct_issues: List[Dict[str, Any]] = []
     all_long_proposals: List[Dict[str, Any]] = []
     all_combined_proofread: List[Dict[str, Any]] = []
     course_unified_texts: Dict[Tuple[str, str], str] = {}
@@ -1326,12 +1327,14 @@ def run_rms_pdf_crosscheck(
             )
             all_spelling_issues.extend(analysis_res.get("맞춤법_상세목록", []))
             all_bullet_issues.extend(analysis_res.get("기호통일_상세목록", []))
+            all_disallowed_punct_issues.extend(analysis_res.get("비허용부호_상세목록", []))
             all_long_proposals.extend(analysis_res.get("긴문장_상세목록", []))
             all_combined_proofread.extend(analysis_res.get("통합교정_상세목록", []))
             course_unified_texts[(c_inst, c_title)] = analysis_res.get("통합완성본텍스트", "")
 
     spelling_df = pd.DataFrame(all_spelling_issues)
     bullet_issues_df = pd.DataFrame(all_bullet_issues)
+    disallowed_punct_df = pd.DataFrame(all_disallowed_punct_issues)
     long_sentence_df = pd.DataFrame(all_long_proposals)
     combined_proofread_df = pd.DataFrame(all_combined_proofread)
     pdf_stopped_df = pd.DataFrame(pdf_stopped_matches)
@@ -1348,6 +1351,7 @@ def run_rms_pdf_crosscheck(
         "pdf_schedule_df": pdf_schedule_df,
         "spelling_df": spelling_df,
         "bullet_issues_df": bullet_issues_df,
+        "disallowed_punct_df": disallowed_punct_df,
         "long_sentence_df": long_sentence_df,
         "combined_proofread_df": combined_proofread_df,
         "course_unified_texts": course_unified_texts,
@@ -1368,6 +1372,7 @@ def run_rms_pdf_crosscheck(
             "schedule_typo_count": kpi_sched_typo,
             "spelling_error_count": len(all_spelling_issues),
             "bullet_error_count": len(all_bullet_issues),
+            "disallowed_punct_count": len(all_disallowed_punct_issues),
             "long_sentence_count": len(all_long_proposals),
         },
     }
@@ -1530,7 +1535,7 @@ def export_crosscheck_to_excel(
 
         for c in cols:
             sub_df[c] = sub_df[c].apply(
-                lambda x: ", ".join(map(str, x)) if isinstance(x, (list, tuple, set)) else ("" if pd.isna(x) else str(x))
+                lambda x: re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", ", ".join(map(str, x)) if isinstance(x, (list, tuple, set)) else ("" if pd.isna(x) else str(x)))
             )
 
         ws.append(cols)
