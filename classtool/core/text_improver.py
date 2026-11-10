@@ -196,7 +196,8 @@ ALLOWED_PUNCTUATION = {"■", "-", "[", "]"}
 DISALLOWED_PUNCTUATION_RE = re.compile(
     r"([▶▷▲▼◀◁►◄●○◎◐◑◆◇◈▣□▪▫★☆✦✧♥♡※☞👉➢➤➔➜→➡✓✔☑•*|｜＆]"
     r"|[〈〉《》〔〕【】『』「」]"
-    r"|(?<![월화수목금토일])·(?![월화수목금토일]))"
+    r"|(?<![월화수목금토일])·(?![월화수목금토일])"
+    r"|(?<!https)(?<!http)(?<!\d):(?!//)(?!\d))"
 )
 
 # 비표준 괄호 매핑 (대괄호 [ ]로 변환)
@@ -208,7 +209,7 @@ BRACKET_REPLACE_RULES = [
 
 # 비표준 글머리 기호 (■, - 이외의 기호) 탐지 정규식
 NON_STANDARD_BULLET_RE = re.compile(
-    r"^(\s*)([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※~]+|\+(?=\s|[가-힣a-zA-Z]))\s*(.*)$"
+    r"^(\s*)([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※~→➔➜➡:]+|\+(?=\s|[가-힣a-zA-Z]))\s*(.*)$"
 )
 # ■ 기호 뒤 공백 누락 탐지 정규식 (예: ■수업특징 -> ■ 수업특징)
 SQUARE_NO_SPACE_RE = re.compile(r"^(\s*)■([^\s].*)$")
@@ -226,36 +227,39 @@ def sanitize_punctuations_in_text(sent: str) -> str:
         return ""
     res = sent.strip()
 
-    # 1. 비표준 괄호 -> [ ] 대괄호로 변환
+    # 1. 단락 맨 앞머리 비표준 기호(▶, →, :, ●, ○, ◆, ◇ 등)를 표준 ■ 기호로 우선 변환
+    m_head = re.match(r"^([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※\+\~*→➔➜➡:]+)\s*(.*)$", res)
+    if m_head:
+        res = f"■ {m_head.group(2).strip()}"
+
+    # 2. 비표준 괄호 -> [ ] 대괄호로 변환
     for pat, rep in BRACKET_REPLACE_RULES:
         res = pat.sub(rep, res)
 
-    # 2. 전각 ＆ -> 및
+    # 3. 전각 ＆ -> 및
     res = res.replace("＆", " 및 ").replace(" & ", " 및 ")
 
-    # 3. 파이프 기호 | -> -
+    # 4. 파이프 기호 | -> -
     res = res.replace("｜", " - ").replace(" | ", " - ")
 
-    # 4. 화살표 ▶, ▷, → 등 본문 중간 연결 -> -
+    # 5. 본문 중간 화살표 ▶, ▷, → 등 연결 -> -
     res = re.sub(r"\s*[▶▷→➔➜➡]+\s*", " - ", res)
 
-    # 5. 불필요한 장식 기호(★, ☆, ♥, ♡, ※, ●, ○, ◆, ◇, •, ·, *) 제거 또는 정리
+    # 6. 본문 중간 콜론(:) (시간 09:00, URL http://, 1:1 제외) -> -
+    res = re.sub(r"\s*(?<!https)(?<!http)(?<!\d):(?!//)(?!\d)\s*", " - ", res)
+
+    # 7. 불필요한 장식 기호(★, ☆, ♥, ♡, ※, ●, ○, ◆, ◇, •, ·, *) 제거 또는 정리
     res = re.sub(r"[★☆♥♡]", "", res)
     res = re.sub(r"\s*[•∙]\s*", " - ", res)
     res = re.sub(r"(?<![월화수목금토일])·(?![월화수목금토일])", ", ", res)
 
-    # 6. 단락 맨 앞머리 기호 정리
-    m_head = re.match(r"^([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※\+\~*]+)\s*(.*)$", res)
-    if m_head:
-        res = f"■ {m_head.group(2).strip()}"
-
     # ■ 바로 뒤 공백 확보
-    res = re.sub(r"^■([^\s])", r"■ ", res)
+    res = re.sub(r"^■([^\s])", r"■ \1", res)
     # - 바로 뒤 공백 확보
-    res = re.sub(r"^-([^\s\d])", r"- ", res)
+    res = re.sub(r"^-([^\s\d])", r"- \1", res)
 
     # 다중 공백 정리
-    res = re.sub(r"[ 	]+", " ", res).strip()
+    res = re.sub(r"[ \t]+", " ", res).strip()
     return res
 
 
@@ -315,7 +319,7 @@ def restore_pdf_sentences(raw_text: str) -> List[Dict[str, Any]]:
 
     # 불릿 기호 정규식
     bullet_regex = re.compile(
-        r"^(?:[•\-*·▶▷■□★☆○●◆◇]|(?:\d+|[가-하]|[A-Z])[\.\)])\s*"
+        r"^(?:[•\-*·▶▷■□★☆○●◆◇→➔➜➡:]|(?:\d+|[가-하]|[A-Z])[\.\)])\s*"
     )
     # 문장 종결 표현 정규식 (. ! ? 다. 요. 함. 음. 등)
     ending_regex = re.compile(
