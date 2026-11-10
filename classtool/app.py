@@ -1147,14 +1147,25 @@ with tab2:
 
         st.markdown("### 🔍 7대 항목 정밀 대조 검수표")
         kpi = crosscheck_result.get("kpi", {})
-        k_col1, k_col2, k_col3, k_col4 = st.columns(4)
+        k_col1, k_col2, k_col3, k_col4, k_col5 = st.columns(5)
         if exclude_stopped:
             k_col1.metric("총 RMS 유효 강좌", f"{kpi.get('total_rms', 0)}건", delta=f"판매중지 {len(stopped_rms_df)}건 제외" if len(stopped_rms_df) > 0 else None, delta_color="inverse")
         else:
             k_col1.metric("총 RMS 검수 강좌", f"{kpi.get('total_rms', 0)}건", delta=f"판매중지 {len(stopped_rms_df)}건 포함" if len(stopped_rms_df) > 0 else "전체 포함", delta_color="normal")
         k_col2.metric("정상 일치 강좌", f"{kpi.get('normal_count', 0)}건")
         k_col3.metric("오류·확인필요 강좌", f"{kpi.get('error_count', 0)}건", delta_color="inverse")
-        k_col4.metric("PDF 미수록 강좌", f"{kpi.get('missing_pdf_count', 0)}건", delta_color="inverse")
+
+        # 🚨 강좌명(대괄호 포함) 불일치 메트릭
+        t_mismatch = kpi.get("title_mismatch_count", 0)
+        t_bracket = kpi.get("title_bracket_mismatch_count", 0)
+        k_col4.metric(
+            "🚨 강좌명 불일치",
+            f"{t_mismatch}건",
+            delta=f"대괄호 불일치 {t_bracket}건" if t_bracket > 0 else None,
+            delta_color="inverse",
+            help="RMS와 PDF의 강좌명이 앞단 대괄호([특강], [과목] 등) 또는 본문 표기에서 불일치하는 강좌 수입니다.",
+        )
+        k_col5.metric("PDF 미수록 강좌", f"{kpi.get('missing_pdf_count', 0)}건", delta_color="inverse")
 
         # 필터링 라디오
         filter_options = [
@@ -1162,6 +1173,7 @@ with tab2:
             "판매 중 강좌만 보기",
             "판매중지 강좌만 보기",
             "🔴 오류 발생 강좌만 보기",
+            "🚨 강좌명(대괄호 포함) 불일치만 보기",
             "⚪ PDF 미수록 강좌만 보기",
         ]
         filter_status = st.radio(
@@ -1179,6 +1191,8 @@ with tab2:
                 disp_df = comp_df[comp_df["강의상태"].astype(str).str.contains("중지")].copy()
             elif filter_status == "🔴 오류 발생 강좌만 보기":
                 disp_df = comp_df[comp_df["검수상태"].astype(str).str.contains("🔴|🟡|⚠️|불일치|오류|오타|모순")].copy()
+            elif filter_status == "🚨 강좌명(대괄호 포함) 불일치만 보기":
+                disp_df = comp_df[comp_df["강좌명 일치여부"].astype(str).str.contains("불일치|차이")].copy()
             elif filter_status == "⚪ PDF 미수록 강좌만 보기":
                 disp_df = comp_df[comp_df["검수상태"].astype(str).str.contains("⚪|미수록")].copy()
             else:
@@ -1198,6 +1212,7 @@ with tab2:
                 "과목",
                 "학년",
                 "강사명",
+                "강좌명 일치여부",
                 "RMS 강좌명",
                 "PDF 강좌명",
                 "PDF 페이지",
@@ -1215,7 +1230,7 @@ with tab2:
 
             st.caption(
                 "💡 **[RMS vs PDF 강의명 좌우 인접 대조 및 직접 편집]** "
-                "`RMS 강좌명`과 `PDF 강좌명`이 나란히 배치되어 있어 불일치 사항을 한눈에 비교할 수 있습니다. "
+                "`강좌명 일치여부`, `RMS 강좌명`, `PDF 강좌명`이 나란히 배치되어 있어 앞단 대괄호(`[특강][언어,문학]` 등) 누락이나 본문 표기 불일치를 즉시 식별할 수 있습니다. "
                 "셀을 더블 클릭하여 오탈자나 강의명을 직접 수정할 수 있으며, 수정된 내용은 엑셀 다운로드에 즉시 반영됩니다."
             )
 
@@ -1230,6 +1245,10 @@ with tab2:
                 hide_index=True,
                 disabled=disabled_cols,
                 column_config={
+                    "강좌명 일치여부": st.column_config.TextColumn(
+                        "강좌명(대괄호) 일치여부",
+                        help="RMS와 PDF 강좌명의 앞단 대괄호([특강], [과목] 등) 및 본문 문구 완전 일치 여부",
+                    ),
                     "RMS 강좌명": st.column_config.TextColumn(
                         "RMS 강의명 ✏️",
                         help="RMS 등록 강좌명입니다. 더블 클릭하여 직접 수정할 수 있습니다.",
@@ -1268,6 +1287,9 @@ with tab2:
                         if old_rms != e_rms_t or old_pdf != e_pdf_t:
                             comp_df.loc[mask, "RMS 강좌명"] = e_rms_t
                             comp_df.loc[mask, "PDF 강좌명"] = e_pdf_t
+                            from core.matcher import verify_course_title_match
+                            t_v = verify_course_title_match(str(e_rms_t or ""), str(e_pdf_t or ""))
+                            comp_df.loc[mask, "강좌명 일치여부"] = t_v.get("status", "⚪ 미확인")
                             if e_fix_t is not None:
                                 comp_df.loc[mask, "자동 생성된 수정 요청 사항 요약"] = e_fix_t
                             has_updates = True

@@ -313,6 +313,87 @@ def compute_title_similarity(title_a: str, title_b: str) -> float:
     return round(max(score_token, score_partial * 0.9), 1)
 
 
+def extract_leading_brackets(title: str) -> List[str]:
+    """강좌명 앞머리에 위치한 모든 [대괄호태그]를 순서대로 추출합니다."""
+    if not title:
+        return []
+    m = re.match(r"^(\s*\[[^\]]+\])+", str(title))
+    if m:
+        return [b.strip() for b in re.findall(r"\[[^\]]+\]", m.group(0))]
+    return []
+
+
+def verify_course_title_match(rms_title: str, pdf_title: str) -> Dict[str, Any]:
+    """
+    RMS 강좌명과 PDF 강좌명이 앞단 대괄호([특강], [언어,문학] 등)를 포함하여
+    완전히 동일한지 정밀 대조 검수를 수행합니다.
+    """
+    if not pdf_title or str(pdf_title).strip() in ("", "-"):
+        return {
+            "status": "⚪ PDF 미수록",
+            "match_status": "⚪ PDF 미수록",
+            "is_exact_match": False,
+            "has_bracket_error": False,
+            "error_detail": "",
+            "fix_request": "",
+            "rms_brackets": [],
+            "pdf_brackets": [],
+        }
+
+    r_clean = re.sub(r"\s+", " ", str(rms_title)).strip()
+    p_clean = re.sub(r"\s+", " ", str(pdf_title)).strip()
+
+    r_brackets = extract_leading_brackets(r_clean)
+    p_brackets = extract_leading_brackets(p_clean)
+
+    # 1. 대괄호 포함 100% 완전 일치
+    if r_clean == p_clean:
+        return {
+            "status": "✅ 완전 일치",
+            "match_status": "✅ 완전 일치",
+            "is_exact_match": True,
+            "has_bracket_error": False,
+            "error_detail": "",
+            "fix_request": "",
+            "rms_brackets": r_brackets,
+            "pdf_brackets": p_brackets,
+        }
+
+    # 2. 불일치 분석
+    bracket_diff = (r_brackets != p_brackets)
+
+    r_body = r_clean[len("".join(r_brackets)):].strip()
+    p_body = p_clean[len("".join(p_brackets)):].strip()
+    body_diff = (r_body != p_body)
+
+    r_br_str = "".join(r_brackets) if r_brackets else "(대괄호 없음)"
+    p_br_str = "".join(p_brackets) if p_brackets else "(대괄호 없음)"
+
+    if bracket_diff and body_diff:
+        match_status = "🔴 대괄호·문구 불일치"
+        err_detail = f"강좌명 대괄호 및 문구 불일치 (RMS: '{r_clean}' ≠ PDF: '{p_clean}')"
+        fix_req = f"PDF 강좌명을 RMS와 대괄호 포함 100% 일치하도록 수정: '{r_clean}'"
+    elif bracket_diff:
+        match_status = "🔴 대괄호 불일치"
+        err_detail = f"강좌명 앞단 대괄호 불일치 (RMS: {r_br_str} ≠ PDF: {p_br_str})"
+        fix_req = f"PDF 강좌명 앞단 대괄호를 RMS('{r_br_str}')와 동일하게 수정: '{r_clean}'"
+    else:
+        match_status = "🟡 문구 표기 차이"
+        err_detail = f"강좌명 본문 문구 차이 (RMS: '{r_body}' ≠ PDF: '{p_body}')"
+        fix_req = f"PDF 강좌명을 RMS('{r_clean}')와 일치하도록 수정"
+
+    return {
+        "status": match_status,
+        "match_status": match_status,
+        "is_exact_match": False,
+        "has_bracket_error": bracket_diff,
+        "error_detail": err_detail,
+        "fix_request": fix_req,
+        "rms_brackets": r_brackets,
+        "pdf_brackets": p_brackets,
+    }
+
+
 SUBJECT_ALIAS_MAP: Dict[str, str] = {
     "세시지": "세계시민과지리",
     "화반세": "화학반응의세계",
@@ -747,6 +828,20 @@ def verify_rms_vs_pdf_course(
     sim_slogan = compute_title_similarity(r_pure_title, p_slogan) if p_slogan else 0.0
     best_title_sim = max(sim_title, sim_slogan)
 
+    # 6. 강좌명 및 앞단 대괄호 완전 일치 정밀 검수
+    title_verif = verify_course_title_match(r_title, p_title)
+    if not title_verif["is_exact_match"]:
+        if title_verif["has_bracket_error"]:
+            error_tags.append("🔴 [강좌명 대괄호 불일치]")
+            error_details.append(title_verif["error_detail"])
+            error_columns.add("강좌명")
+            fix_requests.append(title_verif["fix_request"])
+        else:
+            error_tags.append("🟡 [강좌명 문구 차이]")
+            error_details.append(title_verif["error_detail"])
+            error_columns.add("강좌명")
+            fix_requests.append(title_verif["fix_request"])
+
     if r_pure_title != p_pure_title:
         if sim_slogan >= 85.0 and sim_title < 60.0:
             info_notes.append(f"참고: RMS 강좌명('{r_pure_title}')이 PDF 슬로건에 표기됨 (PDF 강좌명: '{p_pure_title}')")
@@ -790,6 +885,9 @@ def verify_rms_vs_pdf_course(
         "status_badge": status_badge,
         "has_error": has_error,
         "has_red_error": has_red_error,
+        "title_match_status": title_verif["match_status"],
+        "title_has_bracket_error": title_verif["has_bracket_error"],
+        "title_is_exact_match": title_verif["is_exact_match"],
         "error_tags": error_tags,
         "error_details": error_details,
         "detail_str": detail_str,
@@ -965,6 +1063,9 @@ def run_rms_pdf_crosscheck(
     kpi_session_err = 0
     kpi_date_err = 0
     kpi_sched_typo = 0
+    kpi_title_mismatch = 0
+    kpi_bracket_mismatch = 0
+    kpi_title_exact = 0
 
     for r_idx, r_row in rms.iterrows():
         r_no = int(r_row.get("No", r_idx + 1) or (r_idx + 1))
@@ -1033,6 +1134,14 @@ def run_rms_pdf_crosscheck(
             err_cols = ver["error_columns"]
             err_tags = ver["error_tags"]
 
+            title_status = ver.get("title_match_status", "⚪ 미확인")
+            if ver.get("title_is_exact_match"):
+                kpi_title_exact += 1
+            else:
+                kpi_title_mismatch += 1
+                if ver.get("title_has_bracket_error"):
+                    kpi_bracket_mismatch += 1
+
             if ver["has_error"]:
                 kpi_error += 1
                 if any("수강료" in t or "단가" in t for t in err_tags):
@@ -1065,6 +1174,7 @@ def run_rms_pdf_crosscheck(
             baza_compare_str = f"RMS: {r_baza} (PDF 미수록)"
             err_cols = []
             err_tags = []
+            title_status = "⚪ PDF 미수록"
             kpi_missing_pdf += 1
             p_fee_int = 0
             p_sess_int = 0
@@ -1082,6 +1192,7 @@ def run_rms_pdf_crosscheck(
                 "강사명": inst_display,
                 "RMS_강사명": r_inst,
                 "정규화강사명": r_norm_inst,
+                "강좌명 일치여부": title_status,
                 "RMS 강좌명": r_title,
                 "PDF 강좌명": p_title,
                 "PDF 페이지": p_page_range,
@@ -1370,6 +1481,9 @@ def run_rms_pdf_crosscheck(
             "session_error_count": kpi_session_err,
             "date_error_count": kpi_date_err,
             "schedule_typo_count": kpi_sched_typo,
+            "title_mismatch_count": kpi_title_mismatch,
+            "title_bracket_mismatch_count": kpi_bracket_mismatch,
+            "title_exact_count": kpi_title_exact,
             "spelling_error_count": len(all_spelling_issues),
             "bullet_error_count": len(all_bullet_issues),
             "disallowed_punct_count": len(all_disallowed_punct_issues),
@@ -1867,6 +1981,7 @@ def export_crosscheck_to_excel(
         "과목",
         "학년",
         "강사명",
+        "강좌명 일치여부",
         "RMS 강좌명",
         "PDF 강좌명",
         "PDF 페이지",
@@ -1938,6 +2053,7 @@ def export_crosscheck_to_excel(
         "과목",
         "학년",
         "강사명",
+        "강좌명 일치여부",
         "RMS 강좌명",
         "PDF 강좌명",
         "PDF 페이지",
