@@ -1153,7 +1153,7 @@ def run_rms_pdf_crosscheck(
                 reason = "강사명 미발견 (PDF 내 해당 강사 강의계획서 미추출)"
             else:
                 reason = "강사명은 PDF에 존재하나 요일/시간/강좌명 유사도 미달 또는 다른 분반에 우선 매칭됨"
-            print(f"  - [{r_code}] 강사: {r_inst} | 강좌명: {r_title} ➔ 사유: {reason}")
+            print(f"  - [{r_code}] 강사: {r_inst} | 강좌명: {r_title} -> 사유: {reason}")
 
     # PDF 진도표 상세 검수 테이블 (Tab 3 & Sheet 4 전용)
     pdf_sched_rows: List[Dict[str, Any]] = []
@@ -1301,10 +1301,13 @@ def run_rms_pdf_crosscheck(
     unmatched_pdf_df = pd.DataFrame(unmatched_pdf_rows)
 
     # ---------------------------------------------------------
-    # PDF 본문 텍스트 국어 맞춤법 & 긴 문장 간략화 제안 분석
+    # PDF 본문 텍스트 국어 맞춤법, 문장부호('■') 통일 & 긴 문장 축약 분석
     # ---------------------------------------------------------
     all_spelling_issues: List[Dict[str, Any]] = []
+    all_bullet_issues: List[Dict[str, Any]] = []
     all_long_proposals: List[Dict[str, Any]] = []
+    all_combined_proofread: List[Dict[str, Any]] = []
+    course_unified_texts: Dict[Tuple[str, str], str] = {}
 
     if not pdf_df.empty:
         for p_idx, p_row in pdf_df.iterrows():
@@ -1314,7 +1317,6 @@ def run_rms_pdf_crosscheck(
             if not raw_txts and p_row.get("원문전체텍스트"):
                 raw_txts = [str(p_row.get("원문전체텍스트", ""))]
 
-            # 업로드 시점에는 순수 0.1초 로컬 규칙(120종 맞춤법/오탈자 + 긴문장 축약)만 즉시 실행 (외부 API 호출 배제)
             analysis_res = analyze_course_text_content(
                 course_name=c_title,
                 instructor=c_inst,
@@ -1322,11 +1324,16 @@ def run_rms_pdf_crosscheck(
                 max_char_threshold=max_char_threshold,
                 gemini_api_key=None,
             )
-            all_spelling_issues.extend(analysis_res["맞춤법_상세목록"])
-            all_long_proposals.extend(analysis_res["긴문장_상세목록"])
+            all_spelling_issues.extend(analysis_res.get("맞춤법_상세목록", []))
+            all_bullet_issues.extend(analysis_res.get("기호통일_상세목록", []))
+            all_long_proposals.extend(analysis_res.get("긴문장_상세목록", []))
+            all_combined_proofread.extend(analysis_res.get("통합교정_상세목록", []))
+            course_unified_texts[(c_inst, c_title)] = analysis_res.get("통합완성본텍스트", "")
 
     spelling_df = pd.DataFrame(all_spelling_issues)
+    bullet_issues_df = pd.DataFrame(all_bullet_issues)
     long_sentence_df = pd.DataFrame(all_long_proposals)
+    combined_proofread_df = pd.DataFrame(all_combined_proofread)
     pdf_stopped_df = pd.DataFrame(pdf_stopped_matches)
 
     stopped_cnt = len(stopped_rms_df) if (stopped_rms_df is not None and not stopped_rms_df.empty) else 0
@@ -1340,7 +1347,10 @@ def run_rms_pdf_crosscheck(
         "stopped_rms_df": stopped_rms_df if stopped_rms_df is not None else pd.DataFrame(),
         "pdf_schedule_df": pdf_schedule_df,
         "spelling_df": spelling_df,
+        "bullet_issues_df": bullet_issues_df,
         "long_sentence_df": long_sentence_df,
+        "combined_proofread_df": combined_proofread_df,
+        "course_unified_texts": course_unified_texts,
         "instructor_summary_df": generate_instructor_student_summary(rms),
         "rms_summary": extract_rms_summary(rms, stopped_count=stopped_cnt),
         "kpi": {
@@ -1357,6 +1367,7 @@ def run_rms_pdf_crosscheck(
             "date_error_count": kpi_date_err,
             "schedule_typo_count": kpi_sched_typo,
             "spelling_error_count": len(all_spelling_issues),
+            "bullet_error_count": len(all_bullet_issues),
             "long_sentence_count": len(all_long_proposals),
         },
     }
@@ -1944,25 +1955,26 @@ def export_crosscheck_to_excel(
     )
 
     # =========================================================================
-    # Sheet 6: 맞춤법_및_긴문장축약
+    # Sheet 6: 맞춤법_기호통일_문장축약
     # =========================================================================
-    ws_s6 = wb.create_sheet(title="맞춤법_및_긴문장축약")
+    ws_s6 = wb.create_sheet(title="맞춤법_기호통일_문장축약")
     sheet6_cols = [
-        "강좌명",
         "강사명",
-        "섹션",
-        "글자수",
-        "원문문장",
-        "제안1_서술형",
-        "제안2_개조식",
-        "생성엔진",
-        "최종문장",
+        "강좌명",
+        "교정 구분",
+        "발견 항목",
+        "PDF 원문 단락",
+        "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)",
+        "사유",
     ]
+    comb_proof_df = crosscheck_result.get("combined_proofread_df", pd.DataFrame())
+    if comb_proof_df is None or comb_proof_df.empty:
+        comb_proof_df = crosscheck_result.get("long_sentence_df", pd.DataFrame())
     _write_styled_sheet(
         ws_s6,
-        crosscheck_result.get("long_sentence_df", pd.DataFrame()),
+        comb_proof_df,
         columns_to_export=sheet6_cols,
-        status_col_name="생성엔진",
+        status_col_name="교정 구분",
         highlight_error_cells=False,
     )
 

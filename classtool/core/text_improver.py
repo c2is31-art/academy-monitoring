@@ -189,18 +189,56 @@ SPELLING_CORRECTION_RULES: List[Dict[str, Any]] = [
 # -------------------------------------------------------------------------
 # 3. PDF 깨진 줄바꿈 복원 및 문장 분리 로직
 # -------------------------------------------------------------------------
+# 비표준 글머리 기호 (■ 이외의 기호) 탐지 정규식
+NON_STANDARD_BULLET_RE = re.compile(
+    r"^(\s*)([●○◆◇▶▷★☆•·▪▫✓✔☞➢➤※~]+|[-+](?=\s|[가-힣a-zA-Z]))\s*(.*)$"
+)
+
+# ■ 기호 뒤 공백 누락 탐지 정규식 (예: ■수업특징 -> ■ 수업특징)
+SQUARE_NO_SPACE_RE = re.compile(r"^(\s*)■([^\s].*)$")
+
+# 표준 ■ 글머리 기호 (이미 정상: ■ 뒤 공백 1칸 이상)
+STANDARD_SQUARE_RE = re.compile(r"^(\s*)■\s+(.*)$")
+
+
 def clean_pdf_broken_glyphs(text: str) -> str:
-    """PDF 텍스트 내 글리프 깨짐, 잡음 기호 정제"""
+    """
+    PDF 텍스트 내 글리프 깨짐, 잡음 기호 정제.
+    원본 글머리 기호(■, ▶, ●, ★ 등)는 기호 통일 검수를 위해 보존합니다.
+    """
     if not text:
         return ""
     s = text
-    # 유니코드 불릿 기호 통일
-    s = s.replace("▶", " • ").replace("▷", " • ").replace("■", " • ").replace("□", " • ")
-    s = s.replace("★", " • ").replace("☆", " • ").replace("○", " • ").replace("●", " • ")
-    s = s.replace("◆", " • ").replace("◇", " • ")
-    # 불필요한 깨진 기호 제거
+    # 불필요한 깨진 기호만 정제 (글머리 기호 보존)
     s = re.sub(r"[§¡¿|]{2,}", " ", s)
     return s
+
+
+def correct_all_spelling_in_sentence(text: str) -> str:
+    """
+    문장 내 등록된 맞춤법/오탈자 패턴을 일괄 교정하여 반환합니다.
+    (입시/학원 전문용어 화이트리스트는 오탐 배제)
+    """
+    if not text:
+        return ""
+    res = text
+    for rule in SPELLING_CORRECTION_RULES:
+        pat = rule["pattern"]
+        rep = rule["replacement"]
+        matches = list(re.finditer(pat, res))
+        if not matches:
+            continue
+        for m in reversed(matches):
+            matched_str = m.group(0)
+            if matched_str in ACADEMIC_WHITELIST:
+                continue
+            try:
+                replacement_str = re.sub(pat, rep, matched_str)
+                res = res[:m.start()] + replacement_str + res[m.end():]
+            except Exception:
+                pass
+    res = re.sub(r"[§¡¿|]{2,}", " ", res)
+    return res
 
 
 def restore_pdf_sentences(raw_text: str) -> List[Dict[str, Any]]:
@@ -536,26 +574,122 @@ def analyze_course_text_content(
 ) -> Dict[str, Any]:
     """
     개별 강좌의 전체 텍스트를 정밀 분석하여
-    1) 맞춤법 및 오탈자 오류 리스트
-    2) 긴 문장 감지 및 간략화(서술형/개조식) 제안 리스트를 반환합니다.
+    1) 문장부호(글머리 기호 '■') 통일 검수 리스트
+    2) 맞춤법 및 오탈자 오류 리스트
+    3) 긴 문장 감지 및 간략화(서술형/개조식) 제안 리스트
+    4) 오타 및 '■' 기호 통일이 100% 완료된 강좌별 통합완성본텍스트를 반환합니다.
     """
     combined_raw = "\n".join(raw_texts)
     combined_clean = clean_pdf_broken_glyphs(combined_raw)
     sentences_data = restore_pdf_sentences(combined_clean)
 
     spelling_issues: List[Dict[str, Any]] = []
+    bullet_issues: List[Dict[str, Any]] = []
     long_sentence_proposals: List[Dict[str, Any]] = []
+    combined_proofread: List[Dict[str, Any]] = []
+    unified_paragraphs: List[str] = []
 
     seen_spelling_keys = set()
+    seen_bullet_keys = set()
     seen_long_keys = set()
 
     for item in sentences_data:
         sec = item["section"]
-        sent = item["sentence"]
+        sent = item["sentence"].strip()
         c_len = item["char_count"]
 
-        # 1) 맞춤법 및 오탈자 검사
-        typo_hits = check_spelling_and_typos(sent)
+        if not sent:
+            continue
+
+        # 학원 푸터/법정 표기 제외
+        is_footer = any(
+            ft in sent for ft in ["학원등록번호", "러셀 대치학원", "원격교습", "교습과정", "수강료 및 교습비", "신고번호"]
+        )
+
+        # -------------------------------------------------------------
+        # A. 단락 앞 문장부호(글머리 기호) '■' 통일 검수 & 완성형 단락 도출
+        # -------------------------------------------------------------
+        m_non = NON_STANDARD_BULLET_RE.match(sent)
+        m_no_sp = SQUARE_NO_SPACE_RE.match(sent)
+        m_std = STANDARD_SQUARE_RE.match(sent)
+
+        if not is_footer and m_non:
+            orig_sym = m_non.group(2).strip()
+            body_part = m_non.group(3).strip()
+            # 오타까지 교정된 완성형 문장 생성
+            corrected_body = correct_all_spelling_in_sentence(body_part)
+            corrected_sent = f"■ {corrected_body}"
+
+            b_key = f"BULLET_NON|{orig_sym}|{sent}"
+            if b_key not in seen_bullet_keys:
+                seen_bullet_keys.add(b_key)
+                b_info = {
+                    "강좌명": course_name,
+                    "강사명": instructor,
+                    "섹션": sec,
+                    "오류유형": "기호통일 (■ 변환)",
+                    "대상어구": orig_sym,
+                    "교정제안": "■ ",
+                    "발견항목": f"{orig_sym} → ■",
+                    "사유": f"단락 앞 글머리 기호 '{orig_sym}'을(를) 표준 기호 '■ '(공백 1칸 포함)으로 통일 권장합니다.",
+                    "원문문장": sent,
+                    "교정문장": corrected_sent,
+                    "적용상태": "대기",
+                }
+                bullet_issues.append(b_info)
+                combined_proofread.append({
+                    "강사명": instructor,
+                    "강좌명": course_name,
+                    "교정 구분": "⬛ 기호통일 (■ 변환)",
+                    "발견 항목": f"{orig_sym} → ■",
+                    "PDF 원문 단락": sent,
+                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent,
+                    "사유": b_info["사유"],
+                })
+        elif not is_footer and m_no_sp:
+            body_part = m_no_sp.group(2).strip()
+            corrected_body = correct_all_spelling_in_sentence(body_part)
+            corrected_sent = f"■ {corrected_body}"
+
+            b_key = f"BULLET_NOSPACE|■|{sent}"
+            if b_key not in seen_bullet_keys:
+                seen_bullet_keys.add(b_key)
+                b_info = {
+                    "강좌명": course_name,
+                    "강사명": instructor,
+                    "섹션": sec,
+                    "오류유형": "기호통일 (■ 띄어쓰기)",
+                    "대상어구": "■(붙여쓰기)",
+                    "교정제안": "■ ",
+                    "발견항목": "■(붙여쓰기) → ■ ",
+                    "사유": "글머리 기호 '■' 뒤에 공백 1칸을 띄어 표준 서식을 준수합니다.",
+                    "원문문장": sent,
+                    "교정문장": corrected_sent,
+                    "적용상태": "대기",
+                }
+                bullet_issues.append(b_info)
+                combined_proofread.append({
+                    "강사명": instructor,
+                    "강좌명": course_name,
+                    "교정 구분": "⬛ 기호통일 (■ 띄어쓰기)",
+                    "발견 항목": "■(붙여쓰기) → ■ ",
+                    "PDF 원문 단락": sent,
+                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent,
+                    "사유": b_info["사유"],
+                })
+        elif not is_footer and m_std:
+            body_part = m_std.group(2).strip()
+            corrected_body = correct_all_spelling_in_sentence(body_part)
+            corrected_sent = f"■ {corrected_body}"
+        else:
+            corrected_sent = correct_all_spelling_in_sentence(sent)
+
+        unified_paragraphs.append(corrected_sent)
+
+        # -------------------------------------------------------------
+        # B. 맞춤법 및 오탈자 검사
+        # -------------------------------------------------------------
+        typo_hits = check_spelling_and_typos(sent) if not is_footer else []
         for th in typo_hits:
             s_key = f"{th['rule_type']}|{th['target_word']}|{sent}"
             if s_key not in seen_spelling_keys:
@@ -567,14 +701,26 @@ def analyze_course_text_content(
                     "오류유형": th["rule_type"],
                     "대상어구": th["target_word"],
                     "교정제안": th["replacement_word"],
+                    "발견항목": f"{th['target_word']} → {th['replacement_word']}",
                     "사유": th["reason"],
                     "원문문장": sent,
-                    "교정문장": th["suggested_sentence"],
+                    "교정문장": corrected_sent if corrected_sent != sent else th["suggested_sentence"],
                     "적용상태": "대기",
                 })
+                combined_proofread.append({
+                    "강사명": instructor,
+                    "강좌명": course_name,
+                    "교정 구분": "🔴 맞춤법·오탈자",
+                    "발견 항목": f"{th['target_word']} → {th['replacement_word']}",
+                    "PDF 원문 단락": sent,
+                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": corrected_sent if corrected_sent != sent else th["suggested_sentence"],
+                    "사유": th["reason"],
+                })
 
-        # 2) 긴 문장 감지 및 간략화 제안
-        if c_len >= max_char_threshold:
+        # -------------------------------------------------------------
+        # C. 긴 문장 감지 및 간략화 제안
+        # -------------------------------------------------------------
+        if not is_footer and c_len >= max_char_threshold:
             if sent not in seen_long_keys:
                 seen_long_keys.add(sent)
 
@@ -604,14 +750,29 @@ def analyze_course_text_content(
                     "선택제안": "제안1_서술형",
                     "최종문장": p1,
                 })
+                combined_proofread.append({
+                    "강사명": instructor,
+                    "강좌명": course_name,
+                    "교정 구분": "✂️ 긴 문장 축약",
+                    "발견 항목": f"글자수 {c_len}자 (기준 {max_char_threshold}자 초과)",
+                    "PDF 원문 단락": sent,
+                    "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": f"[제안 1 서술형] {p1}\n[제안 2 개조식] {p2}",
+                    "사유": f"문장 길이가 {c_len}자로 길어 가독성 저하 우려 (간결 서술형 및 개조식 제안)",
+                })
+
+    unified_course_text = "\n\n".join(unified_paragraphs)
 
     return {
         "강좌명": course_name,
         "강사명": instructor,
         "맞춤법오류수": len(spelling_issues),
+        "기호통일오류수": len(bullet_issues),
         "긴문장수": len(long_sentence_proposals),
         "맞춤법_상세목록": spelling_issues,
+        "기호통일_상세목록": bullet_issues,
         "긴문장_상세목록": long_sentence_proposals,
+        "통합교정_상세목록": combined_proofread,
+        "통합완성본텍스트": unified_course_text,
     }
 
 

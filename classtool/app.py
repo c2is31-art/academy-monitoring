@@ -844,7 +844,7 @@ tab1, tab2, tab3, tab4 = st.tabs(
     [
         "📈 Tab 1: 강사별 수강생 & 매월 20일 기준 비교 통계",
         "🔍 Tab 2: 엑셀 vs PDF 강의계획서 정밀 검수",
-        "✍️ Tab 3: 맞춤법 교정 & ⚡ 초단축 문장·강의명 제안",
+        "✍️ Tab 3: ✍️ 맞춤법·기호통일 & 문장축약",
         "💾 Tab 4: 누적 DB 백업/관리 & 제외 강좌 확인",
     ]
 )
@@ -1287,34 +1287,56 @@ with tab2:
                     st.info("수정이 필요한 오류 강좌가 없습니다.")
 
 # =========================================================================
-# Tab 3: ✍️ 맞춤법 교정 & ⚡ 초단축 문장·강의명 제안
+# Tab 3: ✍️ 맞춤법·기호통일 & 문장축약 / AI 강의명 제안
 # =========================================================================
 with tab3:
     subtab_text, subtab_ai = st.tabs(
         [
-            "📝 서브탭 A: 국어 맞춤법 교정 & 긴 문장 축약",
+            "📝 서브탭 A: 맞춤법·기호(■)통일 & 문장축약",
             "⚡ 서브탭 B: 15자 이내 초단축 임팩트 강의명 제안",
         ]
     )
 
     # -------------------------------------------------------------
-    # 서브탭 A: 국어 맞춤법 및 긴 문장 축약
+    # 서브탭 A: 맞춤법, 기호(■) 통일 및 긴 문장 축약
     # -------------------------------------------------------------
     with subtab_text:
         if crosscheck_result is None or syllabus_pdf_df is None:
-            st.info("💡 강의계획서 PDF를 업로드하면 맞춤법 및 긴 문장 축약 검수가 자동으로 실행됩니다.")
+            st.info("💡 강의계획서 PDF를 업로드하면 맞춤법·기호(■)통일 및 문장축약 검수가 자동으로 실행됩니다.")
         else:
-            # 세션에 커스텀 맞춤법 검사 결과가 있으면 우선 사용
             if "custom_spelling_df" in st.session_state:
                 spelling_df = st.session_state["custom_spelling_df"]
             else:
                 spelling_df = crosscheck_result.get("spelling_df", pd.DataFrame())
 
+            bullet_issues_df = crosscheck_result.get("bullet_issues_df", pd.DataFrame())
             long_sentence_df = crosscheck_result.get("long_sentence_df", pd.DataFrame())
+            combined_proofread_df = crosscheck_result.get("combined_proofread_df", pd.DataFrame())
+            course_unified_texts = crosscheck_result.get("course_unified_texts", {})
 
-            col_sp_head, col_sp_btn = st.columns([3, 2])
-            with col_sp_head:
-                st.markdown(f"#### 🔍 1. 국어 맞춤법 및 오탈자 검수 ({len(spelling_df)}건 발견)")
+            # 1. 상단 3대 요약 KPI 카드
+            st.markdown("#### 📊 교열 및 서식 통일 현황 요약")
+            kpi_c1, kpi_c2, kpi_c3 = st.columns(3)
+            with kpi_c1:
+                kpi_c1.metric("🔴 맞춤법·오탈자", f"{len(spelling_df)}건")
+            with kpi_c2:
+                kpi_c2.metric("⬛ 문장부호(■ 미통일)", f"{len(bullet_issues_df)}건")
+            with kpi_c3:
+                kpi_c3.metric("✂️ 긴 문장 축약 권장", f"{len(long_sentence_df)}건")
+
+            col_filter, col_sp_btn = st.columns([3, 2])
+            with col_filter:
+                filter_opt = st.radio(
+                    "🔍 **오류 유형별 빠른 필터**",
+                    [
+                        "전체 보기",
+                        "🔴 맞춤법·오탈자만",
+                        "⬛ 문장부호(■) 미통일만",
+                        "✂️ 긴 문장 축약만",
+                    ],
+                    horizontal=True,
+                    key="radio_proofread_filter",
+                )
             with col_sp_btn:
                 btn_run_ext_spell = st.button("⚡ **외부 정밀 맞춤법 추가 스캔 (10개 병렬 스레드)**", type="primary", use_container_width=True)
 
@@ -1334,37 +1356,72 @@ with tab3:
                         st.session_state["custom_spelling_df"] = merged_spell
                         if crosscheck_result is not None:
                             crosscheck_result["spelling_df"] = merged_spell
+
+                        # combined_proofread_df에도 추가 반영
+                        ext_comb_rows = []
+                        for eh in ext_hits:
+                            ext_comb_rows.append({
+                                "강사명": eh.get("강사명", ""),
+                                "강좌명": eh.get("강좌명", ""),
+                                "교정 구분": "🔴 외부 맞춤법",
+                                "발견 항목": f"{eh.get('target_word', '-')} → {eh.get('replacement_word', '-')}",
+                                "PDF 원문 단락": eh.get("원문문장", ""),
+                                "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)": eh.get("교정문장", ""),
+                                "사유": eh.get("사유", "외부 정밀 맞춤법 교정"),
+                            })
+                        if ext_comb_rows:
+                            new_comb = pd.concat([combined_proofread_df, pd.DataFrame(ext_comb_rows)], ignore_index=True)
+                            combined_proofread_df = new_comb
+                            crosscheck_result["combined_proofread_df"] = new_comb
+
                         st.success(f"🎉 총 {len(ext_hits)}건의 외부 정밀 맞춤법 교정안이 10개 병렬 스레드로 신속하게 스캔 완료되었습니다.")
                         st.rerun()
                     else:
                         st.info("ℹ️ 외부 정밀 맞춤법 스캔 결과 추가 오류가 발견되지 않았습니다. (내장 규칙 120종 결과 유지)")
 
-            if not spelling_df.empty:
-                st.dataframe(spelling_df, use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ 감지된 맞춤법 및 오탈자 오류가 없습니다.")
-
+            # 2. 통합 검수 결과 테이블
             st.markdown("---")
-            st.markdown(f"#### ✍️ 2. 긴 문장({max_char_threshold}자 초과) 축약 및 개조식 제안 ({len(long_sentence_df)}건)")
-            if not long_sentence_df.empty:
-                st.dataframe(
-                    long_sentence_df[
-                        [
-                            "강좌명",
-                            "강사명",
-                            "섹션",
-                            "글자수",
-                            "원문문장",
-                            "제안1_서술형",
-                            "제안2_개조식",
-                            "최종문장",
-                        ]
-                    ],
-                    use_container_width=True,
-                    hide_index=True,
-                )
+            if combined_proofread_df is not None and not combined_proofread_df.empty:
+                filtered_df = combined_proofread_df.copy()
+                if filter_opt == "🔴 맞춤법·오탈자만":
+                    filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("맞춤법|오탈자", na=False)]
+                elif filter_opt == "⬛ 문장부호(■) 미통일만":
+                    filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("기호통일", na=False)]
+                elif filter_opt == "✂️ 긴 문장 축약만":
+                    filtered_df = filtered_df[filtered_df["교정 구분"].str.contains("긴 문장|축약", na=False)]
+
+                st.markdown(f"##### 📋 검수 결과 목록 (총 {len(filtered_df)}건)")
+                if not filtered_df.empty:
+                    st.dataframe(
+                        filtered_df[
+                            [
+                                "강사명",
+                                "강좌명",
+                                "교정 구분",
+                                "발견 항목",
+                                "PDF 원문 단락",
+                                "✅ 교정 완료 단락 (■ 통일 + 오타 수정본)",
+                                "사유",
+                            ]
+                        ],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                else:
+                    st.success(f"✅ 선택한 필터 '{filter_opt}'에 해당하는 항목이 없습니다.")
             else:
-                st.success(f"✅ {max_char_threshold}자를 초과하는 긴 문장이 없습니다.")
+                st.success("✅ 감지된 맞춤법 오류, 기호(■) 미통일, 긴 문장이 없습니다.")
+
+            # 3. 하단 강좌별 완성형 텍스트 원클릭 복사 박스
+            if course_unified_texts:
+                st.markdown("---")
+                st.markdown("#### 📋 강좌별 맞춤법·기호(■) 교정 완료 텍스트 원클릭 복사")
+                st.caption("각 강좌를 펼치면 모든 단락 앞이 '■ '(공백 1칸 포함)으로 통일되고 맞춤법/오탈자가 전면 교정된 완성본 텍스트가 표시됩니다. 코드 박스 우측 상단 복사 아이콘을 눌러 브로슈어나 RMS에 바로 활용하세요.")
+
+                for (inst, c_title), unified_text in course_unified_texts.items():
+                    if unified_text:
+                        with st.expander(f"📖 [{inst}] {c_title}"):
+                            st.code(unified_text, language="text")
 
     # -------------------------------------------------------------
     # 서브탭 B: PDF 계획서 기반 스마트 패스 & 수정 추천
