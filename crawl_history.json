@@ -1,5 +1,270 @@
 {
-  "시대인재(SdiJ)": [],
+  "시대인재(SdiJ)": [
+    {
+      "title": "예비고2 겨울방학 시간표 1",
+      "norm_key": "예비고2겨울방학시간표1",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 1",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 2",
+      "norm_key": "예비고2겨울방학시간표2",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 2",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 3",
+      "norm_key": "예비고2겨울방학시간표3",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 3",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 4",
+      "norm_key": "예비고2겨울방학시간표4",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 4",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 5",
+      "norm_key": "예비고2겨울방학시간표5",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 5",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 6",
+      "norm_key": "예비고2겨울방학시간표6",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 6",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 7",
+      "norm_key": "예비고2겨울방학시간표7",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 7",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 8",
+      "norm_key": "예비고2겨울방학시간표8",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 8",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 9",
+      "norm_key": "예비고2겨울방학시간표9",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 9",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 10",
+      "norm_key": "예비고2겨울방학시간표10",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 10",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 11",
+      "norm_key": "예비고2겨울방학시간표11",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 11",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 12",
+      "norm_key": "예비고2겨울방학시간표12",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 12",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 13",
+      "norm_key": "예비고2겨울방학시간표13",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 13",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 14",
+      "norm_key": "예비고2겨울방학시간표14",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 14",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 15",
+      "norm_key": "예비고2겨울방학시간표15",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 15",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 16",
+      "norm_key": "예비고2겨울방학시간표16",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 16",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 17",
+      "norm_key": "예비고2겨울방학시간표17",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 17",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 18",
+      "norm_key": "예비고2겨울방학시간표18",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 18",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 19",
+      "norm_key": "예비고2겨울방학시간표19",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 19",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 20",
+      "norm_key": "예비고2겨울방학시간표20",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 20",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 21",
+      "norm_key": "예비고2겨울방학시간표21",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 21",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    },
+    {
+      "title": "예비고2 겨울방학 시간표 22",
+      "norm_key": "예비고2겨울방학시간표22",
+      "sources": [
+        "시간표"
+      ],
+      "url": "https://www.sdij.com/aca/schd/",
+      "primary_cat": "시간표",
+      "raw_text": "예비고2 겨울방학 시간표 22",
+      "source_badge": "[시간표]",
+      "section": "notice"
+    }
+  ],
   "메가스터디 MEXX": [
     {
       "title": "예비고3 단과 수강신청 바로가기",
@@ -158,30 +423,6 @@
       "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
       "primary_cat": "설명회",
       "raw_text": "예약중 고2 [예비고3] 장혁진 컨설턴트 메디컬 설명회  [예비고3] 오렌지T, 강민웅T, 박석준T  일시 2026. 11. 13(금) 오후 6시 30분 장소 MEXX학원 (본관)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약마감 고2 [예비고3] 이만기 입시소장 설명회 [예비고3] 김지영T, 고석용T, 김종익T 일시 2026. 11. 10(화) 오후 2시 장소 MEXX학원 본관",
-      "norm_key": "예약마감고2이만기입시소장설명회김지영t고석용t김종익t일시20261110화오후2시장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약마감 고2 [예비고3] 이만기 입시소장 설명회  [예비고3] 김지영T, 고석용T, 김종익T  일시 2026. 11. 10(화) 오후 2시 장소 MEXX학원 본관",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "예약마감 고2 [예비고3] 정문찬 대표 입시 설명회 [예비고3] 김상훈T, 강영찬T, 최적T 일시 2026. 11. 11(수) 오전 10시 30분 장소 MEXX학원 (본관)",
-      "norm_key": "예약마감고2정문찬대표입시설명회김상훈t강영찬t최적t일시20261111수오전10시30분장소mexx학원본관",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://mexx.megastudy.net/campus_common/2026/fair/list.asp",
-      "primary_cat": "설명회",
-      "raw_text": "예약마감 고2 [예비고3] 정문찬 대표 입시 설명회  [예비고3] 김상훈T, 강영찬T, 최적T  일시 2026. 11. 11(수) 오전 10시 30분 장소 MEXX학원 (본관)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -546,27 +787,15 @@
       "section": "notice"
     },
     {
-      "title": "11.10 화요일 · PM 7:00 설명회 접수 가자! 한대부고 미리보기 설명회(2차) SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "1110화요일pm700설명회접수가자한대부고미리보기설명회2차snt14관예비고1학부모님예약하기",
+      "title": "11.13 금요일 · PM 7:00 설명회 접수 단대부고 예비고2 겨울방학 설명회 SNT 14관 예약하기 →",
+      "norm_key": "1113금요일pm700설명회접수단대부고예비고2겨울방학설명회snt14관예약하기",
       "sources": [
         "공지사항"
       ],
-      "url": "https://snt-edu.com/reserve?briefing=cms-43",
+      "url": "https://snt-edu.com/reserve?briefing=cms-61",
       "primary_cat": "공지사항",
-      "raw_text": "11.10 화요일 · PM 7:00 설명회 접수 가자! 한대부고 미리보기 설명회(2차) SNT 14관 · 예비고1 학부모님 예약하기 →",
+      "raw_text": "11.13 금요일 · PM 7:00 설명회 접수 단대부고 예비고2 겨울방학 설명회 SNT 14관 예약하기 →",
       "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "가자! 한대부고 미리보기 설명회(2차) 11월 10일 (화) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "가자한대부고미리보기설명회2차11월10일화pm700snt14관예비고1학부모님예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "가자! 한대부고 미리보기 설명회(2차) 11월 10일 (화) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[설명회]",
       "section": "event"
     },
     {
@@ -680,18 +909,6 @@
       "section": "notice"
     },
     {
-      "title": "【예비고3】2028학년도 인문논술 정규반 시간표 N 2026.11.03",
-      "norm_key": "예비고32028학년도인문논술정규반시간표n20261103",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://dh.mirae-academy.co.kr/customer/notice",
-      "primary_cat": "공지사항",
-      "raw_text": "[공지] 【예비고3】2028학년도 인문논술 정규반 시간표 N  2026.11.03",
-      "source_badge": "[공지사항]",
-      "section": "notice"
-    },
-    {
       "title": "Special Winter 수학 캠프 N 2026.11.09",
       "norm_key": "specialwinter수학캠프n20261109",
       "sources": [
@@ -704,16 +921,100 @@
       "section": "notice"
     },
     {
-      "title": "예비고3 수강 신청 및 시간표 안내 N 2026.11.03",
-      "norm_key": "예비고3수강신청및시간표안내n20261103",
+      "title": "D-0 ★ 2028학년도 통합 수능대비 과목 대강사 설명회 2026-11-11(수)",
+      "norm_key": "d02028학년도통합수능대비과목대강사설명회20261111수",
       "sources": [
-        "공지사항"
+        "설명회"
       ],
-      "url": "https://dh.mirae-academy.co.kr/customer/notice",
-      "primary_cat": "공지사항",
-      "raw_text": "[공지] 예비고3 수강 신청 및 시간표 안내 N  2026.11.03",
-      "source_badge": "[공지사항]",
-      "section": "notice"
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012560",
+      "primary_cat": "설명회",
+      "raw_text": "D-0  ★ 2028학년도 통합 수능대비 과목 대강사 설명회  2026-11-11(수)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-0 new■ 진학 성공을 위한 \"입시\"와 함께하는 1탄 2026-11-11(수)",
+      "norm_key": "d0new진학성공을위한입시와함께하는1탄20261111수",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012573",
+      "primary_cat": "설명회",
+      "raw_text": "D-0  new■ 진학 성공을 위한 \"입시\"와 함께하는 [과탐설명회] 1탄  2026-11-11(수)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-1 new【예비고3】 2028학년도 자연계열 논술설명회 2026-11-12(목)",
+      "norm_key": "d1new예비고32028학년도자연계열논술설명회20261112목",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012583",
+      "primary_cat": "설명회",
+      "raw_text": "D-1  new【예비고3】 2028학년도 자연계열 논술설명회  2026-11-12(목)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-2 new■ 진학 성공을 위한 \"입시\"와 함께하는 2탄 2026-11-13(금)",
+      "norm_key": "d2new진학성공을위한입시와함께하는2탄20261113금",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012572",
+      "primary_cat": "설명회",
+      "raw_text": "D-2  new■ 진학 성공을 위한 \"입시\"와 함께하는 [과탐설명회] 2탄  2026-11-13(금)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-3마감 [예비고3] 수시 정시 지원 전략 설명회 2026-11-14(토)",
+      "norm_key": "d3마감수시정시지원전략설명회20261114토",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012527",
+      "primary_cat": "설명회",
+      "raw_text": "D-3마감  [예비고3] 수시 정시 지원 전략 설명회  2026-11-14(토)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-4 ♥ 예비고1 수학 겨울방학 전략 설명회 2026-11-15(일)",
+      "norm_key": "d4예비고1수학겨울방학전략설명회20261115일",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012528",
+      "primary_cat": "설명회",
+      "raw_text": "D-4  ♥ 예비고1 수학 겨울방학 전략 설명회  2026-11-15(일)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-9마감 [고3]2027 정시 지원 전략 & 컨설팅 설명회 2026-11-20(금)",
+      "norm_key": "d9마감2027정시지원전략컨설팅설명회20261120금",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012542",
+      "primary_cat": "설명회",
+      "raw_text": "D-9마감  [고3]2027 정시 지원 전략 & 컨설팅 설명회  2026-11-20(금)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-11 ♥2027’ 고2 겨울방학 수학 학습 전략설명회 2026-11-22(일)",
+      "norm_key": "d112027고2겨울방학수학학습전략설명회20261122일",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012529",
+      "primary_cat": "설명회",
+      "raw_text": "D-11  ♥2027’ 고2 겨울방학 수학 학습 전략설명회  2026-11-22(일)",
+      "source_badge": "[설명회]",
+      "section": "event"
     }
   ],
   "세정학원": [
