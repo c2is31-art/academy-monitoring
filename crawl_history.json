@@ -785,26 +785,14 @@
       "section": "notice"
     },
     {
-      "title": "D-0마감 [예비고3] 수시 정시 지원 전략 설명회 2026-11-14(토)",
-      "norm_key": "d0마감수시정시지원전략설명회20261114토",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012527",
-      "primary_cat": "설명회",
-      "raw_text": "D-0마감  [예비고3] 수시 정시 지원 전략 설명회  2026-11-14(토)",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "D-1 ♥ 예비고1 수학 겨울방학 전략 설명회 2026-11-15(일)",
-      "norm_key": "d1예비고1수학겨울방학전략설명회20261115일",
+      "title": "D-0 ♥ 예비고1 수학 겨울방학 전략 설명회 2026-11-15(일)",
+      "norm_key": "d0예비고1수학겨울방학전략설명회20261115일",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012528",
       "primary_cat": "설명회",
-      "raw_text": "D-1  ♥ 예비고1 수학 겨울방학 전략 설명회  2026-11-15(일)",
+      "raw_text": "D-0  ♥ 예비고1 수학 겨울방학 전략 설명회  2026-11-15(일)",
       "source_badge": "[설명회]",
       "section": "event"
     },
@@ -821,62 +809,74 @@
       "section": "event"
     },
     {
-      "title": "D-6마감 [고3]2027 정시 지원 전략 & 컨설팅 설명회 2026-11-20(금)",
-      "norm_key": "d6마감2027정시지원전략컨설팅설명회20261120금",
+      "title": "D-5마감 [고3]2027 정시 지원 전략 & 컨설팅 설명회 2026-11-20(금)",
+      "norm_key": "d5마감2027정시지원전략컨설팅설명회20261120금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012542",
       "primary_cat": "설명회",
-      "raw_text": "D-6마감  [고3]2027 정시 지원 전략 & 컨설팅 설명회  2026-11-20(금)",
+      "raw_text": "D-5마감  [고3]2027 정시 지원 전략 & 컨설팅 설명회  2026-11-20(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-8 ♥2027’ 고2 겨울방학 수학 학습 전략설명회 2026-11-22(일)",
-      "norm_key": "d82027고2겨울방학수학학습전략설명회20261122일",
+      "title": "D-7 ♥2027’ 고2 겨울방학 수학 학습 전략설명회 2026-11-22(일)",
+      "norm_key": "d72027고2겨울방학수학학습전략설명회20261122일",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012529",
       "primary_cat": "설명회",
-      "raw_text": "D-8  ♥2027’ 고2 겨울방학 수학 학습 전략설명회  2026-11-22(일)",
+      "raw_text": "D-7  ♥2027’ 고2 겨울방학 수학 학습 전략설명회  2026-11-22(일)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-10 (예비고1)■ <2030학년도 입시환경에 따른 대입 수시 전략>설명회 2026-11-24(화)",
-      "norm_key": "d10예비고12030학년도입시환경에따른대입수시전략설명회20261124화",
+      "title": "D-9 (예비고1)■ <2030학년도 입시환경에 따른 대입 수시 전략>설명회 2026-11-24(화)",
+      "norm_key": "d9예비고12030학년도입시환경에따른대입수시전략설명회20261124화",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012568",
       "primary_cat": "설명회",
-      "raw_text": "D-10  (예비고1)■ <2030학년도 입시환경에 따른 대입 수시 전략>설명회  2026-11-24(화)",
+      "raw_text": "D-9  (예비고1)■ <2030학년도 입시환경에 따른 대입 수시 전략>설명회  2026-11-24(화)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-13 new★ 2027학년도 부천과학고 합격자 설명회 2026-11-27(금)",
-      "norm_key": "d13new2027학년도부천과학고합격자설명회20261127금",
+      "title": "D-12 new★ 2027학년도 부천과학고 합격자 설명회 2026-11-27(금)",
+      "norm_key": "d12new2027학년도부천과학고합격자설명회20261127금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012667",
       "primary_cat": "설명회",
-      "raw_text": "D-13  new★ 2027학년도 부천과학고 합격자 설명회  2026-11-27(금)",
+      "raw_text": "D-12  new★ 2027학년도 부천과학고 합격자 설명회  2026-11-27(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-13 new★ 2027학년도 분당중앙과학고 합격자 설명회 2026-11-27(금)",
-      "norm_key": "d13new2027학년도분당중앙과학고합격자설명회20261127금",
+      "title": "D-12 new★ 2027학년도 분당중앙과학고 합격자 설명회 2026-11-27(금)",
+      "norm_key": "d12new2027학년도분당중앙과학고합격자설명회20261127금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012668",
       "primary_cat": "설명회",
-      "raw_text": "D-13  new★ 2027학년도 분당중앙과학고 합격자 설명회  2026-11-27(금)",
+      "raw_text": "D-12  new★ 2027학년도 분당중앙과학고 합격자 설명회  2026-11-27(금)",
+      "source_badge": "[설명회]",
+      "section": "event"
+    },
+    {
+      "title": "D-19 new★ 2027학년도 한성과학고 합격자 설명회 2026-12-04(금)",
+      "norm_key": "d19new2027학년도한성과학고합격자설명회20261204금",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012670",
+      "primary_cat": "설명회",
+      "raw_text": "D-19  new★ 2027학년도 한성과학고 합격자 설명회  2026-12-04(금)",
       "source_badge": "[설명회]",
       "section": "event"
     }
@@ -945,30 +945,6 @@
       "raw_text": "예비고3 수업",
       "source_badge": "[공지사항]",
       "section": "notice"
-    },
-    {
-      "title": "2028년도 예비고3 (현 고2) 통사 X 통과 학습법 간담회",
-      "norm_key": "2028년도예비고3현고2통사x통과학습법간담회",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://sejungedu.com",
-      "primary_cat": "공지사항",
-      "raw_text": "2028년도 예비고3 (현 고2) 통사 X 통과 학습법 간담회",
-      "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "11월 16일 (월) 오전 11:00–1:00 2028년도 예비고3 (현 고2) 통사 X 통과 학습법 간담회 우전관 201 상세 내용 신청하기",
-      "norm_key": "11월16일월오전11001002028년도예비고3현고2통사x통과학습법간담회우전관201상세내용신청하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://sejungedu.com/explain/presentationplan?co=%EA%B3%A01",
-      "primary_cat": "설명회",
-      "raw_text": "11월 16일 (월) 오전 11:00–1:00  2028년도 예비고3 (현 고2) 통사 X 통과 학습법 간담회  우전관 201  상세 내용 신청하기",
-      "source_badge": "[설명회]",
-      "section": "event"
     },
     {
       "title": "중3(예비고1)",
