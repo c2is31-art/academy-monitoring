@@ -737,246 +737,102 @@
       "raw_text": "2026 · 2학기 M3 중3 시간표 예비고 선행 로드맵 →",
       "source_badge": "[공지사항]",
       "section": "notice"
-    },
-    {
-      "title": "11.29 일요일 · PM 1:00 설명회 접수 대원국제중 19기 합격자 1차 간담회 추후 공지 · 예비중1 학부모 예약하기 →",
-      "norm_key": "1129일요일pm100설명회접수대원국제중19기합격자1차간담회추후공지예비중1학부모예약하기",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://snt-edu.com/reserve?briefing=cms-71",
-      "primary_cat": "공지사항",
-      "raw_text": "11.29 일요일 · PM 1:00 설명회 접수 대원국제중 19기 합격자 1차 간담회 추후 공지 · 예비중1 학부모 예약하기 →",
-      "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "11.29 일요일 · PM 2:00 설명회 접수 단대소고 합격자 설명회 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "1129일요일pm200설명회접수단대소고합격자설명회snt14관예비고1학부모님예약하기",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://snt-edu.com/reserve?briefing=cms-44",
-      "primary_cat": "공지사항",
-      "raw_text": "11.29 일요일 · PM 2:00 설명회 접수 단대소고 합격자 설명회 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "11.29 일요일 · PM 3:00 설명회 접수 SNTX오르새T 2028 수능 정시 전략 설명회 추후공지 · 예비고3 학부모 예약하기 →",
-      "norm_key": "1129일요일pm300설명회접수sntx오르새t2028수능정시전략설명회추후공지예비고3학부모예약하기",
-      "sources": [
-        "공지사항"
-      ],
-      "url": "https://snt-edu.com/reserve?briefing=cms-69",
-      "primary_cat": "공지사항",
-      "raw_text": "11.29 일요일 · PM 3:00 설명회 접수 SNTX오르새T 2028 수능 정시 전략 설명회 추후공지 · 예비고3 학부모 예약하기 →",
-      "source_badge": "[공지사항]",
-      "section": "event"
-    },
-    {
-      "title": "대원국제중 19기 합격자 1차 간담회 11월 29일 (일) PM 1:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "norm_key": "대원국제중19기합격자1차간담회11월29일일pm100추후공지예비중1학부모예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "대원국제중 19기 합격자 1차 간담회 11월 29일 (일) PM 1:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "단대소고 합격자 설명회 11월 29일 (일) PM 2:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "단대소고합격자설명회11월29일일pm200snt14관예비고1학부모님예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "단대소고 합격자 설명회 11월 29일 (일) PM 2:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "SNTX오르새T 2028 수능 정시 전략 설명회 11월 29일 (일) PM 3:00 추후공지 · 예비고3 학부모 예약하기 →",
-      "norm_key": "sntx오르새t2028수능정시전략설명회11월29일일pm300추후공지예비고3학부모예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "SNTX오르새T 2028 수능 정시 전략 설명회 11월 29일 (일) PM 3:00 추후공지 · 예비고3 학부모 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "대원국제중 19기 합격자 2차 간담회 12월 5일 (토) PM 1:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "norm_key": "대원국제중19기합격자2차간담회12월5일토pm100추후공지예비중1학부모예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "대원국제중 19기 합격자 2차 간담회 12월 5일 (토) PM 1:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "한대부고 합격자 설명회 12월 9일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "한대부고합격자설명회12월9일수pm700snt14관예비고1학부모님예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "한대부고 합격자 설명회 12월 9일 (수) PM 7:00 SNT 14관 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "중동고 합격자 설명회 12월 10일 (목) PM 7:00 추후 공지 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "중동고합격자설명회12월10일목pm700추후공지예비고1학부모님예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "중동고 합격자 설명회 12월 10일 (목) PM 7:00 추후 공지 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "휘문고 합격자 설명회 12월 11일 (금) PM 7:00 추후 공지 · 예비고1 학부모님 예약하기 →",
-      "norm_key": "휘문고합격자설명회12월11일금pm700추후공지예비고1학부모님예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "휘문고 합격자 설명회 12월 11일 (금) PM 7:00 추후 공지 · 예비고1 학부모님 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "대원국제중 19기 합격자 3차 간담회 12월 12일 (토) AM 10:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "norm_key": "대원국제중19기합격자3차간담회12월12일토am1000추후공지예비중1학부모예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "대원국제중 19기 합격자 3차 간담회 12월 12일 (토) AM 10:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
-    },
-    {
-      "title": "대원국제중 19기 합격자 4차 간담회 12월 27일 (일) AM 10:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "norm_key": "대원국제중19기합격자4차간담회12월27일일am1000추후공지예비중1학부모예약하기",
-      "sources": [
-        "설명회"
-      ],
-      "url": "https://snt-edu.com/reserve",
-      "primary_cat": "설명회",
-      "raw_text": "대원국제중 19기 합격자 4차 간담회 12월 27일 (일) AM 10:00 추후 공지 · 예비중1 학부모 예약하기 →",
-      "source_badge": "[설명회]",
-      "section": "event"
     }
   ],
   "미래탐구(Mirae)": [
     {
-      "title": "D-1 ★ 2027학년도 부천과학고 합격자 설명회 2026-11-27(금)",
-      "norm_key": "d12027학년도부천과학고합격자설명회20261127금",
+      "title": "D-0 ★ 2027학년도 부천과학고 합격자 설명회 2026-11-27(금)",
+      "norm_key": "d02027학년도부천과학고합격자설명회20261127금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012667",
       "primary_cat": "설명회",
-      "raw_text": "D-1  ★ 2027학년도 부천과학고 합격자 설명회  2026-11-27(금)",
+      "raw_text": "D-0  ★ 2027학년도 부천과학고 합격자 설명회  2026-11-27(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-1 ★ 2027학년도 분당중앙과학고 합격자 설명회 2026-11-27(금)",
-      "norm_key": "d12027학년도분당중앙과학고합격자설명회20261127금",
+      "title": "D-0 ★ 2027학년도 분당중앙과학고 합격자 설명회 2026-11-27(금)",
+      "norm_key": "d02027학년도분당중앙과학고합격자설명회20261127금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012668",
       "primary_cat": "설명회",
-      "raw_text": "D-1  ★ 2027학년도 분당중앙과학고 합격자 설명회  2026-11-27(금)",
+      "raw_text": "D-0  ★ 2027학년도 분당중앙과학고 합격자 설명회  2026-11-27(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-2마감 [예비고3] 2028학년도 \"문과\" 맞춤 입시 설명회 2026-11-28(토)",
-      "norm_key": "d2마감2028학년도문과맞춤입시설명회20261128토",
+      "title": "D-1마감 [예비고3] 2028학년도 \"문과\" 맞춤 입시 설명회 2026-11-28(토)",
+      "norm_key": "d1마감2028학년도문과맞춤입시설명회20261128토",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012701",
       "primary_cat": "설명회",
-      "raw_text": "D-2마감  [예비고3] 2028학년도 \"문과\" 맞춤 입시 설명회  2026-11-28(토)",
+      "raw_text": "D-1마감  [예비고3] 2028학년도 \"문과\" 맞춤 입시 설명회  2026-11-28(토)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-4 new■ 예비고3 수학 콘서트 (28 수능 대비 수학 강사 총출동) 2026-11-30(월)",
-      "norm_key": "d4new예비고3수학콘서트28수능대비수학강사총출동20261130월",
+      "title": "D-3 new■ 예비고3 수학 콘서트 (28 수능 대비 수학 강사 총출동) 2026-11-30(월)",
+      "norm_key": "d3new예비고3수학콘서트28수능대비수학강사총출동20261130월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012754",
       "primary_cat": "설명회",
-      "raw_text": "D-4  new■ 예비고3 수학 콘서트 (28 수능 대비 수학 강사 총출동)  2026-11-30(월)",
+      "raw_text": "D-3  new■ 예비고3 수학 콘서트 (28 수능 대비 수학 강사 총출동)  2026-11-30(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-8 ★ 2027학년도 한성과학고 합격자 설명회 2026-12-04(금)",
-      "norm_key": "d82027학년도한성과학고합격자설명회20261204금",
+      "title": "D-7 ★ 2027학년도 한성과학고 합격자 설명회 2026-12-04(금)",
+      "norm_key": "d72027학년도한성과학고합격자설명회20261204금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012670",
       "primary_cat": "설명회",
-      "raw_text": "D-8  ★ 2027학년도 한성과학고 합격자 설명회  2026-12-04(금)",
+      "raw_text": "D-7  ★ 2027학년도 한성과학고 합격자 설명회  2026-12-04(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-8 ★ 2027학년도 세종과학고 합격자 설명회 2026-12-04(금)",
-      "norm_key": "d82027학년도세종과학고합격자설명회20261204금",
+      "title": "D-7 ★ 2027학년도 세종과학고 합격자 설명회 2026-12-04(금)",
+      "norm_key": "d72027학년도세종과학고합격자설명회20261204금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012669",
       "primary_cat": "설명회",
-      "raw_text": "D-8  ★ 2027학년도 세종과학고 합격자 설명회  2026-12-04(금)",
+      "raw_text": "D-7  ★ 2027학년도 세종과학고 합격자 설명회  2026-12-04(금)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-11 new【예비고3】2028학년도 인문계열 논술설명회 2026-12-07(월)",
-      "norm_key": "d11new예비고32028학년도인문계열논술설명회20261207월",
+      "title": "D-10 new【예비고3】2028학년도 인문계열 논술설명회 2026-12-07(월)",
+      "norm_key": "d10new예비고32028학년도인문계열논술설명회20261207월",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012791",
       "primary_cat": "설명회",
-      "raw_text": "D-11  new【예비고3】2028학년도 인문계열 논술설명회  2026-12-07(월)",
+      "raw_text": "D-10  new【예비고3】2028학년도 인문계열 논술설명회  2026-12-07(월)",
       "source_badge": "[설명회]",
       "section": "event"
     },
     {
-      "title": "D-15 new【예비고3】 2028학년도 자연계열 논술설명회 2026-12-11(금)",
-      "norm_key": "d15new예비고32028학년도자연계열논술설명회20261211금",
+      "title": "D-14 new【예비고3】 2028학년도 자연계열 논술설명회 2026-12-11(금)",
+      "norm_key": "d14new예비고32028학년도자연계열논술설명회20261211금",
       "sources": [
         "설명회"
       ],
       "url": "https://dhres.mirae-academy.co.kr/front/reservation_detail?caller_type=cardtype&proxy_mem_id=&product_id=00000000000000012792",
       "primary_cat": "설명회",
-      "raw_text": "D-15  new【예비고3】 2028학년도 자연계열 논술설명회  2026-12-11(금)",
+      "raw_text": "D-14  new【예비고3】 2028학년도 자연계열 논술설명회  2026-12-11(금)",
       "source_badge": "[설명회]",
       "section": "event"
     }
@@ -1071,6 +927,18 @@
       "raw_text": "예비고3 수업",
       "source_badge": "[공지사항]",
       "section": "notice"
+    },
+    {
+      "title": "11월 26일 (목) 오전 11:002027 고1(현 중3) ‘대학 합격을 좌우하는’ 고교선택 <최종 점검> 설명회우전관 401종료상세 내용 예비고1 ‘대학 합격을 좌우하는’ 고교",
+      "norm_key": "11월26일목오전11002027고1현중3대학합격을좌우하는고교선택최종점검설명회우전관401종료상세내용예비고1대학합격을좌우하는고교선택최종점검설명회강남권남학교vs강남권공학선택의해법제시1부남학교과목별대표강사강사진추후공지2부강남권남고및공학진학예정인남학생로드맵12028입시에서중요포인트체크2고등학교3년로드맵짜기3남학생입장에서남고vs공학4남학생수행평가팁안중훈센터장대치세정스터디파이터스센터장전대치미래탐구입시센터",
+      "sources": [
+        "설명회"
+      ],
+      "url": "https://sejungedu.com/explain/presentationplan?co=%EA%B3%A01",
+      "primary_cat": "설명회",
+      "raw_text": "11월 26일 (목) 오전 11:002027 고1(현 중3) ‘대학 합격을 좌우하는’ 고교선택 <최종 점검> 설명회우전관 401종료상세 내용 예비고1 ‘대학 합격을 좌우하는’ 고교선택 <최종 점검> 설명회 ★ 강남권 남학교 vs 강남권 공학 선택의 해법 제시 ★ <1부>- 남학교 과목별 대표 강사 (강사진 추후 공지) <2부> ○ 강남권 남고 및 공학 진학 예정인 남학생 로드맵 1. 2028 입시에서 중요 포인트 체크2. 고등학교 3년 로드맵 짜기3. 남학생 입장에서 남고 VS 공학4. 남학생 수행평가 팁 [연사] ◆ 안중훈센터장- 대치세정 스터디파이터스 센터장- 전) 대치 미래탐구 입시센터",
+      "source_badge": "[설명회]",
+      "section": "event"
     },
     {
       "title": "11월 25일 (수) 오전 11:00–3:002027 고1(현 중3) ‘대학 합격을 좌우하는’ 고교선택 <최종 점검> 설명회우전관 401종료상세 내용예비고1 ‘대학 합격을 좌우하는",
